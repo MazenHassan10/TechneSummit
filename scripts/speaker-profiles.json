@@ -824,14 +824,18 @@
   "company": "Bagh Studio",
   "photo": "https://avatars.sched.co/6/e0/28173994/avatar.jpg?d8e",
   "bio": "Mahmoud ElSabbagh is the Founder of Bagh Studio (ByBagh), an AI art direction studio. With 11 years of experience in filmmaking, design and advertising, he previously served as Senior Art Director and Design Director at VML Egypt.",
-  "linkedin": "",
+  "linkedin": "https://www.linkedin.com/in/mahmoud-el-sabbagh-9a86213b6/",
   "otherLink": "",
   "sourceUrl": "https://technesummit2026.sched.com/speaker/mahmoud_elsabbagh.2a8hc9lm",
   "linkConfidence": "high",
-  "_evidence": "No LinkedIn confirmed (only an unrelated 'Mahmoud Sabbagh - Digital Print Center' profile). Behance portfolio 'Mahmoud El sabbagh - Sr. Art Director in Cairo' (VML work) matches official bio.",
+  "_evidence": "No LinkedIn confirmed (only an unrelated 'Mahmoud Sabbagh - Digital Print Center' profile). Behance portfolio 'Mahmoud El sabbagh - Sr. Art Director in Cairo' (VML work) matches official bio. | linkedin provided by Team Leader 2026-10-02",
   "_rawConfidence": "none",
   "_rawLinkedin": "",
   "social": [
+   {
+    "type": "linkedin",
+    "url": "https://www.linkedin.com/in/mahmoud-el-sabbagh-9a86213b6/"
+   },
    {
     "type": "behance",
     "url": "https://www.behance.net/EL-SABBAGH"
