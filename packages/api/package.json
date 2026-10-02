@@ -6,16 +6,21 @@
     "./*": "./src/*.ts"
   },
   "scripts": {
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "seed": "bun src/seed.ts",
+    "test": "bun test"
   },
   "dependencies": {
     "@great-hall-pr/db": "workspace:*",
     "@trpc/client": "catalog:",
     "@trpc/server": "catalog:",
-    "zod": "catalog:"
+    "zod": "catalog:",
+    "@great-hall-pr/core": "workspace:*",
+    "drizzle-orm": "1.0.0-rc.4"
   },
   "devDependencies": {
     "@great-hall-pr/config": "workspace:*",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "@types/bun": "latest"
   }
 }

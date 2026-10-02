@@ -1,7 +1,10 @@
 {
   "extends": "@great-hall-pr/config/tsconfig.base.json",
   "compilerOptions": {
-    "noEmit": true
+    "noEmit": true,
+    "types": [
+      "bun"
+    ]
   },
   "exclude": [
     "src/**/*.test.ts"

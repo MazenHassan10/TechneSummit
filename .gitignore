@@ -56,3 +56,7 @@ coverage
 .cache
 tmp
 temp
+NEON_CLAIM_URL.txt
+
+# screenshots can show login PINs
+screenshots/

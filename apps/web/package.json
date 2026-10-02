@@ -27,7 +27,8 @@
     "react-dom": "catalog:",
     "sonner": "catalog:",
     "varlock": "catalog:",
-    "zod": "catalog:"
+    "zod": "catalog:",
+    "@great-hall-pr/core": "workspace:*"
   },
   "devDependencies": {
     "@great-hall-pr/config": "workspace:*",

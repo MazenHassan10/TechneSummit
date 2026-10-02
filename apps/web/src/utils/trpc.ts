@@ -1,28 +1,22 @@
 import type { AppRouter } from "@great-hall-pr/api/routers/index";
-import { QueryCache, QueryClient } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import { createTRPCOptionsProxy } from "@trpc/tanstack-react-query";
-import { toast } from "sonner";
+
+export const TOKEN_KEY = "gh_token";
 
 export const queryClient = new QueryClient({
-  queryCache: new QueryCache({
-    onError: (error, query) => {
-      toast.error(error.message, {
-        action: {
-          label: "retry",
-          onClick: () => {
-            query.invalidate();
-          },
-        },
-      });
-    },
-  }),
+  defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
 });
 
-const trpcClient = createTRPCClient<AppRouter>({
+export const trpcClient = createTRPCClient<AppRouter>({
   links: [
     httpBatchLink({
       url: "/api/trpc",
+      headers() {
+        const token = typeof window !== "undefined" ? window.localStorage.getItem(TOKEN_KEY) : null;
+        return token ? { "x-gh-token": token } : {};
+      },
     }),
   ],
 });

@@ -1,8 +1,83 @@
-import { publicProcedure, router } from "../index";
+import { apply, memberByName, type Actor, type State } from "@great-hall-pr/core";
+import { TRPCError } from "@trpc/server";
+import { z } from "zod";
+
+import { authedProcedure, publicProcedure, router } from "../index";
+import { createToken, getVersion, loadState, persist, type StoredState } from "../store";
+
+const ADMIN = "__admin__";
+
+function actorFor(state: State, who: string): Actor {
+  if (who === ADMIN) return { name: state.settings.adminName || "Team Leader", admin: true };
+  // removed from the team → logged out
+  if (!memberByName(state, who)) throw new TRPCError({ code: "UNAUTHORIZED", message: "SESSION_EXPIRED" });
+  return { name: who, admin: false };
+}
+
+/** PINs are only visible to the Team Leader */
+function publicState(state: StoredState, actor: Actor) {
+  const { version: _v, _newLog: _n, ...rest } = state;
+  const out = structuredClone(rest);
+  if (!actor.admin) {
+    out.settings.adminPin = "";
+    for (const m of out.team) m.pin = "";
+  }
+  return out;
+}
 
 export const appRouter = router({
-  healthCheck: publicProcedure.query(() => {
-    return "OK";
+  healthCheck: publicProcedure.query(() => "OK"),
+
+  auth: router({
+    loginNames: publicProcedure.query(async ({ ctx }) => {
+      const st = await loadState(ctx.db);
+      return st.team.map((m) => m.name);
+    }),
+    login: publicProcedure
+      .input(z.object({ name: z.string().min(1), pin: z.string().max(12) }))
+      .mutation(async ({ ctx, input }) => {
+        const st = await loadState(ctx.db);
+        const pin = input.pin.trim();
+        let who: string;
+        if (input.name === ADMIN) {
+          if (pin !== String(st.settings.adminPin)) throw new TRPCError({ code: "UNAUTHORIZED", message: "Wrong PIN" });
+          who = ADMIN;
+        } else {
+          const m = memberByName(st, input.name);
+          if (!m || pin !== String(m.pin)) throw new TRPCError({ code: "UNAUTHORIZED", message: "Wrong PIN" });
+          who = m.name;
+        }
+        const token = await createToken(ctx.db, who);
+        return { token, me: actorFor(st, who) };
+      }),
+  }),
+
+  state: router({
+    /** Cheap poll: returns `unchanged` unless the version moved. */
+    get: authedProcedure.input(z.object({ since: z.number().optional() })).query(async ({ ctx, input }) => {
+      if (input.since) {
+        const v = await getVersion(ctx.db);
+        if (v === input.since) return { unchanged: true as const, version: v, serverNow: Date.now() };
+      }
+      const st = await loadState(ctx.db);
+      const me = actorFor(st, ctx.who);
+      return { unchanged: false as const, state: publicState(st, me), me, version: st.version, serverNow: Date.now() };
+    }),
+
+    /** Every change goes through the same rules as the browser preview (packages/core). */
+    act: authedProcedure
+      .input(z.object({ action: z.object({ type: z.string() }).passthrough() }))
+      .mutation(async ({ ctx, input }) => {
+        const st = await loadState(ctx.db);
+        const me = actorFor(st, ctx.who);
+        const before = structuredClone(st);
+        const now = Date.now();
+        const res = apply(st, input.action, me, now);
+        if (!res.ok) return { ok: false as const, error: res.error };
+        const version = await persist(ctx.db, before, st, res.dirty, st._newLog || []);
+        st.version = version;
+        return { ok: true as const, result: res.result, state: publicState(st, me), version, serverNow: now };
+      }),
   }),
 });
 export type AppRouter = typeof appRouter;

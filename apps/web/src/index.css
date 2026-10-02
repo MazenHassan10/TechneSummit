@@ -1,1 +1,50 @@
 @import "@great-hall-pr/ui/globals.css";
+
+/* Techne Summit palette (from technesummit.com): brand blue #105ca8, navy #0c1736,
+   Alexandria orange #f15a22, amber #f9a51a. Kept here so re-adding shadcn components never overwrites it. */
+:root {
+  --background: #f3f6fb;
+  --foreground: #1f2a37;
+  --card: #ffffff;
+  --card-foreground: #1f2a37;
+  --popover: #ffffff;
+  --popover-foreground: #1f2a37;
+  --primary: #105ca8;
+  --primary-foreground: #ffffff;
+  --secondary: #eef5ff;
+  --secondary-foreground: #105ca8;
+  --muted: #eef5ff;
+  --muted-foreground: #62708a;
+  --accent: #eef5ff;
+  --accent-foreground: #105ca8;
+  --destructive: #d92d20;
+  --border: #dce5f2;
+  --input: #dce5f2;
+  --ring: #105ca8;
+  --radius: 0.8rem;
+}
+
+@theme inline {
+  --font-sans: var(--font-rubik), ui-sans-serif, system-ui, sans-serif;
+  --color-brand: #105ca8;
+  --color-brand-dark: #0e549a;
+  --color-navy: #0c1736;
+  --color-orange: #f15a22;
+  --color-orange-dark: #d94a15;
+  --color-amber: #f9a51a;
+  --color-soft: #eef5ff;
+  --color-line: #dce5f2;
+  /* status colours */
+  --color-st-done: #159447;
+  --color-st-ready: #d99100;
+  --color-st-arrived: #105ca8;
+  --color-st-urgent: #d92d20;
+  --color-st-warn: #e8590c;
+  --color-st-ok: #159447;
+  --color-st-idle: #8a96ad;
+  --color-st-noshow: #6c36d9;
+}
+
+@keyframes gh-pulse { 50% { opacity: .55 } }
+.gh-pulse { animation: gh-pulse 1.4s infinite; }
+html, body { background: var(--background); }

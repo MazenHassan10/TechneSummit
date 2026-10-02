@@ -84,6 +84,9 @@ importers:
       '@great-hall-pr/api':
         specifier: workspace:*
         version: link:../../packages/api
+      '@great-hall-pr/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       '@great-hall-pr/db':
         specifier: workspace:*
         version: link:../../packages/db
@@ -163,6 +166,9 @@ importers:
 
   packages/api:
     dependencies:
+      '@great-hall-pr/core':
+        specifier: workspace:*
+        version: link:../core
       '@great-hall-pr/db':
         specifier: workspace:*
         version: link:../db
@@ -172,6 +178,9 @@ importers:
       '@trpc/server':
         specifier: 'catalog:'
         version: 11.19.0(typescript@6.0.3)
+      drizzle-orm:
+        specifier: 1.0.0-rc.4
+        version: 1.0.0-rc.4(@neondatabase/serverless@1.2.0)(bun-types@1.4.2)(zod@4.6.5)
       zod:
         specifier: 'catalog:'
         version: 4.6.5
@@ -179,11 +188,26 @@ importers:
       '@great-hall-pr/config':
         specifier: workspace:*
         version: link:../config
+      '@types/bun':
+        specifier: latest
+        version: 1.4.2
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
 
   packages/config: {}
+
+  packages/core:
+    devDependencies:
+      '@great-hall-pr/config':
+        specifier: workspace:*
+        version: link:../config
+      '@types/bun':
+        specifier: latest
+        version: 1.4.2
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
 
   packages/db:
     dependencies:
@@ -192,7 +216,7 @@ importers:
         version: 1.2.0
       drizzle-orm:
         specifier: 1.0.0-rc.4
-        version: 1.0.0-rc.4(@neondatabase/serverless@1.2.0)(zod@4.6.5)
+        version: 1.0.0-rc.4(@neondatabase/serverless@1.2.0)(bun-types@1.4.2)(zod@4.6.5)
       zod:
         specifier: 'catalog:'
         version: 4.6.5
@@ -1159,6 +1183,9 @@ packages:
     cpu: [arm64]
     os: [win32]
 
+  '@types/bun@1.4.2':
+    resolution: {integrity: sha512-GimotNn7+ZV0uVArItBbriZsR1oNf0+WTzPkdcFrzShI7k2norL0uzEaJT8T33dWr7O/c9ZDuAFQrctKCi72oQ==}
+
   '@types/node@26.6.3':
     resolution: {integrity: sha512-dsqMQQoeTLqu9wynDD00q573mNzso3IdQOAfHRJqLCcmCFPoGo9A1bDpUcv/9tnKpErQWv9uKeGfl37EIS02Yg==}
 
@@ -1272,6 +1299,9 @@ packages:
     resolution: {integrity: sha512-1R4kiYKXGViqEN0CnoDrXc1StD9niAwu+j2dukWzrD4bJgsD4lDmEp0CRbc6E/vYJIfTHwPmwyaKtVSudICdPA==}
     engines: {node: ^6 || ^7 || ^8 || ^9 || ^10 || ^11 || ^12 || >=13.7}
     hasBin: true
+
+  bun-types@1.4.2:
+    resolution: {integrity: sha512-bxV1FgK7yBIzjRe5zBozIM4Bem11ZJcCXSrjWRG3YWLt8yFDePu4cLjpebO8OvPeIE9trbyPF4fuj3Cia4Fj3w==}
 
   bundle-name@4.1.1:
     resolution: {integrity: sha512-DdH81/zPLVS11EUgWq3tEu/xn+EzljlMYooDNdzWEnFha3R3NBMpMV1UqYIpjYHV/SgpFKMIX1Oh7o06SjM/oA==}
@@ -3518,6 +3548,10 @@ snapshots:
   '@turbo/windows-arm64@2.11.6':
     optional: true
 
+  '@types/bun@1.4.2':
+    dependencies:
+      bun-types: 1.4.2
+
   '@types/node@26.6.3':
     dependencies:
       undici-types: 8.9.0
@@ -3620,6 +3654,10 @@ snapshots:
       electron-to-chromium: 1.5.443
       node-releases: 2.0.57
       update-browserslist-db: 1.3.3(browserslist@4.29.3)
+
+  bun-types@1.4.2:
+    dependencies:
+      '@types/node': 26.6.3
 
   bundle-name@4.1.1:
     dependencies:
@@ -3759,9 +3797,10 @@ snapshots:
       get-tsconfig: 4.14.3
       jiti: 2.7.0
 
-  drizzle-orm@1.0.0-rc.4(@neondatabase/serverless@1.2.0)(zod@4.6.5):
+  drizzle-orm@1.0.0-rc.4(@neondatabase/serverless@1.2.0)(bun-types@1.4.2)(zod@4.6.5):
     optionalDependencies:
       '@neondatabase/serverless': 1.2.0
+      bun-types: 1.4.2
       zod: 4.6.5
 
   dunder-proto@1.0.1:
