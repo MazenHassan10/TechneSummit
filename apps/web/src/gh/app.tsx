@@ -7,12 +7,13 @@ import { Label } from "@great-hall-pr/ui/components/label";
 import { cn } from "@great-hall-pr/ui/lib/utils";
 import { Badge } from "@great-hall-pr/ui/components/badge";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarClock, ClipboardList, Contact, Landmark, MoreHorizontal, Radio, Star, TriangleAlert, Users } from "lucide-react";
+import { CalendarClock, CalendarDays, ClipboardList, Contact, Landmark, MoreHorizontal, Radio, Star, TriangleAlert, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { trpc } from "@/utils/trpc";
 
 import { hm } from "./format";
+import { AgendaView } from "./agenda";
 import { Modals } from "./modals";
 import { AppProvider, useApp, useTick } from "./store";
 import { ModalCtx, type ModalSpec } from "./ui";
@@ -101,12 +102,14 @@ function Login() {
 type Tab = { key: string; label: string; icon: React.ComponentType<{ className?: string }>; view: React.ComponentType };
 const PR_TABS: Tab[] = [
   { key: "mine", label: "My speakers", icon: Star, view: MineView },
+  { key: "agenda", label: "Agenda", icon: CalendarDays, view: AgendaView },
   { key: "hall", label: "Great Hall", icon: Landmark, view: HallView },
   { key: "team", label: "Team", icon: CalendarClock, view: TeamBoardView },
   { key: "report", label: "Report", icon: TriangleAlert, view: ReportView },
 ];
 const ADMIN_TABS: Tab[] = [
   { key: "live", label: "Live", icon: Radio, view: LiveView },
+  { key: "agenda", label: "Agenda", icon: CalendarDays, view: AgendaView },
   { key: "sessions", label: "Sessions", icon: ClipboardList, view: SessionsView },
   { key: "team", label: "Team", icon: Users, view: TeamAdminView },
   { key: "phones", label: "Phones", icon: Contact, view: PhonesView },

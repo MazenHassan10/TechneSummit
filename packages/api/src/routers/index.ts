@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { authedProcedure, publicProcedure, router } from "../index";
 import { createToken, getVersion, loadState, persist, type StoredState } from "../store";
+import { speakerProfiles } from "@great-hall-pr/db/schema/index";
 
 const ADMIN = "__admin__";
 
@@ -50,6 +51,11 @@ export const appRouter = router({
         const token = await createToken(ctx.db, who);
         return { token, me: actorFor(st, who) };
       }),
+  }),
+
+  /** Speaker photos / bios / links for the Agenda tab – fetched once, not on every poll. */
+  speakers: router({
+    list: authedProcedure.query(async ({ ctx }) => ctx.db.select().from(speakerProfiles)),
   }),
 
   state: router({

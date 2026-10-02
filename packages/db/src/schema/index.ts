@@ -83,3 +83,19 @@ export const authTokens = pgTable("auth_tokens", {
   who: text("who").notNull(),
   createdAt: ms("created_at").notNull(),
 });
+
+// Public speaker profiles shown in the Agenda tab (photo/bio/links). Keyed by normalised name so
+// the same person in several sessions shares one profile.
+export const speakerProfiles = pgTable("speaker_profiles", {
+  key: text("key").primaryKey(),
+  name: text("name").notNull(),
+  position: text("position").notNull().default(""),
+  company: text("company").notNull().default(""),
+  photo: text("photo").notNull().default(""),
+  bio: text("bio").notNull().default(""),
+  linkedin: text("linkedin").notNull().default(""),
+  otherLink: text("other_link").notNull().default(""),
+  sourceUrl: text("source_url").notNull().default(""),
+  /** high = name + company confirmed, medium = name + role confirmed, none = no link found */
+  linkConfidence: text("link_confidence").notNull().default("none"),
+});
