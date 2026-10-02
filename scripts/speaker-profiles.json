@@ -295,14 +295,19 @@
   "company": "Naydin",
   "photo": "https://avatars.sched.co/4/88/28162243/avatar.jpg?743",
   "bio": "Zeyad Elhadary is the Founder of Naydin. A dentist turned entrepreneur, he is working to change the oral care industry.",
-  "linkedin": "",
+  "linkedin": "https://www.linkedin.com/in/zeyad-elhadary-42600a156",
   "otherLink": "",
   "sourceUrl": "https://technesummit2026.sched.com/speaker/zeyad_elhadary.2a8auhom",
-  "linkConfidence": "none",
-  "_evidence": "No results found for name with Naydin.",
+  "linkConfidence": "high",
+  "_evidence": "No results found for name with Naydin. | linkedin provided by Team Leader 2026-10-02",
   "_rawConfidence": "none",
   "_rawLinkedin": "",
-  "social": []
+  "social": [
+   {
+    "type": "linkedin",
+    "url": "https://www.linkedin.com/in/zeyad-elhadary-42600a156"
+   }
+  ]
  },
  {
   "key": "kenzy omar",
@@ -348,14 +353,19 @@
   "company": "Zahwa Mental Health Hub",
   "photo": "https://avatars.sched.co/2/9e/27059356/avatar.jpg?c82",
   "bio": "Dr. Aisha Mohamed Hassan is a psychological and family counselling expert and the founder and director of Zahwa Mental Health Hub. She founded and leads the \"100 Million Mental Health\" initiative, a network of more than 500 specialists, and has spent over two decades helping parents, educators and businesswomen achieve psychological balance.",
-  "linkedin": "",
+  "linkedin": "https://www.linkedin.com/in/aisha-hassan-6a674b111/",
   "otherLink": "",
   "sourceUrl": "https://technesummit2026.sched.com/speaker/aisha_hassan.2a669c5h",
-  "linkConfidence": "none",
-  "_evidence": "Searches for Aisha Hassan + Zahwa / mental health returned only unrelated people with similar names.",
+  "linkConfidence": "high",
+  "_evidence": "Searches for Aisha Hassan + Zahwa / mental health returned only unrelated people with similar names. | linkedin provided by Team Leader 2026-10-02",
   "_rawConfidence": "none",
   "_rawLinkedin": "",
-  "social": []
+  "social": [
+   {
+    "type": "linkedin",
+    "url": "https://www.linkedin.com/in/aisha-hassan-6a674b111/"
+   }
+  ]
  },
  {
   "key": "youssef kamal",
@@ -364,14 +374,19 @@
   "company": "People Of Data",
   "photo": "https://avatars.sched.co/c/55/25696458/avatar.jpg?5ba",
   "bio": "Youssef Kamal is Founder & CEO of Helm, an agentic AI company serving brands across ten markets, and Co-Founder & CTO of People of Data, Egypt's largest AI community. There he builds the AI School, AI entrepreneurship programs and national hackathons. He previously served as Head of Data & AI at a consumer-finance startup that exited.",
-  "linkedin": "",
+  "linkedin": "https://www.linkedin.com/in/youssefayad",
   "otherLink": "",
   "sourceUrl": "https://technesummit2026.sched.com/moderator/youssef_kamal.29zlarkf",
-  "linkConfidence": "none",
-  "_evidence": "Top result for 'Youssef Kamal \"People of Data\"' queries: LinkedIn title 'Youssef Kamal', snippet 'data leader, Cairo, 5+ years building and leading data teams'. Name + field match; Helm/People of Data not visible in snippet and page could not be fetched (LinkedIn 999). Verify before use.",
+  "linkConfidence": "high",
+  "_evidence": "Top result for 'Youssef Kamal \"People of Data\"' queries: LinkedIn title 'Youssef Kamal', snippet 'data leader, Cairo, 5+ years building and leading data teams'. Name + field match; Helm/People of Data not visible in snippet and page could not be fetched (LinkedIn 999). Verify before use. | linkedin provided by Team Leader 2026-10-02",
   "_rawConfidence": "medium",
   "_rawLinkedin": "https://eg.linkedin.com/in/youssefayad",
-  "social": []
+  "social": [
+   {
+    "type": "linkedin",
+    "url": "https://www.linkedin.com/in/youssefayad"
+   }
+  ]
  },
  {
   "key": "fred walti",
@@ -438,14 +453,19 @@
   "company": "ISKAGAS",
   "photo": "https://avatars.sched.co/c/87/28158660/avatar.jpg?697",
   "bio": "Nagy Iskander is an investor, business leader and founder of ISKAGAS, with a 35-year career spanning finance, oil and gas, FMCG and venture capital. He spent 22 years at BP negotiating major agreements with governments in Egypt, Trinidad and the US, served as CEO of United Gas Derivatives Company, and now mentors and invests in startups.",
-  "linkedin": "",
+  "linkedin": "https://www.linkedin.com/in/nagy-iskander-87a7821/",
   "otherLink": "",
   "sourceUrl": "https://technesummit2026.sched.com/speaker/nagy_iskandar.2a87a9jv",
-  "linkConfidence": "none",
-  "_evidence": "Bio confirmed on almentor.net and egypes.com (CEO of ISKAGAS), but no LinkedIn profile URL surfaced in searches.",
+  "linkConfidence": "high",
+  "_evidence": "Bio confirmed on almentor.net and egypes.com (CEO of ISKAGAS), but no LinkedIn profile URL surfaced in searches. | linkedin provided by Team Leader 2026-10-02",
   "_rawConfidence": "none",
   "_rawLinkedin": "",
-  "social": []
+  "social": [
+   {
+    "type": "linkedin",
+    "url": "https://www.linkedin.com/in/nagy-iskander-87a7821/"
+   }
+  ]
  },
  {
   "key": "douaa yassin",
@@ -454,14 +474,19 @@
   "company": "Head Of Investment & Venture Capital Department at MSMEDA",
   "photo": "https://avatars.sched.co/8/1a/28210553/avatar.jpg?d01",
   "bio": "Douaa Yassin is Head of the Investment and Venture Capital Department at Egypt's MSMEDA, with more than 25 years of experience across banking, SME finance, private capital and entrepreneurship development. She established MSMEDA's venture capital department from the ground up and leads the agency's venture capital and alternative financing strategies.",
-  "linkedin": "",
+  "linkedin": "https://www.linkedin.com/in/douaa-yassin-493ba29a/",
   "otherLink": "",
   "sourceUrl": "https://technesummit2026.sched.com/speaker/douaa_yassin.2a9fkcq5",
-  "linkConfidence": "none",
-  "_evidence": "GEN Global profile confirms Douaa Yassin, Head of Investment & Venture Capital, MSMEDA; only LinkedIn hit was 'Doaa Yassein' (eg.linkedin.com/in/doaa-mohamed) with no MSMEDA link, so rejected.",
+  "linkConfidence": "high",
+  "_evidence": "GEN Global profile confirms Douaa Yassin, Head of Investment & Venture Capital, MSMEDA; only LinkedIn hit was 'Doaa Yassein' (eg.linkedin.com/in/doaa-mohamed) with no MSMEDA link, so rejected. | linkedin provided by Team Leader 2026-10-02",
   "_rawConfidence": "none",
   "_rawLinkedin": "",
-  "social": []
+  "social": [
+   {
+    "type": "linkedin",
+    "url": "https://www.linkedin.com/in/douaa-yassin-493ba29a/"
+   }
+  ]
  },
  {
   "key": "mona arslan",
@@ -470,14 +495,19 @@
   "company": "Head of Digital & Assistant Professor of Marketing at AASTMT",
   "photo": "https://avatars.sched.co/4/36/25886692/avatar.jpg?191",
   "bio": "Dr. Mona Arslan is an Assistant Professor of Marketing & Media and Head of Digital Content at the Arab Academy for Science, Technology and Maritime Transport (AASTMT). She holds a PhD from the University of Hull, and her research focuses on marketing, digital communications and consumer behavior in Arab markets. She is a World Economic Forum Global Shapers alumna.",
-  "linkedin": "",
+  "linkedin": "https://www.linkedin.com/in/mona-arslan-phd-9a799025/",
   "otherLink": "",
   "sourceUrl": "https://technesummit2026.sched.com/moderator/monarslan",
-  "linkConfidence": "none",
-  "_evidence": "Marywood University and WEF pages confirm her AASTMT/Hull background, but no LinkedIn profile URL found.",
+  "linkConfidence": "high",
+  "_evidence": "Marywood University and WEF pages confirm her AASTMT/Hull background, but no LinkedIn profile URL found. | linkedin provided by Team Leader 2026-10-02",
   "_rawConfidence": "none",
   "_rawLinkedin": "",
-  "social": []
+  "social": [
+   {
+    "type": "linkedin",
+    "url": "https://www.linkedin.com/in/mona-arslan-phd-9a799025/"
+   }
+  ]
  },
  {
   "key": "ahmed salem",
@@ -486,14 +516,19 @@
   "company": "Marketing Director at Juhayna Food Industries",
   "photo": "https://avatars.sched.co/1/35/28220760/avatar.jpg?cd0",
   "bio": "Ahmed Salem is Marketing Director at Juhayna Food Industries. Known for transforming brands through bold strategies and creative marketing, he brings a fresh perspective on how brands grow, connect and compete in today's fast-paced food and beverage landscape.",
-  "linkedin": "",
+  "linkedin": "https://www.linkedin.com/in/ahmed-salem-7074ba45/",
   "otherLink": "",
   "sourceUrl": "https://technesummit2026.sched.com/speaker/ahmed_salem.2a9m26jx",
-  "linkConfidence": "none",
-  "_evidence": "Searches for Ahmed Salem + Juhayna returned no profile linking this name to Juhayna; common name, so no link accepted.",
+  "linkConfidence": "high",
+  "_evidence": "Searches for Ahmed Salem + Juhayna returned no profile linking this name to Juhayna; common name, so no link accepted. | linkedin provided by Team Leader 2026-10-02",
   "_rawConfidence": "none",
   "_rawLinkedin": "",
-  "social": []
+  "social": [
+   {
+    "type": "linkedin",
+    "url": "https://www.linkedin.com/in/ahmed-salem-7074ba45/"
+   }
+  ]
  },
  {
   "key": "benjamin meier",
@@ -502,14 +537,19 @@
   "company": "GIZ",
   "photo": "https://avatars.sched.co/2/90/28057228/avatar.jpg?6ef",
   "bio": "Benjamin Meier is Project Lead for GIZ's CATAL1.5°T initiative, supporting climate-tech ventures across West Africa to access capital and scale. Based in Dakar, he focuses on investment readiness and innovative financing approaches such as capital stacking and repayable grants, working with entrepreneurs, investors and ecosystem partners across Francophone West Africa.",
-  "linkedin": "",
+  "linkedin": "https://www.linkedin.com/in/benymeier/",
   "otherLink": "",
   "sourceUrl": "https://technesummit2026.sched.com/moderator/benjamin_meier.2a71sey9",
-  "linkConfidence": "none",
-  "_evidence": "Searches for Benjamin Meier + GIZ / CATAL1.5°T / Dakar returned no matching profile.",
+  "linkConfidence": "high",
+  "_evidence": "Searches for Benjamin Meier + GIZ / CATAL1.5°T / Dakar returned no matching profile. | linkedin provided by Team Leader 2026-10-02",
   "_rawConfidence": "none",
   "_rawLinkedin": "",
-  "social": []
+  "social": [
+   {
+    "type": "linkedin",
+    "url": "https://www.linkedin.com/in/benymeier/"
+   }
+  ]
  },
  {
   "key": "barbara adolehoume",
@@ -518,14 +558,19 @@
   "company": "Investisseurs & Partenaires (I&P)",
   "photo": "https://avatars.sched.co/5/17/28057219/avatar.jpg?7a7",
   "bio": "Barbara Adoléhoumé is Climate Acceleration Program Manager at Investisseurs & Partenaires (I&P), based in Abidjan, supporting climate ventures across West and Central Africa, including the CATAL1.5°T program. She previously spent four years as Carbon Finance Project Manager at Entrepreneurs du Monde and holds a Master's in Development Economics from Paris-Dauphine.",
-  "linkedin": "",
+  "linkedin": "https://www.linkedin.com/in/barbaraadolehoume/",
   "otherLink": "",
   "sourceUrl": "https://technesummit2026.sched.com/speaker/barbara_adolehoume.2a71ry5a",
-  "linkConfidence": "none",
-  "_evidence": "I&P team page confirms Program Manager, I&P Acceleration (CATAL1°5T, WE4A); no LinkedIn profile URL found.",
+  "linkConfidence": "high",
+  "_evidence": "I&P team page confirms Program Manager, I&P Acceleration (CATAL1°5T, WE4A); no LinkedIn profile URL found. | linkedin provided by Team Leader 2026-10-02",
   "_rawConfidence": "none",
   "_rawLinkedin": "",
-  "social": []
+  "social": [
+   {
+    "type": "linkedin",
+    "url": "https://www.linkedin.com/in/barbaraadolehoume/"
+   }
+  ]
  },
  {
   "key": "tando matanda",
@@ -534,14 +579,19 @@
   "company": "Musa Ventures",
   "photo": "https://avatars.sched.co/3/a5/28057221/avatar.jpg?857",
   "bio": "Tando Matanda is CEO and Co-founder of Musa, an SME capital-orchestration platform that coordinates catalytic, debt, equity and guarantee capital for emerging-market SMEs. Backed by J.P. Morgan and Techstars, Musa operates in four countries. She previously led Car Group's $10M mobility-focused corporate venture fund in Australia and began her career at BCG Digital Ventures.",
-  "linkedin": "",
+  "linkedin": "https://www.linkedin.com/in/tandadzo/",
   "otherLink": "",
   "sourceUrl": "https://technesummit2026.sched.com/speaker/tando_matanda.2a71s2ac",
-  "linkConfidence": "none",
-  "_evidence": "Searches returned only different people (Tawanda Matanda, Thando Msutwana); no match for Musa.",
+  "linkConfidence": "high",
+  "_evidence": "Searches returned only different people (Tawanda Matanda, Thando Msutwana); no match for Musa. | linkedin provided by Team Leader 2026-10-02",
   "_rawConfidence": "none",
   "_rawLinkedin": "",
-  "social": []
+  "social": [
+   {
+    "type": "linkedin",
+    "url": "https://www.linkedin.com/in/tandadzo/"
+   }
+  ]
  },
  {
   "key": "galliam bagaya",
@@ -550,14 +600,19 @@
   "company": "Revvo",
   "photo": "https://avatars.sched.co/7/b5/28057227/avatar.jpg?776",
   "bio": "Galliam Bagaya is the founder and CEO of Revvo, an Ivory Coast-based startup building local capacity in electronics repair and refurbishment and offering certified, warranty-backed smartphones and laptops. A strategy and operations consultant for over a decade, Galliam was an Engagement Manager at McKinsey & Company and EY-Parthenon.",
-  "linkedin": "",
+  "linkedin": "https://www.linkedin.com/in/galliambagaya/",
   "otherLink": "",
   "sourceUrl": "https://technesummit2026.sched.com/speaker/galliam_bagaya.2a71s96k",
-  "linkConfidence": "none",
-  "_evidence": "No search results for this name with Revvo or on LinkedIn.",
+  "linkConfidence": "high",
+  "_evidence": "No search results for this name with Revvo or on LinkedIn. | linkedin provided by Team Leader 2026-10-02",
   "_rawConfidence": "none",
   "_rawLinkedin": "",
-  "social": []
+  "social": [
+   {
+    "type": "linkedin",
+    "url": "https://www.linkedin.com/in/galliambagaya/"
+   }
+  ]
  },
  {
   "key": "mohammed el massry",
@@ -566,14 +621,19 @@
   "company": "Egytrans",
   "photo": "https://avatars.sched.co/2/5c/28221977/avatar.jpg?4bd",
   "bio": "Mohammed El-Massry is General Manager at Egytrans, an Alexandria-headquartered provider of integrated transport and logistics solutions, including sea and air freight forwarding and customs clearance.",
-  "linkedin": "",
+  "linkedin": "https://www.linkedin.com/in/mohamed-el-masry-6a08645b/",
   "otherLink": "",
   "sourceUrl": "https://technesummit2026.sched.com/moderator/mohammed_el_massry.2a9mq4sh",
-  "linkConfidence": "none",
-  "_evidence": "theorg.com lists a Mohamed El-Masry at Egytrans as Logistics & Freight Forwarding Director (not GM); no LinkedIn profile found.",
+  "linkConfidence": "high",
+  "_evidence": "theorg.com lists a Mohamed El-Masry at Egytrans as Logistics & Freight Forwarding Director (not GM); no LinkedIn profile found. | linkedin provided by Team Leader 2026-10-02",
   "_rawConfidence": "none",
   "_rawLinkedin": "",
-  "social": []
+  "social": [
+   {
+    "type": "linkedin",
+    "url": "https://www.linkedin.com/in/mohamed-el-masry-6a08645b/"
+   }
+  ]
  },
  {
   "key": "omar gharbo",
@@ -582,14 +642,19 @@
   "company": "Hellmann World Wide Logistics",
   "photo": "https://avatars.sched.co/c/18/25856851/avatar.jpg?c71",
   "bio": "Omar Gharbo is Managing Director of Hellmann Worldwide Logistics Egypt, leading the company's growth and transformation in the Egyptian market. A shipping and logistics executive with over 30 years of experience, he has held senior roles at DB Schenker, Agility and Maersk, where he was Managing Director for Egypt, Libya, Syria and Lebanon.",
-  "linkedin": "",
+  "linkedin": "https://www.linkedin.com/in/omar-gharbo-63b5925b/",
   "otherLink": "",
   "sourceUrl": "https://technesummit2026.sched.com/speaker/omar_gharbo.87mtndg",
-  "linkConfidence": "none",
-  "_evidence": "Only a LinkedIn post by another user (wessamsaad) mentions his Maersk exit; his own profile URL was not found.",
+  "linkConfidence": "high",
+  "_evidence": "Only a LinkedIn post by another user (wessamsaad) mentions his Maersk exit; his own profile URL was not found. | linkedin provided by Team Leader 2026-10-02",
   "_rawConfidence": "none",
   "_rawLinkedin": "",
-  "social": []
+  "social": [
+   {
+    "type": "linkedin",
+    "url": "https://www.linkedin.com/in/omar-gharbo-63b5925b/"
+   }
+  ]
  },
  {
   "key": "ahmed sallem",
@@ -693,14 +758,19 @@
   "company": "People of Data",
   "photo": "https://avatars.sched.co/e/1e/28154736/avatar.jpg?5e2",
   "bio": "Magdi Moussa is Co-Founder of People of Data. He speaks at Techne Summit Alexandria 2026 on GenAI filmmaking.",
-  "linkedin": "",
+  "linkedin": "https://www.linkedin.com/in/magdi-moussa/",
   "otherLink": "",
   "sourceUrl": "https://technesummit2026.sched.com/moderator/magdi_moussa.8802ngr",
-  "linkConfidence": "none",
-  "_evidence": "No search result matched Magdi Moussa + People of Data.",
+  "linkConfidence": "high",
+  "_evidence": "No search result matched Magdi Moussa + People of Data. | linkedin provided by Team Leader 2026-10-02",
   "_rawConfidence": "none",
   "_rawLinkedin": "",
-  "social": []
+  "social": [
+   {
+    "type": "linkedin",
+    "url": "https://www.linkedin.com/in/magdi-moussa/"
+   }
+  ]
  },
  {
   "key": "islam el dakhakhny",
@@ -939,14 +1009,19 @@
   "company": "Managing Director - Private Equity at NI Capital",
   "photo": "https://avatars.sched.co/6/81/28210554/avatar.jpg?7b8",
   "bio": "Hazem Kamel is Managing Director of Private Equity at NI Capital, the Egyptian financial services holding company that offers investment banking, private equity, asset management and brokerage services.",
-  "linkedin": "",
+  "linkedin": "https://www.linkedin.com/in/hazem-kamel-mba-5473b740/",
   "otherLink": "",
   "sourceUrl": "https://technesummit2026.sched.com/speaker/hazem_kamel.2a9fle0v",
-  "linkConfidence": "none",
-  "_evidence": "Sources confirm he is Managing Director (Private Equity / Direct Investment) at NI Capital, but no LinkedIn profile URL surfaced in searches",
+  "linkConfidence": "high",
+  "_evidence": "Sources confirm he is Managing Director (Private Equity / Direct Investment) at NI Capital, but no LinkedIn profile URL surfaced in searches | linkedin provided by Team Leader 2026-10-02",
   "_rawConfidence": "none",
   "_rawLinkedin": "",
-  "social": []
+  "social": [
+   {
+    "type": "linkedin",
+    "url": "https://www.linkedin.com/in/hazem-kamel-mba-5473b740/"
+   }
+  ]
  },
  {
   "key": "moataz darwish",
@@ -971,14 +1046,19 @@
   "company": "Blue Bridge Group AI",
   "photo": "https://avatars.sched.co/3/46/28180080/avatar.jpg?df8",
   "bio": "Jerome Challandard is Chief Business Officer at Blue Bridge Group AI. A transformation executive with more than 20 years of international experience, he spent his career at Accenture, where he founded and developed the firm's Life Sciences practice in the Middle East while based in Dubai.",
-  "linkedin": "",
+  "linkedin": "https://www.linkedin.com/in/challandard/",
   "otherLink": "",
   "sourceUrl": "https://technesummit2026.sched.com/speaker/jerome_challandard.2a8m3g8h",
-  "linkConfidence": "none",
-  "_evidence": "No search results found for this name (LinkedIn or otherwise)",
+  "linkConfidence": "high",
+  "_evidence": "No search results found for this name (LinkedIn or otherwise) | linkedin provided by Team Leader 2026-10-02",
   "_rawConfidence": "none",
   "_rawLinkedin": "",
-  "social": []
+  "social": [
+   {
+    "type": "linkedin",
+    "url": "https://www.linkedin.com/in/challandard/"
+   }
+  ]
  },
  {
   "key": "hassan mansi",
@@ -987,14 +1067,19 @@
   "company": "E3 Ventures",
   "photo": "https://avatars.sched.co/8/77/25666240/avatar.jpg?37a",
   "bio": "Hassan Mansi is Chief Operating Officer of E3 Ventures, an entrepreneur and operations executive with more than 20 years of experience building consulting firms, venture programs and startup-support platforms across MENA. He previously chaired the Youth Committee at the Alexandria Business Association and holds an MSc in Technology Commercialization from UT Austin's McCombs School of Business.",
-  "linkedin": "",
+  "linkedin": "https://www.linkedin.com/in/hassan-mansi-3204454b/",
   "otherLink": "",
   "sourceUrl": "https://technesummit2026.sched.com/speaker/hassan_mansi.29yr40m6",
-  "linkConfidence": "none",
-  "_evidence": "Profiles found on Flat6Labs/EgyptInnovate/Sched, but no LinkedIn profile URL surfaced",
+  "linkConfidence": "high",
+  "_evidence": "Profiles found on Flat6Labs/EgyptInnovate/Sched, but no LinkedIn profile URL surfaced | linkedin provided by Team Leader 2026-10-02",
   "_rawConfidence": "none",
   "_rawLinkedin": "",
-  "social": []
+  "social": [
+   {
+    "type": "linkedin",
+    "url": "https://www.linkedin.com/in/hassan-mansi-3204454b/"
+   }
+  ]
  },
  {
   "key": "margret o connor",
@@ -1077,14 +1162,19 @@
   "company": "Rology",
   "photo": "https://avatars.sched.co/e/75/25561435/avatar.jpg?d0a",
   "bio": "Amr Abodraiaa is CEO of Rology, an AI-assisted teleradiology platform in the MEA region. He previously co-founded and led TownSoft as CEO and has held strategic roles at multiple organizations.",
-  "linkedin": "",
+  "linkedin": "https://www.linkedin.com/in/abodraiaa/",
   "otherLink": "",
   "sourceUrl": "https://technesummit2026.sched.com/speaker/b7133a1f017a38bbd5376f5d04031576",
-  "linkConfidence": "none",
-  "_evidence": "Rology team page (VC4A) confirms CEO role, but no LinkedIn profile URL surfaced",
+  "linkConfidence": "high",
+  "_evidence": "Rology team page (VC4A) confirms CEO role, but no LinkedIn profile URL surfaced | linkedin provided by Team Leader 2026-10-02",
   "_rawConfidence": "none",
   "_rawLinkedin": "",
-  "social": []
+  "social": [
+   {
+    "type": "linkedin",
+    "url": "https://www.linkedin.com/in/abodraiaa/"
+   }
+  ]
  },
  {
   "key": "samar refaat",
@@ -1214,14 +1304,19 @@
   "company": "Bokra",
   "photo": "https://avatars.sched.co/7/ec/28092037/avatar.jpg?0c4",
   "bio": "Ayman El Sawy is the Founder and CEO of Bokra, an Egyptian fintech savings platform. A financial expert with over 28 years of experience, he has provided strategic financial guidance to clients across Egypt and the Middle East. He previously served as CFO of Contact Financial Holding.",
-  "linkedin": "",
+  "linkedin": "https://www.linkedin.com/in/ayman-elsawy-0ba35623/",
   "otherLink": "",
   "sourceUrl": "https://technesummit2026.sched.com/speaker/ayman_el_sawy.2a7bgyvf",
-  "linkConfidence": "none",
-  "_evidence": "Crunchbase and Enterprise confirm Ayman Elsawy as Founder & CEO of Bokra, but no LinkedIn profile surfaced in searches.",
+  "linkConfidence": "high",
+  "_evidence": "Crunchbase and Enterprise confirm Ayman Elsawy as Founder & CEO of Bokra, but no LinkedIn profile surfaced in searches. | linkedin provided by Team Leader 2026-10-02",
   "_rawConfidence": "none",
   "_rawLinkedin": "",
-  "social": []
+  "social": [
+   {
+    "type": "linkedin",
+    "url": "https://www.linkedin.com/in/ayman-elsawy-0ba35623/"
+   }
+  ]
  },
  {
   "key": "ayman essawy",
@@ -1272,14 +1367,19 @@
   "company": "Goldady",
   "photo": "https://avatars.sched.co/7/32/28059867/avatar.jpg?625",
   "bio": "Rafy Kourouian is Founder and Managing Director of Goldady, a Cairo-based digital marketplace for physical gold. He spent 15 years in information provision for Middle East capital markets, including regional responsibility for ISI Emerging Markets, and later advised USAID, CIDA and UNIDO. He holds an LL.M. from Leiden University and a B.A. from McGill University.",
-  "linkedin": "",
+  "linkedin": "https://www.linkedin.com/in/rafy-kourouian-648a87136/",
   "otherLink": "",
   "sourceUrl": "https://technesummit2026.sched.com/speaker/rafy_kourouian.2a76wubi",
-  "linkConfidence": "none",
-  "_evidence": "No LinkedIn or web result found for this name with Goldady.",
+  "linkConfidence": "high",
+  "_evidence": "No LinkedIn or web result found for this name with Goldady. | linkedin provided by Team Leader 2026-10-02",
   "_rawConfidence": "none",
   "_rawLinkedin": "",
-  "social": []
+  "social": [
+   {
+    "type": "linkedin",
+    "url": "https://www.linkedin.com/in/rafy-kourouian-648a87136/"
+   }
+  ]
  },
  {
   "key": "ahmed sakr",
@@ -1288,14 +1388,19 @@
   "company": "Chief Executive Officer of SDC Investment",
   "photo": "https://avatars.sched.co/e/51/28141555/avatar.jpg?9bf",
   "bio": "Ahmed Sakr is CEO of SDC Investment and an Egyptian serial entrepreneur who has co-founded several startups in MENA and the EU. He founded Ashry Narty, a Nubian hotel in Aswan built on a social-entrepreneurship model. He previously worked with Egypt's Ministry of Planning, International Cooperation and Investment (2012–2015).",
-  "linkedin": "",
+  "linkedin": "https://www.linkedin.com/in/ahmed-sakr-154748b5/",
   "otherLink": "",
   "sourceUrl": "https://technesummit2026.sched.com/speaker/ahmed_sakr.2a7qfk2t",
-  "linkConfidence": "none",
-  "_evidence": "Multiple Ahmed Sakr LinkedIn profiles found; none showed SDC Investment or Ashry Narty in title/snippet.",
+  "linkConfidence": "high",
+  "_evidence": "Multiple Ahmed Sakr LinkedIn profiles found; none showed SDC Investment or Ashry Narty in title/snippet. | linkedin provided by Team Leader 2026-10-02",
   "_rawConfidence": "none",
   "_rawLinkedin": "",
-  "social": []
+  "social": [
+   {
+    "type": "linkedin",
+    "url": "https://www.linkedin.com/in/ahmed-sakr-154748b5/"
+   }
+  ]
  },
  {
   "key": "fady kamel",
@@ -1304,14 +1409,19 @@
   "company": "GRAMZ",
   "photo": "https://avatars.sched.co/b/5f/28059868/avatar.jpg?906",
   "bio": "Fady Kamel is Co-Founder and Group CEO of GRAMZ, an Egyptian platform for buying and investing in gold and silver as digital assets backed by physical metal. With over 15 years in the financial and investment sectors, he is an active member of the Gold and Jewelry Division in Cairo and holds a DBA specialising in Economic Sciences.",
-  "linkedin": "",
+  "linkedin": "https://www.linkedin.com/in/fadykamel360/",
   "otherLink": "",
   "sourceUrl": "https://technesummit2026.sched.com/speaker/fady_kamel.87x3axy",
-  "linkConfidence": "none",
-  "_evidence": "CB Insights / Career 180 confirm Fady Kamel as Co-Founder & CEO of Gramz, but LinkedIn profiles found (fady-kamel-, fady-louis) did not show Gramz in snippets.",
+  "linkConfidence": "high",
+  "_evidence": "CB Insights / Career 180 confirm Fady Kamel as Co-Founder & CEO of Gramz, but LinkedIn profiles found (fady-kamel-, fady-louis) did not show Gramz in snippets. | linkedin provided by Team Leader 2026-10-02",
   "_rawConfidence": "none",
   "_rawLinkedin": "",
-  "social": []
+  "social": [
+   {
+    "type": "linkedin",
+    "url": "https://www.linkedin.com/in/fadykamel360/"
+   }
+  ]
  },
  {
   "key": "ahmad aboelyazeed",
@@ -1373,14 +1483,19 @@
   "company": "Tarmiz",
   "photo": "https://avatars.sched.co/c/1d/28220328/avatar.jpg?747",
   "bio": "Amr Soliman is Co-Founder and Chairman of Tarmiiz, a blockchain-based real-world asset tokenization startup, and has led eVision, a banking and finance software company, since 1999. He began his career at Egypt's Social Fund for Development and holds a degree in construction engineering and an MSc in project management.",
-  "linkedin": "",
+  "linkedin": "https://www.linkedin.com/in/amr-soliman-43556b5/",
   "otherLink": "",
   "sourceUrl": "https://technesummit2026.sched.com/speaker/amr_soliman.885qzdl",
-  "linkConfidence": "none",
-  "_evidence": "eVision and Tarmiiz roles confirmed (CB Insights, press releases) but LinkedIn results belong to other Amr Solimans (e.g., Mountain View founder).",
+  "linkConfidence": "high",
+  "_evidence": "eVision and Tarmiiz roles confirmed (CB Insights, press releases) but LinkedIn results belong to other Amr Solimans (e.g., Mountain View founder). | linkedin provided by Team Leader 2026-10-02",
   "_rawConfidence": "none",
   "_rawLinkedin": "",
-  "social": []
+  "social": [
+   {
+    "type": "linkedin",
+    "url": "https://www.linkedin.com/in/amr-soliman-43556b5/"
+   }
+  ]
  },
  {
   "key": "seif el kilany",
@@ -1389,14 +1504,19 @@
   "company": "Tarmiiz",
   "photo": "https://avatars.sched.co/4/ef/28220330/avatar.jpg?009",
   "bio": "Seif El Kilany is Co-Founder and CEO of Tarmiiz, which builds tokenization infrastructure for issuers, asset managers and regulators. He spent over 18 years building electronic trading and market infrastructure for US equities and ETFs. He holds a Master's in Finance from Boston University and a BSc in Computer Science from Concordia University.",
-  "linkedin": "",
+  "linkedin": "https://www.linkedin.com/in/seif-el-kilany/",
   "otherLink": "",
   "sourceUrl": "https://technesummit2026.sched.com/speaker/seif_el_kilany.2a9lhy00",
-  "linkConfidence": "none",
-  "_evidence": "Press on Granite/Tarmiiz FRA sandbox names Seif El Kilany as Tarmiiz CEO; no LinkedIn profile surfaced.",
+  "linkConfidence": "high",
+  "_evidence": "Press on Granite/Tarmiiz FRA sandbox names Seif El Kilany as Tarmiiz CEO; no LinkedIn profile surfaced. | linkedin provided by Team Leader 2026-10-02",
   "_rawConfidence": "none",
   "_rawLinkedin": "",
-  "social": []
+  "social": [
+   {
+    "type": "linkedin",
+    "url": "https://www.linkedin.com/in/seif-el-kilany/"
+   }
+  ]
  },
  {
   "key": "mahmoud abdel fattah",
@@ -1405,14 +1525,19 @@
   "company": "Granite Financial Holding",
   "photo": "https://avatars.sched.co/5/b8/28220333/avatar.jpg?4e6",
   "bio": "Mahmoud Abdel-Fattah is Co-Founder and CTO of Granite Financial Holding, with 15+ years launching and scaling tech startups across SaaS, AI, AdTech, FinTech and marketplaces. He co-founded Cartona, a B2B marketplace serving 35,000 retailers, and has built systems serving over 60 million monthly users.",
-  "linkedin": "",
+  "linkedin": "https://www.linkedin.com/in/mahabdelfattah/",
   "otherLink": "",
   "sourceUrl": "https://technesummit2026.sched.com/speaker/mahmoud_abdel_fattah.2a9li3re",
-  "linkConfidence": "none",
-  "_evidence": "Cartona co-founder/CTO role confirmed (Wamda, MarketScreener); candidate profile eg.linkedin.com/in/caravaro shows 'Solution architect' only, no Cartona/Granite in snippet, so not accepted.",
+  "linkConfidence": "high",
+  "_evidence": "Cartona co-founder/CTO role confirmed (Wamda, MarketScreener); candidate profile eg.linkedin.com/in/caravaro shows 'Solution architect' only, no Cartona/Granite in snippet, so not accepted. | linkedin provided by Team Leader 2026-10-02",
   "_rawConfidence": "none",
   "_rawLinkedin": "",
-  "social": []
+  "social": [
+   {
+    "type": "linkedin",
+    "url": "https://www.linkedin.com/in/mahabdelfattah/"
+   }
+  ]
  },
  {
   "key": "mohamed hemdan",
@@ -1421,14 +1546,19 @@
   "company": "Head of Digital Transformation at MCDR",
   "photo": "https://avatars.sched.co/c/1b/28235738/avatar.jpg?7ad",
   "bio": "Mohamed Hemdan is Head of Digital Transformation at MCDR, Egypt's Central Securities Depository, where he leads engineering and the modernisation of financial-market infrastructure. He has over 15 years of experience across fintech, capital markets, payments and regulated financial systems.",
-  "linkedin": "",
+  "linkedin": "https://www.linkedin.com/in/mohamedhemdanelhelow",
   "otherLink": "",
   "sourceUrl": "https://technesummit2026.sched.com/speaker/mohamed_hemdan.2a9rafap",
-  "linkConfidence": "none",
-  "_evidence": "No LinkedIn or web result found linking Mohamed Hemdan to MCDR.",
+  "linkConfidence": "high",
+  "_evidence": "No LinkedIn or web result found linking Mohamed Hemdan to MCDR. | linkedin provided by Team Leader 2026-10-02",
   "_rawConfidence": "none",
   "_rawLinkedin": "",
-  "social": []
+  "social": [
+   {
+    "type": "linkedin",
+    "url": "https://www.linkedin.com/in/mohamedhemdanelhelow"
+   }
+  ]
  },
  {
   "key": "loay el shawarby",
@@ -1537,14 +1667,19 @@
   "company": "Beltone",
   "photo": "https://avatars.sched.co/7/d0/25741353/avatar.jpg?67b",
   "bio": "Mohamed Magdi is Vice President at Beltone Venture Capital, focusing on investing in high-growth startups across the MENA region. He was previously Vice President of Finance at Mtor, a B2B automotive spare parts platform, and Vice President at Beltone Research covering MENA markets. He is a CFA Level II candidate and has mentored with the CFA Society.",
-  "linkedin": "",
+  "linkedin": "https://www.linkedin.com/in/mohamed-magdi-0323a298",
   "otherLink": "",
   "sourceUrl": "https://technesummit2026.sched.com/speaker/mohamed.magdi",
-  "linkConfidence": "none",
-  "_evidence": "Role confirmed via MarketScreener (VP Beltone Venture Capital, VP Finance at mtor) but no LinkedIn result confirmed; eg.linkedin.com/in/mmagdiab could not be verified (page blocked)",
+  "linkConfidence": "high",
+  "_evidence": "Role confirmed via MarketScreener (VP Beltone Venture Capital, VP Finance at mtor) but no LinkedIn result confirmed; eg.linkedin.com/in/mmagdiab could not be verified (page blocked) | linkedin provided by Team Leader 2026-10-02",
   "_rawConfidence": "none",
   "_rawLinkedin": "",
-  "social": []
+  "social": [
+   {
+    "type": "linkedin",
+    "url": "https://www.linkedin.com/in/mohamed-magdi-0323a298"
+   }
+  ]
  },
  {
   "key": "paula tavangar",
@@ -1553,14 +1688,19 @@
   "company": "Injaz Capital",
   "photo": "https://avatars.sched.co/0/6d/25756590/avatar.jpg?212",
   "bio": "Paula Tavangar is Chief Investment Officer at Injaz Capital. She was previously a Principal at SwissBorg Ventures, co-founded Genesis Capital LATAM and the Islamic fintech startup Wethaq, and has served on the World Business Angels Forum Global Startup Committee.",
-  "linkedin": "",
+  "linkedin": "https://www.linkedin.com/in/paulatavangar/",
   "otherLink": "",
   "sourceUrl": "https://technesummit2026.sched.com/speaker/paula_tavangar.87bdwjf",
-  "linkConfidence": "none",
-  "_evidence": "Role confirmed via Terrapinn/UNCTAD speaker pages (CIO at Injaz Capital) but no LinkedIn profile found in results",
+  "linkConfidence": "high",
+  "_evidence": "Role confirmed via Terrapinn/UNCTAD speaker pages (CIO at Injaz Capital) but no LinkedIn profile found in results | linkedin provided by Team Leader 2026-10-02",
   "_rawConfidence": "none",
   "_rawLinkedin": "",
-  "social": []
+  "social": [
+   {
+    "type": "linkedin",
+    "url": "https://www.linkedin.com/in/paulatavangar/"
+   }
+  ]
  },
  {
   "key": "ghada hammouda",
@@ -1569,14 +1709,19 @@
   "company": "Qalaa Holdings",
   "photo": "https://avatars.sched.co/9/bb/26884680/avatar.jpg?033",
   "bio": "Ghada Hammouda is Group Chief Sustainability & Marketing Officer at Qalaa Holdings, which she joined in 2008. A sustainability and corporate transformation leader with more than 30 years of experience, she was elected in 2025 as Chair of the Sustainability Committee of the Arab Federation of Capital Markets.",
-  "linkedin": "",
+  "linkedin": "https://www.linkedin.com/in/ghada-hammouda-8659825/",
   "otherLink": "",
   "sourceUrl": "https://technesummit2026.sched.com/speaker/ghada_hammouda.2a65iybz",
-  "linkConfidence": "none",
-  "_evidence": "Role confirmed via Forbes Middle East and Enterprise (Group Chief Sustainability & Marketing Officer, Qalaa Holdings) but no LinkedIn profile URL found",
+  "linkConfidence": "high",
+  "_evidence": "Role confirmed via Forbes Middle East and Enterprise (Group Chief Sustainability & Marketing Officer, Qalaa Holdings) but no LinkedIn profile URL found | linkedin provided by Team Leader 2026-10-02",
   "_rawConfidence": "none",
   "_rawLinkedin": "",
-  "social": []
+  "social": [
+   {
+    "type": "linkedin",
+    "url": "https://www.linkedin.com/in/ghada-hammouda-8659825/"
+   }
+  ]
  },
  {
   "key": "sally elakkad",
@@ -1685,14 +1830,19 @@
   "company": "Deloitte Innovation Hub",
   "photo": "https://avatars.sched.co/4/dd/25756779/avatar.jpg?062",
   "bio": "Raghda Usama is Brand Communications and Marketing Lead at Deloitte Innovation Hub. A marketing strategist and communications leader with over 16 years of industry experience, she focuses on crafting content and campaigns that strengthen brand affinity and engagement.",
-  "linkedin": "",
+  "linkedin": "https://www.linkedin.com/in/raghdausama/",
   "otherLink": "",
   "sourceUrl": "https://technesummit2026.sched.com/speaker/raghda_usama.2a16nod3",
-  "linkConfidence": "none",
-  "_evidence": "Only 'Raghda Osama' (eg.linkedin.com/in/raghda-osama) found, snippet suggests a different organization; could not confirm Deloitte link",
+  "linkConfidence": "high",
+  "_evidence": "Only 'Raghda Osama' (eg.linkedin.com/in/raghda-osama) found, snippet suggests a different organization; could not confirm Deloitte link | linkedin provided by Team Leader 2026-10-02",
   "_rawConfidence": "none",
   "_rawLinkedin": "",
-  "social": []
+  "social": [
+   {
+    "type": "linkedin",
+    "url": "https://www.linkedin.com/in/raghdausama/"
+   }
+  ]
  },
  {
   "key": "sherif shalaby",
@@ -1701,13 +1851,18 @@
   "company": "Co-Founder / CMO, Big Move Agency",
   "photo": "https://avatars.sched.co/d/4f/28162099/avatar.jpg?cb5",
   "bio": "Sherif Shalaby is Co-Founder and Chief Marketing Officer of Big Move Agency, a Cairo-founded media production and digital marketing agency.",
-  "linkedin": "",
+  "linkedin": "https://www.linkedin.com/in/sherif-shalaby-72bb5861/",
   "otherLink": "",
   "sourceUrl": "https://technesummit2026.sched.com/speaker/sherif_shalaby.2a8agvgq",
-  "linkConfidence": "none",
-  "_evidence": "No search result linked a Sherif Shalaby to Big Move Agency",
+  "linkConfidence": "high",
+  "_evidence": "No search result linked a Sherif Shalaby to Big Move Agency | linkedin provided by Team Leader 2026-10-02",
   "_rawConfidence": "none",
   "_rawLinkedin": "",
-  "social": []
+  "social": [
+   {
+    "type": "linkedin",
+    "url": "https://www.linkedin.com/in/sherif-shalaby-72bb5861/"
+   }
+  ]
  }
 ]
