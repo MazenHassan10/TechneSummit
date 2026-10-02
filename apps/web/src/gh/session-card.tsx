@@ -147,9 +147,9 @@ export function PersonRow({ p, s, manage, hidePr }: { p: Person; s: Session; man
           return (
             <Button key={k} type="button" disabled={p.noshow && !done} onClick={() => tap(k, done)}
               variant={done ? "secondary" : isNext ? "default" : "outline"}
-              className={cn("h-auto min-h-11 flex-col gap-0 px-0.5 py-1.5 text-[11px] leading-tight whitespace-normal", done && "text-st-done")}>
-              <span className="flex items-center gap-0.5">{done && <Check className="size-3" />}{Core.STEP_LABEL[k]}</span>
-              <span className="text-[10px] font-normal opacity-80">{done ? hm(p[k]) : " "}</span>
+              className={cn("h-auto min-h-11 flex-col items-center justify-center gap-0 px-0.5 py-1.5 text-center text-[11px] leading-tight whitespace-normal", done && "text-st-done")}>
+              <span className="flex items-center justify-center gap-0.5">{done && <Check className="size-3" />}{Core.STEP_LABEL[k]}</span>
+              {done && <span className="text-[10px] font-normal opacity-80">{hm(p[k])}</span>}
             </Button>
           );
         })}
