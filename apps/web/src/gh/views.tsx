@@ -14,7 +14,7 @@ import { Tabs, TabsList, TabsTrigger } from "@great-hall-pr/ui/components/tabs";
 import { Textarea } from "@great-hall-pr/ui/components/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@great-hall-pr/ui/components/toggle-group";
 import { cn } from "@great-hall-pr/ui/lib/utils";
-import { Ellipsis, Pencil, Plus, Send, UserPlus, Zap } from "lucide-react";
+import { Ellipsis, Pencil, Plus, Repeat, Send, ShieldUser, UserPlus } from "lucide-react";
 import { Fragment, useState } from "react";
 import { toast } from "sonner";
 
@@ -75,20 +75,32 @@ export function myAlertCount(state: Core.State, name: string, t: number) {
   return n;
 }
 
+// ---------- Team Leader contact ----------
+export function LeaderCard({ compact }: { compact?: boolean }) {
+  const { state } = useApp();
+  const phone = state?.settings.adminPhone;
+  if (!state || !phone) return null;
+  return (
+    <Card size="sm" className="mb-3">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2"><ShieldUser className="size-4 text-primary" />Team Leader · {state.settings.adminName}</CardTitle>
+        <CardDescription>{compact ? "For anything urgent" : "Call or WhatsApp for anything urgent"} · {phone}</CardDescription>
+        <CardAction className="flex gap-1.5"><CallLink phone={phone} title="Call Team Leader" /><WhatsAppLink phone={phone} /></CardAction>
+      </CardHeader>
+    </Card>
+  );
+}
+
 // ---------- PR views ----------
 function PrBanner({ name }: { name: string }) {
   const { state, day, now } = useApp();
   if (!state) return null;
   const t = now();
-  const l = Core.lunchWindow(state, name, day);
-  if (dayOf(t) !== day) return l ? <Banner kind="busy" title={`Lunch on ${dayLabel(state, day)}: ${hm(l[0])}–${hm(l[1])}`} /> : null;
-  const st = Core.prStateAt(state, name, t, day);
+  if (dayOf(t) !== day) return null;
   const cur = Core.prCurrentSession(state, name, t);
   const nextBusy = Core.sessionsOfPr(state, name, day).map((s) => Core.busyWindow(s, state.settings)[0]).filter((x) => x > t).sort((a, b) => a - b)[0];
-  if ((st === "L" || st === "!") && l) return <Banner kind="lunch" title={`Lunch break until ${hm(l[1])}`}>{st === "!" && "Clash with a session – tell the Team Leader."}</Banner>;
-  if (st === "S" && cur) return <Banner kind="busy" title={`On duty: ${cur.title}`}>Speaker on stage at {hm(cur.start)}</Banner>;
-  const parts = [l && t < l[0] ? `Lunch ${hm(l[0])}–${hm(l[1])}` : "", nextBusy ? `Next speakers arrive ${hm(nextBusy)}` : ""].filter(Boolean);
-  return <Banner kind="free" title={`You're free${nextBusy ? ` for ${dur(nextBusy - t)}` : ""}`}>{parts.length ? parts.join(" · ") : "No more sessions today."}</Banner>;
+  if (cur) return <Banner kind="busy" title={`On duty: ${cur.title}`}>Speaker on stage at {hm(cur.start)}</Banner>;
+  return <Banner kind="free" title={nextBusy ? `Free for ${dur(nextBusy - t)}` : "You're free"}>{nextBusy ? `Your next speaker arrives at ${hm(nextBusy)}` : "No more speakers today."}</Banner>;
 }
 
 export function MineView() {
@@ -104,7 +116,8 @@ export function MineView() {
     <>
       <DaySwitch />
       <PrBanner name={me.name} />
-      {alerts > 0 && <Banner kind="alert" title={`${alerts} speaker(s) need action now`}>See the red statuses below.</Banner>}
+      {alerts > 0 && <Banner kind="alert" title={`${alerts} speaker(s) need action now`}>See the red statuses below. Can't reach them? Call the Team Leader.</Banner>}
+      <LeaderCard compact />
       {mine.length > 0 && <p className="mb-3 text-sm text-muted-foreground">You have <b className="text-foreground">{nMine} speaker{nMine === 1 ? "" : "s"}</b> in {mine.length} session{mine.length === 1 ? "" : "s"} on {dayLabel(state, day)}.</p>}
       {!mine.length && <Empty>No speakers assigned to you on {dayLabel(state, day)}.</Empty>}
       {up.map((s, i) => <SessionCard key={s.id} s={s} onlyPr={me.name} openDefault={i < 3} />)}
@@ -149,6 +162,7 @@ export function ReportView() {
   };
   return (
     <>
+      <LeaderCard />
       <Card>
         <CardHeader>
           <CardTitle>Report an issue</CardTitle>
@@ -213,7 +227,7 @@ function IncidentList({ admin }: { admin: boolean }) {
   );
 }
 
-// ---------- break / lunch board ----------
+// ---------- team timeline (with a speaker / free) ----------
 export function RotaBoard() {
   const { state, day, now } = useApp();
   if (!state) return null;
@@ -222,26 +236,23 @@ export function RotaBoard() {
   if (!ss.length) return <Empty>No sessions on this day.</Empty>;
   let from = Math.min(...ss.map((s) => Core.busyWindow(s, state.settings)[0]));
   let to = Math.max(...ss.map((s) => s.end));
-  for (const m of state.team) { const l = Core.lunchWindow(state, m.name, day); if (l) { from = Math.min(from, l[0]); to = Math.max(to, l[1]); } }
   from = Math.floor(from / 900000) * 900000;
   const slots: number[] = [];
   for (let x = from; x < to; x += 900000) slots.push(x);
   const nowIdx = slots.findIndex((s) => t >= s && t < s + 900000);
   const free = slots.map(() => 0);
   const rows = state.team.map((m) => ({ m, cells: slots.map((s, i) => { const v = Core.prStateAt(state, m.name, s + 1000, day); if (!v) free[i]!++; return v; }) }));
-  const cellCls = (v: string) => (v === "S" ? "bg-primary" : v === "L" ? "bg-amber" : v === "!" ? "bg-destructive" : "");
+  const cellCls = (v: string) => (v === "S" ? "bg-primary" : "");
   const nowCls = "shadow-[inset_2px_0_0_var(--color-orange),inset_-2px_0_0_var(--color-orange)]";
   return (
     <Card>
       <CardHeader>
         <CardTitle>Team timeline</CardTitle>
-        <CardDescription>15-minute blocks. Busy = from {state.settings.arriveMin} min before a session until the speaker walks on stage. Give breaks only when at least 2 PRs are free.</CardDescription>
+        <CardDescription>15-minute blocks. Blue = with a speaker (from {state.settings.arriveMin} min before the session until they walk on stage). Empty = free time.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="flex flex-wrap gap-2">
           <Badge variant="outline"><i className="size-2.5 rounded-sm bg-primary" />With speakers</Badge>
-          <Badge variant="outline"><i className="size-2.5 rounded-sm bg-amber" />Lunch</Badge>
-          <Badge variant="outline"><i className="size-2.5 rounded-sm bg-destructive" />Clash</Badge>
           <Badge variant="outline"><i className="size-2.5 rounded-sm border" />Free</Badge>
           {nowIdx >= 0 && <Badge variant="outline"><i className="size-2.5 rounded-sm bg-orange" />Now</Badge>}
         </div>
@@ -261,8 +272,8 @@ export function RotaBoard() {
                 </tr>
               ))}
               <tr className="border-t">
-                <td className="sticky left-0 z-10 bg-card px-2 text-xs font-semibold">Free PRs</td>
-                {free.map((f, i) => <td key={i} className={cn("text-center", f < 2 ? "font-bold text-destructive" : "text-muted-foreground")}>{f}</td>)}
+                <td className="sticky left-0 z-10 bg-card px-2 text-xs font-semibold">Free</td>
+                {free.map((f, i) => <td key={i} className="text-center text-muted-foreground">{f}</td>)}
               </tr>
             </tbody>
           </table>
@@ -293,6 +304,7 @@ export function LiveView() {
   const c = Core.counts(state, day, t);
   const openInc = state.incidents.filter((i) => i.status === "open");
   const clashes = state.sessions.filter((s) => s.day === day && !["OK", "NO_PR"].includes(Core.rotaCheck(state, s))).length;
+  const noPr = state.people.filter((p) => Core.sessionById(state, p.sid)?.day === day && !Core.prOf(state, p)).length;
   const att: { p: Core.Person; s: Session; code: Core.StatusCode }[] = [];
   for (const s of state.sessions) {
     if (s.day !== day || s.end <= t) continue;
@@ -308,7 +320,7 @@ export function LiveView() {
     <>
       <DaySwitch />
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
-        <Stat n={c.LATE + c.TAKE_BACKSTAGE} label="Late" hot /><Stat n={c.CALLNOW} label="Call now" hot /><Stat n={openInc.length} label="Issues" hot /><Stat n={clashes} label="Rota clash" hot />
+        <Stat n={c.LATE + c.TAKE_BACKSTAGE} label="Late" hot /><Stat n={c.CALLNOW} label="Call now" hot /><Stat n={openInc.length} label="Issues" hot /><Stat n={clashes + noPr} label="PR problems" hot />
         <Stat n={c.NOTCALLED} label="Not called" /><Stat n={c.CONFIRMED} label="En route" /><Stat n={c.ARRIVED + c.BACKSTAGE} label="Arrived" /><Stat n={c.DONE} label="Done" />
       </div>
       <div className="grid gap-x-4 lg:grid-cols-2">
@@ -345,15 +357,14 @@ export function LiveView() {
           <SectionTitle>Team {today ? "right now" : ""}</SectionTitle>
           <ListCard>
             {state.team.map((m) => {
-              const stt = today ? Core.prStateAt(state, m.name, t, day) : "";
               const cur = today ? Core.prCurrentSession(state, m.name, t) : null;
-              const l = Core.lunchWindow(state, m.name, day);
-              const label = stt === "L" && l ? `Lunch until ${hm(l[1])}` : stt === "S" ? `On duty · ${cur?.title ?? ""}` : stt === "!" ? "Clash" : today ? "Free" : l ? `Lunch ${hm(l[0])}` : "";
+              const n = state.people.filter((p) => Core.sessionById(state, p.sid)?.day === day && Core.prOf(state, p) === m.name).length;
+              const label = cur ? `On duty · ${cur.title}` : today ? `Free · ${n} speakers today` : `${n} speakers`;
               return (
                 <Fragment key={m.name}>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 font-medium">{m.name}{m.guest && <Badge variant="outline">Guest</Badge>}</div>
-                    <div className={cn("truncate text-xs text-muted-foreground", stt === "" && today && "text-st-ok", stt === "L" && "text-st-warn")}>{label}</div>
+                    <div className={cn("truncate text-xs text-muted-foreground", !cur && today && "text-st-ok")}>{label}</div>
                   </div>
                   {m.phone && <><CallLink phone={m.phone} /><WhatsAppLink phone={m.phone} /></>}
                 </Fragment>
@@ -376,9 +387,9 @@ export function SessionsView() {
       <Card className="mb-3">
         <CardHeader>
           <CardTitle>Sessions</CardTitle>
-          <CardDescription>Each speaker has their own PR – open a session and use the PR menu under each speaker.</CardDescription>
+          <CardDescription>Each speaker has their own PR, given out in rotation. Open a session to change a PR with the menu under the speaker.</CardDescription>
           <CardAction className="flex flex-wrap justify-end gap-2">
-            <Button variant="outline" onClick={() => modal.open({ kind: "autoAssign" })}><Zap /> Auto-assign</Button>
+            <Button variant="outline" onClick={() => modal.open({ kind: "autoAssign" })}><Repeat /> Assign in rotation</Button>
             <Button onClick={() => modal.open({ kind: "sessionEdit" })}><Plus /> New session</Button>
           </CardAction>
         </CardHeader>
@@ -389,10 +400,9 @@ export function SessionsView() {
 }
 
 export function TeamAdminView() {
-  const { state, day, act } = useApp();
+  const { state, day } = useApp();
   const modal = useModal();
   if (!state) return null;
-  const isD1 = day === state.settings.day1;
   return (
     <>
       <DaySwitch />
@@ -400,26 +410,23 @@ export function TeamAdminView() {
       <Card className="mt-4">
         <CardHeader>
           <CardTitle>Team · {dayLabel(state, day)}</CardTitle>
-          <CardDescription>{state.team.length} people. Admin PIN: <code className="rounded bg-muted px-1.5 py-0.5">{state.settings.adminPin}</code></CardDescription>
+          <CardDescription>{state.team.length} people · rotation goes in this order. Admin PIN: <code className="rounded bg-muted px-1.5 py-0.5">{state.settings.adminPin}</code></CardDescription>
           <CardAction><Button onClick={() => modal.open({ kind: "member" })}><UserPlus /> Add member</Button></CardAction>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
-              <TableRow><TableHead>Name</TableHead><TableHead>Lunch ({state.settings.lunchMin} min)</TableHead><TableHead>Speakers</TableHead><TableHead>PIN</TableHead><TableHead /></TableRow>
+              <TableRow><TableHead>Order</TableHead><TableHead>Name</TableHead><TableHead>Phone</TableHead><TableHead>Speakers</TableHead><TableHead>PIN</TableHead><TableHead /></TableRow>
             </TableHeader>
             <TableBody>
-              {state.team.map((m) => {
+              {state.team.map((m, idx) => {
                 const mp = state.people.filter((p) => Core.sessionById(state, p.sid)?.day === day && Core.prOf(state, p) === m.name);
-                const clash = mp.some((p) => ["CLASH_LUNCH", "CLASH_DOUBLE"].includes(Core.personRota(state, p)));
-                const lunch = isD1 ? m.lunch1 : m.lunch2;
+                const clash = mp.some((p) => Core.personRota(state, p) === "SAME_PANEL");
                 return (
                   <TableRow key={m.name}>
-                    <TableCell className="font-medium"><div className="flex items-center gap-1.5">{m.name}{m.guest && <Badge variant="outline">Guest</Badge>}{clash && <Badge variant="destructive">Clash</Badge>}</div></TableCell>
-                    <TableCell>
-                      <Input type="time" step={900} className="w-32" defaultValue={lunch} key={`${m.name}-${day}-${lunch}`}
-                        onBlur={(e) => { const v = e.target.value; if (v && v !== lunch) void act({ type: "lunch", name: m.name, day, hhmm: v }, "Lunch updated"); }} />
-                    </TableCell>
+                    <TableCell className="text-muted-foreground tabular-nums">{idx + 1}</TableCell>
+                    <TableCell className="font-medium"><div className="flex items-center gap-1.5">{m.name}{m.guest && <Badge variant="outline">Guest</Badge>}{clash && <Badge variant="destructive">2 on a panel</Badge>}</div></TableCell>
+                    <TableCell className="tabular-nums">{m.phone || "–"}</TableCell>
                     <TableCell>{mp.length}</TableCell>
                     <TableCell><code className="rounded bg-muted px-1.5 py-0.5">{m.pin}</code></TableCell>
                     <TableCell className="text-right"><Button variant="outline" size="sm" onClick={() => modal.open({ kind: "member", name: m.name })}><Pencil /> Edit</Button></TableCell>

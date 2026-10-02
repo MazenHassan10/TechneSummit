@@ -49,6 +49,8 @@ export type Settings = {
   stageMin?: number;
   adminName: string;
   adminPin: string;
+  /** Team Leader's phone – shown to every PR for urgent calls / WhatsApp */
+  adminPhone?: string;
 };
 export type Member = { name: string; fullName: string; phone: string; pin: string; lunch1: string; lunch2: string; guest: boolean };
 export type Session = { id: string; day: string; start: number; end: number; title: string; type: string; owner: string; notes: string };
@@ -73,7 +75,7 @@ export type State = {
 };
 export type Actor = { name: string; admin: boolean };
 export type Table = "team" | "sessions" | "people" | "incidents";
-export type RotaCode = "OK" | "NO_PR" | "UNKNOWN_PR" | "CLASH_LUNCH" | "CLASH_DOUBLE";
+export type RotaCode = "OK" | "NO_PR" | "UNKNOWN_PR" | "SAME_PANEL";
 
 // Actions are validated here (not by the transport), so every field is optional/loose.
 export type Action = { type: string } & Record<string, unknown>;
@@ -145,21 +147,10 @@ export function sessionReadiness(state: State, s: Session, now: number): Readine
 // ---------- rota ----------
 type Win = [number, number];
 
-export function lunchWindow(state: State, name: string, day: string): Win | null {
-  const m = memberByName(state, name);
-  if (!m) return null;
-  const hhmm = day === state.settings.day1 ? m.lunch1 : m.lunch2;
-  if (!hhmm) return null;
-  const a = dayStart(day, hhmm, state.settings.tz);
-  return [a, a + state.settings.lunchMin * MIN];
-}
-
-/** A PR is on duty for a speaker from arrival (start − arriveMin) until the speaker walks on stage. */
+/** A PR is with a speaker from arrival (start − arriveMin) until the speaker walks on stage. */
 export function busyWindow(s: Session, st: Settings): Win {
   return [s.start - st.arriveMin * MIN, s.start + (st.stageMin || 0) * MIN];
 }
-
-const overlaps = (a: Win, b: Win) => a[0] < b[1] && b[0] < a[1];
 
 /** Each speaker has their own PR (p.pr); older data only had one PR per session (s.owner) – used as a fallback. */
 export function prOf(state: State, p: Person) {
@@ -181,19 +172,15 @@ export function sessionsOfPr(state: State, name: string, day?: string) {
   return state.sessions.filter((s) => (!day || s.day === day) && peopleOf(state, s.id).some((p) => prOf(state, p) === name));
 }
 
+/** The only rule: a PR never has two speakers on the same panel. (No breaks – free time = no speaker.) */
 export function personRota(state: State, p: Person): RotaCode {
   const name = prOf(state, p);
-  const s = sessionById(state, p.sid);
   if (!name) return "NO_PR";
-  if (!memberByName(state, name) || !s) return "UNKNOWN_PR";
-  const w = busyWindow(s, state.settings);
-  const l = lunchWindow(state, name, s.day);
-  if (l && overlaps(w, l)) return "CLASH_LUNCH";
-  const other = sessionsOfPr(state, name, s.day).some((o) => o.id !== s.id && overlaps(w, busyWindow(o, state.settings)));
-  return other ? "CLASH_DOUBLE" : "OK";
+  if (!memberByName(state, name)) return "UNKNOWN_PR";
+  return peopleOf(state, p.sid).filter((q) => prOf(state, q) === name).length > 1 ? "SAME_PANEL" : "OK";
 }
 
-const ROTA_RANK: Record<RotaCode, number> = { CLASH_LUNCH: 0, UNKNOWN_PR: 1, CLASH_DOUBLE: 2, NO_PR: 3, OK: 9 };
+const ROTA_RANK: Record<RotaCode, number> = { UNKNOWN_PR: 0, SAME_PANEL: 1, NO_PR: 2, OK: 9 };
 /** Worst problem among the session's speakers */
 export function rotaCheck(state: State, s: Session): RotaCode {
   let worst: RotaCode = "OK";
@@ -208,20 +195,12 @@ export const ROTA_LABEL: Record<RotaCode, string> = {
   OK: "OK",
   NO_PR: "No PR assigned",
   UNKNOWN_PR: "Unknown PR",
-  CLASH_LUNCH: "Clash – PR at lunch",
-  CLASH_DOUBLE: "PR has 2 sessions at once",
+  SAME_PANEL: "PR has 2 speakers on this panel",
 };
 
-/** 'S' with speakers, 'L' lunch, '!' clash, '' free */
-export function prStateAt(state: State, name: string, t: number, day: string): "S" | "L" | "!" | "" {
-  let n = 0;
-  for (const s of sessionsOfPr(state, name, day)) {
-    const w = busyWindow(s, state.settings);
-    if (t >= w[0] && t < w[1]) n++;
-  }
-  const l = lunchWindow(state, name, day);
-  if (l && t >= l[0] && t < l[1]) return n ? "!" : "L";
-  return n > 1 ? "!" : n === 1 ? "S" : "";
+/** 'S' = with a speaker, '' = free */
+export function prStateAt(state: State, name: string, t: number, day: string): "S" | "" {
+  return sessionsOfPr(state, name, day).some((s) => { const w = busyWindow(s, state.settings); return t >= w[0] && t < w[1]; }) ? "S" : "";
 }
 
 export function prCurrentSession(state: State, name: string, t: number) {
@@ -234,47 +213,34 @@ export function prCurrentSession(state: State, name: string, t: number) {
 }
 
 /**
- * Spread speakers over the team: one PR per speaker where possible, never during their lunch,
- * avoid overlapping sessions, keep repeat speakers with the same PR, balance the load.
+ * Rotation: walk the speakers in agenda order and hand them to the team in order
+ * (1st member, 2nd, 3rd … then back to the 1st), continuing across sessions.
+ * A member already used on the same panel is skipped, so nobody gets two speakers on one panel.
+ * `onlyUnassigned` keeps existing choices and continues the rotation for the empty ones.
  */
 export function autoAssign(state: State, day: string | null, onlyUnassigned: boolean) {
-  const st = state.settings;
   const names = state.team.map((m) => m.name);
-  const load: Record<string, number> = {};
-  const windows: Record<string, [Win, string][]> = {};
-  const keep = new Set<string>();
-  for (const n of names) { load[n] = 0; windows[n] = []; }
-  const sessions = state.sessions.filter((s) => !day || s.day === day).sort((a, b) => a.start - b.start);
-  const ids = new Set(sessions.map((s) => s.id));
-  // keep existing assignments outside scope / when only filling gaps
-  for (const p of state.people) {
-    const s = sessionById(state, p.sid);
-    const n = p.pr;
-    if (!s || !n || !windows[n]) continue;
-    if (!ids.has(s.id) || onlyUnassigned) { windows[n].push([busyWindow(s, st), s.id]); load[n]!++; keep.add(p.id); }
-  }
-  const byName: Record<string, string> = {};
+  if (!names.length) return 0;
+  const sessions = state.sessions.filter((s) => !day || s.day === day).sort((a, b) => a.start - b.start || a.title.localeCompare(b.title));
+  let next = 0;
   let changed = 0;
   for (const s of sessions) {
-    const w = busyWindow(s, st);
-    const inSession: Record<string, number> = {};
-    for (const p of peopleOf(state, s.id)) if (keep.has(p.id)) inSession[p.pr] = (inSession[p.pr] || 0) + 1;
-    for (const p of peopleOf(state, s.id)) {
-      if (keep.has(p.id)) continue;
-      const cands = names.filter((n) => { const l = lunchWindow(state, n, s.day); return !(l && overlaps(w, l)); });
-      const free = cands.filter((n) => !windows[n]!.some((x) => x[1] !== s.id && overlaps(w, x[0])));
-      const pool = free.length ? free : cands.length ? cands : names;
-      const prev = byName[normName(p.name)];
-      const pick = prev && pool.includes(prev) && !inSession[prev]
-        ? prev
-        : [...pool].sort((a, b) => (inSession[a] || 0) - (inSession[b] || 0) || load[a]! - load[b]! || names.indexOf(a) - names.indexOf(b))[0];
-      if (!pick) continue;
+    const ppl = peopleOf(state, s.id);
+    const used = new Set<string>();
+    if (onlyUnassigned) for (const p of ppl) if (p.pr && names.includes(p.pr)) used.add(p.pr);
+    for (const p of ppl) {
+      if (onlyUnassigned && p.pr && names.includes(p.pr)) {
+        // keep it, and continue the rotation after this member
+        next = (names.indexOf(p.pr) + 1) % names.length;
+        continue;
+      }
+      let pick = names[next % names.length]!;
+      // skip members already on this panel (only possible to avoid when the panel is smaller than the team)
+      for (let i = 0; i < names.length && used.has(pick); i++) { next++; pick = names[next % names.length]!; }
+      next = (next + 1) % names.length;
+      used.add(pick);
       if (p.pr !== pick) changed++;
       p.pr = pick;
-      load[pick]!++;
-      inSession[pick] = (inSession[pick] || 0) + 1;
-      if (!windows[pick]!.some((x) => x[1] === s.id)) windows[pick]!.push([w, s.id]);
-      byName[normName(p.name)] = pick;
     }
   }
   return changed;
@@ -361,7 +327,7 @@ function addLog(state: State, by: string, text: string, now: number) {
   state._newLog = [...(state._newLog || []), e];
 }
 
-const ADMIN_ONLY = new Set(["assign", "autoAssign", "owner", "lunch", "importPhones", "savePerson", "deletePerson", "saveSession", "deleteSession", "saveMember", "removeMember", "pin", "settings"]);
+const ADMIN_ONLY = new Set(["assign", "autoAssign", "owner", "importPhones", "savePerson", "deletePerson", "saveSession", "deleteSession", "saveMember", "removeMember", "pin", "settings"]);
 const str = (v: unknown) => (v == null ? "" : String(v));
 const isHHMM = (v: unknown) => /^\d{1,2}:\d{2}$/.test(str(v));
 const pad5 = (v: unknown) => ("0" + str(v)).slice(-5);
@@ -395,7 +361,7 @@ export function apply(state: State, a: Action, actor: Actor, now: number): Apply
           p.noshow = false;
         }
         touch(p); dirty.push("people");
-        addLog(state, by, `${a.value ? "✓ " : "✗ undo "}${STEP_LABEL[step]} – ${p.name} (${s.title})`, now);
+        addLog(state, by, `${a.value ? "" : "Undo: "}${STEP_LABEL[step]} – ${p.name} (${s.title})`, now);
         break;
       }
       case "eta": {
@@ -435,7 +401,7 @@ export function apply(state: State, a: Action, actor: Actor, now: number): Apply
         if (!a.kind) throw new Error("Choose what happened.");
         const inc: Incident = { id: uid("I"), ts: now, by, sid: str(a.sid), pid: str(a.pid), kind: str(a.kind), note: str(a.note).slice(0, 500), status: "open", resolvedBy: "", resolvedAt: null };
         state.incidents.push(inc); dirty.push("incidents");
-        addLog(state, by, `⚠ ${inc.kind}${inc.note ? ": " + inc.note : ""}`, now);
+        addLog(state, by, `Issue: ${inc.kind}${inc.note ? " – " + inc.note : ""}`, now);
         break;
       }
       case "resolveIncident": {
@@ -469,17 +435,8 @@ export function apply(state: State, a: Action, actor: Actor, now: number): Apply
       case "autoAssign": {
         const n = autoAssign(state, a.day ? str(a.day) : null, !!a.onlyUnassigned);
         dirty.push("people");
-        addLog(state, by, `Auto-assigned PRs${a.day ? " for " + str(a.day) : ""} (${n} changed)`, now);
+        addLog(state, by, `Assigned PRs in rotation${a.day ? " for " + str(a.day) : ""} (${n} changed)`, now);
         return { ok: true, dirty, result: n };
-      }
-      case "lunch": {
-        const m = memberByName(state, str(a.name));
-        if (!m) throw new Error("PR not found");
-        if (!isHHMM(a.hhmm)) throw new Error("Use HH:MM");
-        if (a.day === state.settings.day1) m.lunch1 = pad5(a.hhmm); else m.lunch2 = pad5(a.hhmm);
-        dirty.push("team");
-        addLog(state, by, `Lunch for ${m.name} on ${str(a.day)} → ${pad5(a.hhmm)}`, now);
-        break;
       }
       case "pin": {
         const m = memberByName(state, str(a.name));
@@ -582,7 +539,6 @@ export function apply(state: State, a: Action, actor: Actor, now: number): Apply
         if (!nm) throw new Error("Name is required");
         const pinv = str(a.pin).trim() || String(1000 + Math.floor(Math.random() * 9000));
         if (!/^\d{4,8}$/.test(pinv)) throw new Error("PIN must be 4–8 digits");
-        for (const l of [a.lunch1, a.lunch2]) if (l && !isHHMM(l)) throw new Error("Lunch time must be HH:MM");
         const clash = memberByName(state, nm);
         let mem = a.origName ? memberByName(state, str(a.origName)) : null;
         if (a.origName && !mem) throw new Error("Member not found");
@@ -597,8 +553,6 @@ export function apply(state: State, a: Action, actor: Actor, now: number): Apply
         }
         const wasNew = !a.origName;
         mem.name = nm; mem.phone = normPhone(a.phone); mem.pin = pinv; mem.guest = !!a.guest;
-        mem.lunch1 = a.lunch1 ? pad5(a.lunch1) : "";
-        mem.lunch2 = a.lunch2 ? pad5(a.lunch2) : "";
         if (a.fullName !== undefined) mem.fullName = str(a.fullName);
         dirty.push("team");
         addLog(state, by, `${wasNew ? "Added team member " : "Updated team member "}${nm}${mem.guest ? " (guest)" : ""}`, now);

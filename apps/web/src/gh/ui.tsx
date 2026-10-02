@@ -8,7 +8,7 @@ import { buttonVariants } from "@great-hall-pr/ui/components/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@great-hall-pr/ui/components/select";
 import { Tabs, TabsList, TabsTrigger } from "@great-hall-pr/ui/components/tabs";
 import { cn } from "@great-hall-pr/ui/lib/utils";
-import { Coffee, MessageCircle, Mic, Phone, TriangleAlert, Utensils } from "lucide-react";
+import { Coffee, MessageCircle, Mic, Phone, TriangleAlert } from "lucide-react";
 import { createContext, useContext } from "react";
 import { toast } from "sonner";
 
@@ -38,7 +38,6 @@ export function DayTabs({ value, onChange, days }: { value: string; onChange: (d
 }
 
 const BANNER = {
-  lunch: { icon: Utensils, cls: "border-st-ready/40 bg-st-ready/10" },
   free: { icon: Coffee, cls: "border-st-done/40 bg-st-done/10" },
   busy: { icon: Mic, cls: "border-primary/30 bg-secondary" },
   alert: { icon: TriangleAlert, cls: "" },
@@ -92,7 +91,7 @@ export function PrPicker({ person }: { person: Person }) {
     const r = await act({ type: "assign", pid: person.id, pr });
     if (r.ok) {
       const code = r.result as Core.RotaCode;
-      if (code && code !== "OK" && code !== "NO_PR") toast.warning(`${Core.ROTA_LABEL[code]} – pick someone else or move their lunch`);
+      if (code && code !== "OK" && code !== "NO_PR") toast.warning(`${Core.ROTA_LABEL[code]} – pick someone else`);
       else toast.success(pr ? `Assigned to ${pr}` : "PR removed");
     }
   };

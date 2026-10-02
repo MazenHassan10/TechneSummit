@@ -8,7 +8,7 @@ import SEED from "./seed.json";
 
 export type StoredState = State & { version: number };
 
-const TEXT_SETTINGS = new Set(["day1", "day2", "tz", "tzName", "adminName", "adminPin"]);
+const TEXT_SETTINGS = new Set(["day1", "day2", "tz", "tzName", "adminName", "adminPin", "adminPhone"]);
 
 function parseSettings(rows: { key: string; value: string }[]): Settings {
   const out: Record<string, string | number> = {};

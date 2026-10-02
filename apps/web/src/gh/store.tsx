@@ -98,7 +98,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (seenIncidents.current && who.admin) {
       const fresh = open.filter((id) => !seenIncidents.current!.includes(id));
       const inc = st.incidents.find((i) => i.id === fresh[0]);
-      if (inc) { toast.error(`⚠ ${inc.kind} – reported by ${inc.by}`); buzz(); }
+      if (inc) { toast.error(`${inc.kind} – reported by ${inc.by}`); buzz(); }
     }
     seenIncidents.current = open;
     const late: string[] = [];
@@ -110,7 +110,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     if (seenLate.current) {
       const n = late.filter((x) => !seenLate.current!.includes(x)).length;
-      if (n) { toast.error(`🔴 ${n} speaker(s) need action now`); buzz(); }
+      if (n) { toast.error(`${n} speaker(s) need action now`); buzz(); }
     }
     seenLate.current = late;
   }, []);

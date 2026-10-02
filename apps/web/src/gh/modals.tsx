@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import { hm, hm24 } from "./format";
 import { useApp } from "./store";
 import { CallLink, TONE_TEXT, useModal, type ModalSpec, WhatsAppLink } from "./ui";
-import { dayLabel, SessionSelect } from "./views";
+import { dayLabel, LeaderCard, SessionSelect } from "./views";
 
 const F = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <div className="space-y-2"><Label>{label}</Label>{children}</div>
@@ -178,11 +178,9 @@ function MemberEdit({ name }: { name?: string }) {
   const [nm, setNm] = useState(m?.name ?? "");
   const [phone, setPhone] = useState(m?.phone ?? "");
   const [pin, setPin] = useState(m?.pin ?? "");
-  const [l1, setL1] = useState(m?.lunch1 ?? "");
-  const [l2, setL2] = useState(m?.lunch2 ?? "");
-  const [guest, setGuest] = useState(m ? m.guest : true);
+    const [guest, setGuest] = useState(m ? m.guest : true);
   const save = async () => {
-    const r = await act({ type: "saveMember", origName: name || "", name: nm, phone, pin, lunch1: l1, lunch2: l2, guest });
+    const r = await act({ type: "saveMember", origName: name || "", name: nm, phone, pin, guest });
     if (r.ok) { const res = r.result as { name: string; pin: string }; toast.success(`${name ? "Saved" : "Added"} ${res.name} – PIN ${res.pin}`); modal.close(); }
   };
   return (
@@ -194,10 +192,6 @@ function MemberEdit({ name }: { name?: string }) {
       <F label="Name (shown on login screen)"><Input  value={nm} onChange={(e) => setNm(e.target.value)} placeholder="e.g. Omar Adel" /></F>
       <F label="Phone"><Input type="tel"  value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="01…" /></F>
       <F label="PIN (4–8 digits – leave empty to auto-create)"><Input inputMode="numeric" maxLength={8}  value={pin} onChange={(e) => setPin(e.target.value)} /></F>
-      <div className="grid grid-cols-2 gap-4">
-        <F label="Lunch Sat (optional)"><Input type="time" step={900}  value={l1} onChange={(e) => setL1(e.target.value)} /></F>
-        <F label="Lunch Sun (optional)"><Input type="time" step={900}  value={l2} onChange={(e) => setL2(e.target.value)} /></F>
-      </div>
       <label className="flex items-center gap-2 text-sm"><Checkbox checked={guest} onCheckedChange={(v) => setGuest(!!v)} /> Guest (helping for a few sessions)</label>
       <Button className="w-full" size="lg" onClick={save}>{name ? "Save" : "Add to team"}</Button>
       {name && (
@@ -237,19 +231,20 @@ function AutoAssign() {
   const modal = useModal();
   if (!state) return null;
   const run = async (all: boolean) => {
-    if (all && !confirm(`Re-assign ALL speakers on ${dayLabel(state, day)}? Your manual changes on this day will be replaced.`)) return;
+    if (all && !confirm(`Re-assign ALL speakers on ${dayLabel(state, day)} in rotation? Manual changes on this day will be replaced.`)) return;
     const r = await act({ type: "autoAssign", day, onlyUnassigned: !all });
     if (r.ok) { toast.success(`${r.result} speaker(s) assigned`); modal.close(); }
   };
+  const order = state.team.map((m, i) => `${i + 1}. ${m.name}`).join("  ");
   return (
     <>
       <DialogHeader>
-        <DialogTitle>⚡ Auto-assign PRs – {dayLabel(state, day)}</DialogTitle>
-        <DialogDescription>Gives every speaker their own PR where possible, skips anyone at lunch, never puts one PR in two sessions at once, and balances the load. Repeat speakers keep the same PR when possible.</DialogDescription>
+        <DialogTitle>Assign PRs in rotation – {dayLabel(state, day)}</DialogTitle>
+        <DialogDescription>Speakers are handed out in agenda order to the team in order (1st member, 2nd, 3rd … then back to the 1st), continuing into the next session. Nobody gets two speakers on the same panel.</DialogDescription>
       </DialogHeader>
-      <Button className="w-full" size="lg" onClick={() => run(false)}>Fill only speakers without a PR</Button>
-      <Button variant="outline" size="lg" className="w-full" onClick={() => run(true)}>Re-balance the whole day</Button>
-      <p className="text-xs text-muted-foreground">When there are more speakers than free PRs at the same time, some PRs get 2 speakers on the same panel – shown as &ldquo;×2&rdquo;.</p>
+      <p className="text-xs text-muted-foreground">Order: {order}</p>
+      <Button size="lg" className="w-full" onClick={() => run(false)}>Fill only speakers without a PR</Button>
+      <Button variant="outline" size="lg" className="w-full" onClick={() => run(true)}>Re-assign the whole day</Button>
     </>
   );
 }
@@ -267,6 +262,7 @@ function Menu() {
         <Button variant="outline" onClick={() => { refresh(); modal.close(); }}>↻ Refresh now</Button>
         <Button variant="destructive" onClick={() => { modal.close(); logout(); }}>Log out</Button>
       </div>
+      {!me?.admin && <LeaderCard />}
       <p className="text-xs text-muted-foreground">Updates every few seconds. Green dot = live, red = offline.</p>
     </>
   );

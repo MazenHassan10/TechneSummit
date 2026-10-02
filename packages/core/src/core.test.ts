@@ -31,41 +31,46 @@ test('status timeline for one speaker', () => {
 test('unarrived after session end = no-show', () => {
   assert.strictEqual(Core.personStatus(clone(pWill), sWill, st0.settings, at(D1, '14:00')), 'NOSHOW');
 });
-test('seeded rota (legacy session owners) has no clashes', () => {
-  st0.sessions.forEach((s) => assert.notStrictEqual(Core.rotaCheck(st0, s), 'CLASH_LUNCH', s.title));
-});
-test('owner change into lunch is flagged', () => {
-  const st = clone(SEED), s = st.sessions.find((x) => x.title.startsWith('Will AI'));
-  const lunchy = st.team.find((m) => m.lunch1 === '12:00').name;
-  const r = Core.apply(st, { type: 'owner', sid: s.id, owner: lunchy }, { name: 'TL', admin: true }, 0);
-  assert.ok(r.ok); assert.strictEqual(r.result, 'CLASH_LUNCH');
-});
-test('double booking is flagged (same PR, overlapping sessions)', () => {
+test('no lunch / break logic: PR state is only "with speaker" or free', () => {
   const st = clone(SEED);
-  const a = st.sessions.find((x) => x.title.startsWith('The Myth')), b = st.sessions.find((x) => x.title.startsWith('Building AI'));
-  st.team.forEach((m) => { m.lunch1 = ''; });
-  const pa = Core.peopleOf(st, a.id)[0], pb = Core.peopleOf(st, b.id)[0];
-  Core.apply(st, { type: 'assign', pid: pa.id, pr: 'Karim Hamed' }, { name: 'TL', admin: true }, 0);
-  const r = Core.apply(st, { type: 'assign', pid: pb.id, pr: 'Karim Hamed' }, { name: 'TL', admin: true }, 0);
-  assert.strictEqual(r.result, 'CLASH_DOUBLE');
+  const s = st.sessions.find((x) => x.title.startsWith('Will AI'));
+  Core.peopleOf(st, s.id)[0].pr = 'Karim Hamed';
+  assert.strictEqual(Core.prStateAt(st, 'Karim Hamed', at(D1, '12:30'), D1), 'S');
+  assert.strictEqual(Core.prStateAt(st, 'Karim Hamed', at(D1, '11:00'), D1), '');
 });
-test('two speakers of the SAME session with one PR is not a clash', () => {
-  const st = clone(SEED); st.team.forEach((m) => { m.lunch1 = ''; });
+test('two speakers of the same panel with one PR is flagged', () => {
+  const st = clone(SEED);
   const s = st.sessions.find((x) => x.title.startsWith('Will AI')), [p1, p2] = Core.peopleOf(st, s.id);
   Core.apply(st, { type: 'assign', pid: p1.id, pr: 'Karim Hamed' }, { name: 'TL', admin: true }, 0);
-  assert.strictEqual(Core.apply(st, { type: 'assign', pid: p2.id, pr: 'Karim Hamed' }, { name: 'TL', admin: true }, 0).result, 'OK');
+  const r = Core.apply(st, { type: 'assign', pid: p2.id, pr: 'Karim Hamed' }, { name: 'TL', admin: true }, 0);
+  assert.strictEqual(r.result, 'SAME_PANEL');
+  assert.strictEqual(Core.rotaCheck(st, s), 'SAME_PANEL');
 });
-test('auto-assign: every speaker gets a PR, no clashes, balanced load', () => {
+test('same PR on two different (even overlapping) panels is allowed – no break rules', () => {
+  const st = clone(SEED);
+  const a = st.sessions.find((x) => x.title.startsWith('The Myth')), b = st.sessions.find((x) => x.title.startsWith('Building AI'));
+  Core.apply(st, { type: 'assign', pid: Core.peopleOf(st, a.id)[0].id, pr: 'Karim Hamed' }, { name: 'TL', admin: true }, 0);
+  assert.strictEqual(Core.apply(st, { type: 'assign', pid: Core.peopleOf(st, b.id)[0].id, pr: 'Karim Hamed' }, { name: 'TL', admin: true }, 0).result, 'OK');
+});
+test('rotation: in order, wraps around, continues across sessions, never 2 on one panel, even load', () => {
   const st = clone(SEED);
   Core.autoAssign(st, null, false);
-  assert.ok(st.people.every((p) => p.pr));
+  const names = st.team.map((m) => m.name);
+  const order = st.sessions.slice().sort((a, b) => a.start - b.start || a.title.localeCompare(b.title)).flatMap((s) => Core.peopleOf(st, s.id));
+  // strict rotation: speaker i gets member i mod 7 (no panel has more than 7 speakers, so no skips needed)
+  order.forEach((p, i) => assert.strictEqual(p.pr, names[i % names.length], p.name));
   assert.ok(st.people.every((p) => Core.personRota(st, p) === 'OK'));
   const load = {}; st.people.forEach((p) => { load[p.pr] = (load[p.pr] || 0) + 1; });
-  const v = Object.values(load); assert.ok(Math.max(...v) - Math.min(...v) <= 2, JSON.stringify(load));
-  // repeat speaker on the same day keeps the same PR when possible
-  // (Maged Ghoneima can't: his first PR is busy with another panel at his second session)
-  const mm = st.people.filter((p) => p.name === 'Mohammed Mounir');
-  assert.strictEqual(mm[0].pr, mm[1].pr);
+  const v = Object.values(load); assert.ok(Math.max(...v) - Math.min(...v) <= 1, JSON.stringify(load));
+});
+test('rotation skips a member already on the panel', () => {
+  const st = clone(SEED);
+  st.team = st.team.slice(0, 3); // 3 members, 6-speaker panel → each gets 2, but never adjacent duplicates beyond need
+  const s = st.sessions.find((x) => x.title.startsWith('Will AI'));
+  Core.peopleOf(st, s.id)[0].pr = st.team[1].name;
+  Core.autoAssign(st, s.day, true);
+  const prs = Core.peopleOf(st, s.id).map((p) => p.pr);
+  assert.ok(prs.every(Boolean));
 });
 test('auto-assign "fill only" keeps manual choices', () => {
   const st = clone(SEED); Core.autoAssign(st, null, false);
@@ -79,14 +84,6 @@ test('PR busy only until their speaker walks on stage', () => {
   p.pr = 'Karim Hamed';
   assert.strictEqual(Core.prStateAt(st, 'Karim Hamed', at(D1, '12:30'), D1), 'S');
   assert.strictEqual(Core.prStateAt(st, 'Karim Hamed', at(D1, '13:10'), D1), '');
-});
-test('moving lunch resolves clash', () => {
-  const st = clone(SEED), s = st.sessions.find((x) => x.title.startsWith('Will AI'));
-  const m = st.team.find((x) => x.lunch1 === '12:00');
-  s.owner = m.name;
-  assert.strictEqual(Core.rotaCheck(st, s), 'CLASH_LUNCH');
-  assert.ok(Core.apply(st, { type: 'lunch', name: m.name, day: D1, hhmm: '14:30' }, { name: 'TL', admin: true }, 0).ok);
-  assert.strictEqual(m.lunch1, '14:30');
 });
 test('PRs cannot do admin actions', () => {
   const st = clone(SEED);
@@ -130,11 +127,12 @@ test('next step skips calls once late', () => {
   assert.strictEqual(Core.nextStep(clone(pWill), sWill, st0.settings, at(D1, '12:30')), 'arrived');
 });
 test('WhatsApp link uses +20', () => { assert.strictEqual(Core.waLink('01287415931'), 'https://wa.me/201287415931'); });
-test('rota board state at times', () => {
-  const st = clone(SEED), m = st.team.find((x) => x.lunch1 === '12:00');
-  assert.strictEqual(Core.prStateAt(st, m.name, at(D1, '12:30'), D1), 'L');
-  const s = st.sessions.find((x) => x.owner === m.name && x.day === D1);
-  assert.strictEqual(Core.prStateAt(st, m.name, s.start - 60000, D1), 'S');
+test('PR state follows speaker arrival → walk-on window', () => {
+  const st = clone(SEED); st.people.forEach((p) => { p.pr = 'Nobody'; });
+  const s = st.sessions.find((x) => x.title.startsWith('Will AI')), n = 'Karim Hamed';
+  Core.peopleOf(st, s.id)[0].pr = n;
+  assert.strictEqual(Core.prStateAt(st, n, s.start - 30 * 60000, D1), 'S');
+  assert.strictEqual(Core.prStateAt(st, n, s.start + 60000, D1), '');
 });
 test('readiness flags', () => {
   const st = clone(SEED), s = st.sessions.find((x) => x.title.startsWith('Will AI'));
@@ -156,8 +154,8 @@ test('admin adds a guest member who can then own a session', () => {
   const r = Core.apply(st, { type: 'saveMember', name: 'Omar Adel', phone: '+20 111 222 3333', pin: '', lunch1: '', lunch2: '', guest: true }, ADM, 0);
   assert.ok(r.ok, r.error); assert.match(r.result.pin, /^\d{4}$/);
   const m = Core.memberByName(st, 'Omar Adel'); assert.strictEqual(m.phone, '01112223333'); assert.strictEqual(m.guest, true);
-  const s = st.sessions[5];
-  assert.strictEqual(Core.apply(st, { type: 'owner', sid: s.id, owner: 'Omar Adel' }, ADM, 0).result, 'OK');
+  const p = st.people[5];
+  assert.strictEqual(Core.apply(st, { type: 'assign', pid: p.id, pr: 'Omar Adel' }, ADM, 0).result, 'OK');
 });
 test('duplicate member name rejected; bad PIN rejected', () => {
   const st = clone(SEED);
