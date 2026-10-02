@@ -806,11 +806,16 @@
   "linkedin": "",
   "otherLink": "",
   "sourceUrl": "https://technesummit2026.sched.com/speaker/islam_el_dakhakhny.2a8lxlx2",
-  "linkConfidence": "none",
-  "_evidence": "No LinkedIn result for Islam El Dakhakhny/Eldakhakhny; only other El-Dakhakhny family members returned.",
+  "linkConfidence": "high",
+  "_evidence": "No LinkedIn result for Islam El Dakhakhny/Eldakhakhny; only other El-Dakhakhny family members returned. | instagram provided by Team Leader 2026-10-02",
   "_rawConfidence": "none",
   "_rawLinkedin": "",
-  "social": []
+  "social": [
+   {
+    "type": "instagram",
+    "url": "https://www.instagram.com/islam_dakhakhny/"
+   }
+  ]
  },
  {
   "key": "mahmoud elsabbagh",
