@@ -719,14 +719,19 @@
   "company": "SCZONE",
   "photo": "https://avatars.sched.co/4/01/28184719/avatar.jpg?cfc",
   "bio": "Samy Aouf is General Manager for Direct Investment at the Suez Canal Economic Zone (SCZONE). He has 19 years of experience spanning banking, infrastructure and project finance, with a recent focus on investment-grade financial modelling for industrial developments in SCZONE, including multi-phase EGP/USD models built to institutional standards.",
-  "linkedin": "",
+  "linkedin": "https://www.linkedin.com/in/samy-aouf-1b988514/",
   "otherLink": "",
   "sourceUrl": "https://technesummit2026.sched.com/speaker/samy_aouf.2a8nsvkl",
-  "linkConfidence": "none",
-  "_evidence": "No LinkedIn result matching Samy Aouf + SCZONE in standard or extended search.",
+  "linkConfidence": "high",
+  "_evidence": "No LinkedIn result matching Samy Aouf + SCZONE in standard or extended search. | linkedin provided by Team Leader 2026-10-02",
   "_rawConfidence": "none",
   "_rawLinkedin": "",
-  "social": []
+  "social": [
+   {
+    "type": "linkedin",
+    "url": "https://www.linkedin.com/in/samy-aouf-1b988514/"
+   }
+  ]
  },
  {
   "key": "mohamed nadim",
