@@ -54,6 +54,9 @@ export type Settings = {
   /** last time the official agenda was checked (epoch ms) and any error from that check */
   agendaLastCheck?: number;
   agendaLastError?: string;
+  /** full check incl. speakers (needs a normal device – the site blocks cloud servers) / times-only check from the cloud */
+  agendaLastFullCheck?: number;
+  agendaLastTimesCheck?: number;
 };
 /** A difference with the official agenda waiting for the Team Leader's approval */
 export type AgendaChange = { id: string; kind: string; summary: string; warning: string; detectedAt: number };

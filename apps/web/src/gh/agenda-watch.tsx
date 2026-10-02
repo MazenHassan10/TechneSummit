@@ -103,21 +103,24 @@ export function CheckStatus() {
   const { state, me, refresh } = useApp();
   const [busy, setBusy] = useState(false);
   if (!state || !me) return null;
-  const last = state.settings.agendaLastCheck;
   const err = state.settings.agendaLastError;
+  const times = state.settings.agendaLastTimesCheck;
+  const full = state.settings.agendaLastFullCheck;
+  const stale = (t?: number) => !t || Date.now() - t > 75 * 60_000;
   const check = async () => {
     setBusy(true);
     try {
       const r = await trpcClient.agenda.check.mutate();
       if (!r.ok) toast.error(`Check failed: ${r.error}`);
-      else toast.success(r.newProposals ? `${r.newProposals} new change(s) found` : "No new changes on the official agenda");
+      else toast.success(`${r.newProposals ? `${r.newProposals} new change(s) found` : "No new changes on the official agenda"}${r.mode === "times" ? " (times only – speakers are checked from your Mac)" : ""}`);
     } catch (e) { toast.error((e as Error).message); }
     setBusy(false); refresh();
   };
   return (
     <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-      <span>Official agenda {last ? `checked ${hm(last)}` : "not checked yet"} · auto every 30 min</span>
-      {err && <Badge variant="destructive">Last check failed</Badge>}
+      <span>Official agenda – times {times ? `checked ${hm(times)}` : "not checked yet"} · speakers {full ? `checked ${hm(full)}` : "not checked yet"} · every 30 min</span>
+      {err && <Badge variant="destructive" title={err}>Last check failed</Badge>}
+      {me.admin && stale(full) && <Badge variant="outline" title="Speaker changes are checked from the Team Leader's Mac – keep it on and online">Mac check overdue</Badge>}
       {me.admin && <Button size="xs" variant="outline" disabled={busy} onClick={check}><RefreshCw className={busy ? "animate-spin" : ""} />Check now</Button>}
     </div>
   );

@@ -1,6 +1,6 @@
 # Checks the official Techne Summit agenda every 30 minutes.
-# The official site blocks cloud servers, so this job downloads the two Great Hall days itself and sends
-# them to the app. The app verifies GitHub's OIDC token for this repository (no secret needed).
+# The app reads the official calendar feed (times, new and cancelled sessions – the site blocks cloud
+# servers from the full pages). Speaker changes are checked from the Team Leader's Mac (src/watch-local.ts).
 # Differences become "pending changes" in the app: everyone is alerted, only the Team Leader approves.
 name: Agenda watch
 
@@ -12,34 +12,15 @@ on:
     branches: [main]
     paths: [".github/workflows/agenda-watch.yml"]
 
-permissions:
-  id-token: write # lets the app verify this request really comes from this repository
-  contents: read
-
 jobs:
   check:
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    env:
-      APP_URL: ${{ vars.APP_URL || 'https://techne-summit-xi.vercel.app' }}
-      SCHED: https://technesummit2026.sched.com
-      DAYS: "2026-10-03 2026-10-04"
     steps:
-      - name: Download official Great Hall agenda
+      - name: Check official agenda
+        env:
+          APP_URL: ${{ vars.APP_URL || 'https://techne-summit-xi.vercel.app' }}
         run: |
-          UA="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Safari/537.36"
-          for d in $DAYS; do
-            code=$(curl -sS -L -A "$UA" -H "Accept: text/html" -H "Accept-Language: en" -o "sched-$d.html" -w "%{http_code}" "$SCHED/$d/list/descriptions/")
-            echo "$d: HTTP $code, $(wc -c < sched-$d.html) bytes"
-          done
-      - name: Send to the app
-        run: |
-          TOKEN=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=great-hall-pr" | python3 -c "import sys,json;print(json.load(sys.stdin)['value'])")
-          python3 - <<'PY'
-          import json, os
-          pages = {d: open(f"sched-{d}.html", encoding="utf-8", errors="replace").read() for d in os.environ["DAYS"].split()}
-          json.dump({"pages": pages}, open("body.json", "w"))
-          PY
-          code=$(curl -sS -o result.json -w "%{http_code}" -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" --data-binary @body.json "$APP_URL/api/cron/agenda")
+          code=$(curl -sS -o result.json -w "%{http_code}" "$APP_URL/api/cron/agenda")
           cat result.json; echo
           test "$code" = "200"

@@ -54,18 +54,56 @@ export function parseSchedDay(html: string, day: string): SchedSession[] {
   return out;
 }
 
-export async function fetchSchedGreatHall(days: string[], fetchFn: typeof fetch = fetch): Promise<SchedSession[]> {
-  const all: SchedSession[] = [];
-  for (const day of days) {
-    const res = await fetchFn(`${SCHED_BASE}${day}/list/descriptions/`, { headers: { "User-Agent": "Mozilla/5.0 (GreatHallPR agenda watch)" }, cache: "no-store" });
-    if (!res.ok) throw new Error(`sched ${day}: HTTP ${res.status}`);
-    const html = await res.text();
-    const parsed = parseSchedDay(html, day);
-    // sanity check: if the page layout changed we must not propose deleting everything
-    if (!parsed.length && html.length < 20000) throw new Error(`sched ${day}: unexpected page (${html.length} bytes)`);
-    all.push(...parsed);
+/**
+ * The calendar feed (all.ics) is not behind the site's bot check, so cloud servers can read it.
+ * It has titles, times and rooms but NO speakers – good enough to catch time changes, new and cancelled sessions.
+ */
+export function parseSchedIcs(ics: string, days: string[], tzOffsetHours = 3): SchedSession[] {
+  const text = ics.replace(/\r?\n[ \t]/g, "");
+  const out: SchedSession[] = [];
+  const unescape = (v: string) => v.replace(/\\,/g, ",").replace(/\\;/g, ";").replace(/\\n/gi, " ").replace(/\\\\/g, "\\").trim();
+  for (const ev of text.split("BEGIN:VEVENT").slice(1)) {
+    const field = (k: string) => new RegExp(`^${k}(?:;[^:\\r\\n]*)?:(.*)$`, "m").exec(ev)?.[1]?.trim() ?? "";
+    if (!/Great Hall/i.test(unescape(field("LOCATION")))) continue;
+    const toLocal = (v: string) => {
+      const m = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})/.exec(v);
+      if (!m) return null;
+      const utc = Date.UTC(+m[1]!, +m[2]! - 1, +m[3]!, +m[4]!, +m[5]!) + (v.endsWith("Z") ? tzOffsetHours * 3_600_000 : 0);
+      const d = new Date(utc);
+      return { day: d.toISOString().slice(0, 10), hm: d.toISOString().slice(11, 16) };
+    };
+    const a = toLocal(field("DTSTART")), b = toLocal(field("DTEND"));
+    const title = decode(unescape(field("SUMMARY")));
+    if (!a || !b || !title || !days.includes(a.day)) continue;
+    out.push({ day: a.day, start: a.hm, end: b.hm, title, people: [] });
   }
-  return all;
+  return out;
+}
+
+export type SchedFetch = { sessions: SchedSession[]; mode: "full" | "times" };
+
+/** Full pages when reachable (speakers included); otherwise the calendar feed (times only). */
+export async function fetchSchedGreatHall(days: string[], fetchFn: typeof fetch = fetch): Promise<SchedFetch> {
+  const headers = { "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Safari/537.36", Accept: "text/html" };
+  try {
+    const all: SchedSession[] = [];
+    for (const day of days) {
+      const res = await fetchFn(`${SCHED_BASE}${day}/list/descriptions/`, { headers, cache: "no-store" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const html = await res.text();
+      const parsed = parseSchedDay(html, day);
+      // the site's bot check returns a tiny "Just a moment…" page – never treat that as an empty agenda
+      if (!parsed.length) throw new Error(`no sessions on page (${html.length} bytes)`);
+      all.push(...parsed);
+    }
+    return { sessions: all, mode: "full" };
+  } catch {
+    const res = await fetchFn(`${SCHED_BASE}all.ics`, { headers: { ...headers, Accept: "text/calendar" }, cache: "no-store" });
+    if (!res.ok) throw new Error(`official calendar feed: HTTP ${res.status}`);
+    const sessions = parseSchedIcs(await res.text(), days);
+    if (!sessions.length) throw new Error("official calendar feed had no Great Hall sessions");
+    return { sessions, mode: "times" };
+  }
 }
 
 const nt = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
@@ -84,8 +122,12 @@ const to12 = (hhmm: string) => { const [h, m] = hhmm.split(":").map(Number); ret
 const dayName = (state: State, d: string) => (d === state.settings.day1 ? "Sat" : d === state.settings.day2 ? "Sun" : d);
 const started = (p: { called: unknown; etaCall: unknown; arrived: unknown; backstage: unknown; onstage: unknown }) => !!(p.called || p.etaCall || p.arrived || p.backstage || p.onstage);
 
-/** Differences between the official agenda and ours, as approvable proposals. */
-export function diffAgenda(state: State, sched: SchedSession[]): Proposal[] {
+/** Kinds that can be detected from the calendar feed alone (no speaker data). */
+export const TIME_ONLY_KINDS: ChangeKind[] = ["time", "new_session", "removed_session"];
+
+/** Differences between the official agenda and ours, as approvable proposals.
+ *  `timesOnly`: the source has no speaker data, so speaker-level differences are not computed. */
+export function diffAgenda(state: State, sched: SchedSession[], opts: { timesOnly?: boolean } = {}): Proposal[] {
   const out: Proposal[] = [];
   const matched = new Set<string>();
   for (const s of sched) {
@@ -108,6 +150,7 @@ export function diffAgenda(state: State, sched: SchedSession[]): Proposal[] {
         actions: [{ type: "saveSession", sid: o.id, startHHMM: s.start, endHHMM: s.end }],
       });
     }
+    if (opts.timesOnly) continue;
     const ours = peopleOf(state, o.id);
     const used = new Set<string>();
     for (const sp of s.people) {

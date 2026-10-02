@@ -3,7 +3,7 @@ import type { Database } from "@great-hall-pr/db";
 import { agendaChanges, appMeta, settings } from "@great-hall-pr/db/schema/index";
 import { and, eq, inArray, sql } from "drizzle-orm";
 
-import { diffAgenda, fetchSchedGreatHall, type Proposal, type SchedSession } from "./agenda-sync";
+import { diffAgenda, fetchSchedGreatHall, TIME_ONLY_KINDS, type Proposal, type SchedSession } from "./agenda-sync";
 import { loadState, persist } from "./store";
 
 async function setSetting(db: Database, key: string, value: string) {
@@ -17,14 +17,16 @@ const bump = (db: Database) => db.update(appMeta).set({ version: sql`${appMeta.v
  * - pending proposals that disappeared from the official site are marked obsolete
  * Never changes the agenda itself.
  */
-export async function runAgendaCheck(db: Database, opts: { fetchFn?: typeof fetch; sched?: SchedSession[]; error?: string } = {}) {
+export async function runAgendaCheck(db: Database, opts: { fetchFn?: typeof fetch; sched?: SchedSession[]; mode?: "full" | "times"; error?: string } = {}) {
   const now = Date.now();
   const state = await loadState(db);
   let proposals: Proposal[];
+  let mode: "full" | "times" = opts.mode ?? "full";
   try {
     if (opts.error) throw new Error(opts.error);
-    const sched = opts.sched ?? (await fetchSchedGreatHall([state.settings.day1, state.settings.day2], opts.fetchFn));
-    proposals = diffAgenda(state, sched);
+    let sched = opts.sched;
+    if (!sched) { const got = await fetchSchedGreatHall([state.settings.day1, state.settings.day2], opts.fetchFn); sched = got.sessions; mode = got.mode; }
+    proposals = diffAgenda(state, sched, { timesOnly: mode === "times" });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     await setSetting(db, "agendaLastCheck", String(now));
@@ -32,11 +34,12 @@ export async function runAgendaCheck(db: Database, opts: { fetchFn?: typeof fetc
     await bump(db);
     return { ok: false as const, error: msg };
   }
-  const known = await db.select({ id: agendaChanges.id, status: agendaChanges.status }).from(agendaChanges);
+  const known = await db.select({ id: agendaChanges.id, status: agendaChanges.status, kind: agendaChanges.kind }).from(agendaChanges);
   const knownIds = new Set(known.map((k) => k.id));
   const fresh = proposals.filter((p) => !knownIds.has(p.id));
   const currentIds = new Set(proposals.map((p) => p.id));
-  const gone = known.filter((k) => k.status === "pending" && !currentIds.has(k.id)).map((k) => k.id);
+  // a times-only check can't see speakers, so it must not retire pending speaker proposals
+  const gone = known.filter((k) => k.status === "pending" && !currentIds.has(k.id) && (mode === "full" || TIME_ONLY_KINDS.includes(k.kind as never))).map((k) => k.id);
 
   if (fresh.length)
     await db.insert(agendaChanges).values(fresh.map((p) => ({
@@ -46,8 +49,9 @@ export async function runAgendaCheck(db: Database, opts: { fetchFn?: typeof fetc
   if (gone.length) await db.update(agendaChanges).set({ status: "obsolete", decidedAt: now, decidedBy: "official site" }).where(inArray(agendaChanges.id, gone));
   await setSetting(db, "agendaLastCheck", String(now));
   await setSetting(db, "agendaLastError", "");
+  await setSetting(db, mode === "full" ? "agendaLastFullCheck" : "agendaLastTimesCheck", String(now));
   await bump(db); // phones pick up the new check time / proposals on their next poll
-  return { ok: true as const, differences: proposals.length, newProposals: fresh.length, resolved: gone.length };
+  return { ok: true as const, mode, differences: proposals.length, newProposals: fresh.length, resolved: gone.length };
 }
 
 /** Approve (apply) or reject pending proposals – all in one load and one save. */

@@ -3,7 +3,7 @@ import { apply, autoAssign, peopleOf, type State } from "@great-hall-pr/core";
 import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 
-import { diffAgenda, ignoredTitle, parseSchedDay, type SchedSession } from "./agenda-sync";
+import { diffAgenda, ignoredTitle, parseSchedDay, parseSchedIcs, type SchedSession } from "./agenda-sync";
 import SEED from "./seed.json";
 
 const fixture = (d: string) => readFileSync(new URL(`./__fixtures__/sched-${d}.html`, import.meta.url), "utf8");
@@ -69,4 +69,22 @@ test("removing a speaker who is already being tracked carries a warning", () => 
   const p = diffAgenda(st, cut);
   expect(p).toHaveLength(1);
   expect(p[0]!.warning).toContain("already");
+});
+
+// ---------- calendar feed (used from the cloud, where the full pages are blocked) ----------
+const ics = parseSchedIcs(readFileSync(new URL("./__fixtures__/sched-all.ics", import.meta.url), "utf8"), ["2026-10-03", "2026-10-04"]);
+
+test("calendar feed gives the same Great Hall sessions and times as the full pages", () => {
+  const key = (s: SchedSession) => `${s.day}|${s.start}|${s.end}|${s.title}`;
+  expect(ics.map(key).sort()).toEqual(sched.map(key).sort());
+});
+
+test("times-only check finds time changes and cancelled sessions, never speaker changes", () => {
+  const p = diffAgenda(fresh(), ics, { timesOnly: true });
+  expect(p.filter((x) => x.kind === "time")).toHaveLength(9);
+  expect(p.filter((x) => x.kind === "removed_session").map((x) => x.summary)).toEqual([expect.stringContaining("FSC")]);
+  expect(p.filter((x) => !["time", "removed_session", "new_session"].includes(x.kind))).toHaveLength(0);
+  // same ids as the full check, so the two sources never double-alert
+  const full = new Set(diffAgenda(fresh(), sched).map((x) => x.id));
+  expect(p.every((x) => full.has(x.id))).toBe(true);
 });
