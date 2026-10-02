@@ -13,8 +13,8 @@ const st0 = clone(SEED);
 const sWill = st0.sessions.find((s: any) => s.title.startsWith('Will AI'))!;
 const pWill = Core.peopleOf(st0, sWill.id)[0];
 
-test('seed has 27 sessions / 106 people / 7 PRs', () => {
-  assert.strictEqual(st0.sessions.length, 27); assert.strictEqual(st0.people.length, 106); assert.strictEqual(st0.team.length, 7);
+test('seed has 26 sessions / 103 people (no Opening) / 7 PRs', () => {
+  assert.strictEqual(st0.sessions.length, 26); assert.strictEqual(st0.people.length, 103); assert.strictEqual(st0.team.length, 7);
 });
 test('session times are Cairo time', () => { assert.strictEqual(sWill.start, at(D1, '13:00')); });
 test('status timeline for one speaker', () => {

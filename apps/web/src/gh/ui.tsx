@@ -2,16 +2,19 @@
 
 import * as Core from "@great-hall-pr/core";
 import type { Person, Tone } from "@great-hall-pr/core";
-import { Button } from "@great-hall-pr/ui/components/button";
+import { Alert, AlertDescription, AlertTitle } from "@great-hall-pr/ui/components/alert";
+import { Badge } from "@great-hall-pr/ui/components/badge";
+import { buttonVariants } from "@great-hall-pr/ui/components/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@great-hall-pr/ui/components/select";
+import { Tabs, TabsList, TabsTrigger } from "@great-hall-pr/ui/components/tabs";
 import { cn } from "@great-hall-pr/ui/lib/utils";
-import { MessageCircle, Phone } from "lucide-react";
+import { Coffee, MessageCircle, Mic, Phone, TriangleAlert, Utensils } from "lucide-react";
 import { createContext, useContext } from "react";
 import { toast } from "sonner";
 
 import { useApp } from "./store";
 
-// ---------- status colours ----------
+// ---------- status colours (semantic, used only for text + small dots) ----------
 export const TONE_TEXT: Record<Tone, string> = {
   done: "text-st-done", ready: "text-[#b07400]", arrived: "text-st-arrived", urgent: "text-st-urgent",
   warn: "text-st-warn", ok: "text-st-ok", idle: "text-muted-foreground", noshow: "text-st-noshow",
@@ -21,46 +24,66 @@ export const TONE_BG: Record<Tone, string> = {
   warn: "bg-st-warn", ok: "bg-st-ok", idle: "bg-st-idle", noshow: "bg-st-noshow",
 };
 
-export const Dot = ({ tone }: { tone: Tone }) => <span className={cn("inline-block size-2.5 shrink-0 rounded-full", TONE_BG[tone])} />;
+export const Dot = ({ tone }: { tone: Tone }) => <span className={cn("inline-block size-2 shrink-0 rounded-full", TONE_BG[tone])} />;
 
-/** Small rounded label (owner, guest, "×2"…) */
-export function Chip({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <span className={cn("inline-flex items-center gap-1 rounded-full bg-soft px-2.5 py-0.5 text-[11px] font-semibold text-brand", className)}>{children}</span>;
+// ---------- shadcn-based building blocks ----------
+export function DayTabs({ value, onChange, days }: { value: string; onChange: (d: string) => void; days: { value: string; label: string }[] }) {
+  return (
+    <Tabs value={value} onValueChange={(v) => onChange(String(v))} className="mb-3">
+      <TabsList>
+        {days.map((d) => <TabsTrigger key={d.value} value={d.value} className="px-4">{d.label}</TabsTrigger>)}
+      </TabsList>
+    </Tabs>
+  );
 }
 
-/** Big orange Techne call-to-action */
-export function BrandButton({ className, ...props }: React.ComponentProps<typeof Button>) {
-  return <Button className={cn("h-11 rounded-full bg-orange px-5 text-sm font-semibold text-white hover:bg-orange-dark", className)} {...props} />;
+const BANNER = {
+  lunch: { icon: Utensils, cls: "border-st-ready/40 bg-st-ready/10" },
+  free: { icon: Coffee, cls: "border-st-done/40 bg-st-done/10" },
+  busy: { icon: Mic, cls: "border-primary/30 bg-secondary" },
+  alert: { icon: TriangleAlert, cls: "" },
+} as const;
+
+export function Banner({ kind, title, children }: { kind: keyof typeof BANNER; title: React.ReactNode; children?: React.ReactNode }) {
+  const B = BANNER[kind];
+  const Icon = B.icon;
+  return (
+    <Alert variant={kind === "alert" ? "destructive" : "default"} className={cn("mb-3", B.cls)}>
+      <Icon />
+      <AlertTitle>{title}</AlertTitle>
+      {children && <AlertDescription>{children}</AlertDescription>}
+    </Alert>
+  );
 }
 
-// ---------- call / WhatsApp ----------
+// ---------- call / WhatsApp (real links, styled as shadcn buttons) ----------
 // Phones sometimes refuse tel: links – copying the number gives a fallback.
 function copy(phone: string) {
   try { void navigator.clipboard?.writeText(phone); } catch {}
-  toast(`📞 Calling ${phone} (number copied)`);
+  toast(`Calling ${phone} (number copied)`);
 }
 
-export function CallLink({ phone, className, children, title }: { phone: string; className?: string; children?: React.ReactNode; title?: string }) {
+export function CallLink({ phone, label, title }: { phone: string; label?: string; title?: string }) {
   return (
     <a href={`tel:${phone}`} onClick={() => copy(phone)} title={title || "Call"}
-      className={cn("inline-flex size-9 items-center justify-center rounded-lg border border-line bg-soft text-brand", className)}>
-      {children ?? <Phone className="size-4" />}
+      className={buttonVariants({ variant: "outline", size: label ? "default" : "icon" })}>
+      <Phone />{label}
     </a>
   );
 }
 
-export function WhatsAppLink({ phone, className }: { phone: string; className?: string }) {
+export function WhatsAppLink({ phone, label }: { phone: string; label?: string }) {
   return (
     <a href={Core.waLink(phone)} target="_blank" rel="noopener" title="WhatsApp"
-      className={cn("inline-flex size-9 items-center justify-center rounded-lg bg-[#25d366] text-white", className)}>
-      <MessageCircle className="size-4" />
+      className={cn(buttonVariants({ variant: "outline", size: label ? "default" : "icon" }), "text-[#1da851]")}>
+      <MessageCircle />{label}
     </a>
   );
 }
 
 // ---------- PR picker (per speaker) ----------
 const NONE = "__none__";
-export function PrPicker({ person, compact }: { person: Person; compact?: boolean }) {
+export function PrPicker({ person }: { person: Person }) {
   const { state, act } = useApp();
   if (!state) return null;
   const cur = Core.prOf(state, person);
@@ -69,21 +92,22 @@ export function PrPicker({ person, compact }: { person: Person; compact?: boolea
     const r = await act({ type: "assign", pid: person.id, pr });
     if (r.ok) {
       const code = r.result as Core.RotaCode;
-      if (code && code !== "OK" && code !== "NO_PR") toast.warning(`⚠ ${Core.ROTA_LABEL[code]} – pick someone else or move their lunch`);
+      if (code && code !== "OK" && code !== "NO_PR") toast.warning(`${Core.ROTA_LABEL[code]} – pick someone else or move their lunch`);
       else toast.success(pr ? `Assigned to ${pr}` : "PR removed");
     }
   };
-  const items = [{ value: NONE, label: "– no PR –" }, ...state.team.map((m) => ({ value: m.name, label: m.name }))];
+  const items = [{ value: NONE, label: "No PR" }, ...state.team.map((m) => ({ value: m.name, label: m.name }))];
   return (
     <Select value={cur || NONE} onValueChange={(v) => void onChange(v as string)} items={items}>
-      <SelectTrigger className={cn("h-9 rounded-lg bg-white text-sm font-medium text-navy", compact ? "min-w-40" : "min-w-52")}>
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {items.map((it) => <SelectItem key={it.value} value={it.value}>{it.label}</SelectItem>)}
-      </SelectContent>
+      <SelectTrigger className="min-w-48"><SelectValue /></SelectTrigger>
+      <SelectContent>{items.map((it) => <SelectItem key={it.value} value={it.value}>{it.label}</SelectItem>)}</SelectContent>
     </Select>
   );
+}
+
+export function RotaBadge({ code }: { code: Core.RotaCode }) {
+  if (code === "OK") return null;
+  return <Badge variant="destructive">{Core.ROTA_LABEL[code]}</Badge>;
 }
 
 // ---------- modal registry ----------

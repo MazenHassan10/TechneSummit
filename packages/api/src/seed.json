@@ -79,16 +79,6 @@
  ],
  "sessions": [
   {
-   "id": "S02",
-   "day": "2026-10-03",
-   "start": 1791014400000,
-   "end": 1791018000000,
-   "title": "Opening",
-   "type": "Opening",
-   "owner": "Iten Khalil",
-   "notes": ""
-  },
-  {
    "id": "S03",
    "day": "2026-10-03",
    "start": 1791021600000,
@@ -350,60 +340,6 @@
   }
  ],
  "people": [
-  {
-   "id": "P001",
-   "sid": "S02",
-   "name": "TBC \u2013 Opening VIP / Guest of Honour",
-   "role": "TBC",
-   "phone": "",
-   "called": null,
-   "etaCall": null,
-   "eta": "",
-   "arrived": null,
-   "backstage": null,
-   "onstage": null,
-   "noshow": false,
-   "notes": "",
-   "updatedBy": "",
-   "updatedAt": null,
-   "pr": ""
-  },
-  {
-   "id": "P002",
-   "sid": "S02",
-   "name": "TBC \u2013 Opening speaker",
-   "role": "TBC",
-   "phone": "",
-   "called": null,
-   "etaCall": null,
-   "eta": "",
-   "arrived": null,
-   "backstage": null,
-   "onstage": null,
-   "noshow": false,
-   "notes": "",
-   "updatedBy": "",
-   "updatedAt": null,
-   "pr": ""
-  },
-  {
-   "id": "P003",
-   "sid": "S02",
-   "name": "TBC \u2013 MC / Host",
-   "role": "TBC",
-   "phone": "",
-   "called": null,
-   "etaCall": null,
-   "eta": "",
-   "arrived": null,
-   "backstage": null,
-   "onstage": null,
-   "noshow": false,
-   "notes": "",
-   "updatedBy": "",
-   "updatedAt": null,
-   "pr": ""
-  },
   {
    "id": "P004",
    "sid": "S03",

@@ -2,58 +2,63 @@
 
 import * as Core from "@great-hall-pr/core";
 import type { Incident, Session } from "@great-hall-pr/core";
+import { Badge } from "@great-hall-pr/ui/components/badge";
 import { Button } from "@great-hall-pr/ui/components/button";
-import { Card } from "@great-hall-pr/ui/components/card";
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@great-hall-pr/ui/components/card";
 import { Input } from "@great-hall-pr/ui/components/input";
 import { Label } from "@great-hall-pr/ui/components/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@great-hall-pr/ui/components/select";
+import { Separator } from "@great-hall-pr/ui/components/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@great-hall-pr/ui/components/table";
+import { Tabs, TabsList, TabsTrigger } from "@great-hall-pr/ui/components/tabs";
 import { Textarea } from "@great-hall-pr/ui/components/textarea";
+import { ToggleGroup, ToggleGroupItem } from "@great-hall-pr/ui/components/toggle-group";
 import { cn } from "@great-hall-pr/ui/lib/utils";
-import { Pencil, Plus, UserPlus, Zap } from "lucide-react";
-import { useState } from "react";
+import { Ellipsis, Pencil, Plus, Send, UserPlus, Zap } from "lucide-react";
+import { Fragment, useState } from "react";
 import { toast } from "sonner";
 
 import { dayOf, dur, hm, hourLabel, hm24, shortName } from "./format";
-import { PersonRow, SessionCard } from "./session-card";
+import { SessionCard } from "./session-card";
 import { useApp } from "./store";
-import { BrandButton, CallLink, Chip, Dot, TONE_TEXT, useModal, WhatsAppLink } from "./ui";
+import { Banner, CallLink, DayTabs, Dot, RotaBadge, TONE_TEXT, useModal, WhatsAppLink } from "./ui";
 
 // ---------- shared ----------
-export function DaySwitch() {
-  const { state, day, setDay } = useApp();
-  if (!state) return null;
-  const label = (d: string) => (d === state.settings.day1 ? "Sat 3 Oct" : d === state.settings.day2 ? "Sun 4 Oct" : d);
-  return (
-    <div className="mb-3 flex gap-2 overflow-x-auto">
-      {[state.settings.day1, state.settings.day2].map((d) => (
-        <button type="button" key={d} onClick={() => setDay(d)}
-          className={cn("rounded-full border-[1.5px] px-4 py-1.5 text-sm font-semibold whitespace-nowrap",
-            day === d ? "border-brand bg-brand text-white" : "border-line bg-white text-brand")}>{label(d)}</button>
-      ))}
-    </div>
-  );
-}
-
 export function dayLabel(state: Core.State, d: string) {
   return d === state.settings.day1 ? "Sat 3 Oct" : d === state.settings.day2 ? "Sun 4 Oct" : d;
 }
 
-const H2 = ({ children, count }: { children: React.ReactNode; count?: number | string }) => (
-  <h2 className="mx-0.5 mt-5 mb-2.5 flex items-center gap-2 text-[17px] font-bold text-navy">{children}{count !== undefined && <span className="text-xs font-medium text-muted-foreground">{count}</span>}</h2>
+export function DaySwitch() {
+  const { state, day, setDay } = useApp();
+  if (!state) return null;
+  return <DayTabs value={day} onChange={setDay} days={[state.settings.day1, state.settings.day2].map((d) => ({ value: d, label: dayLabel(state, d) }))} />;
+}
+
+function SectionTitle({ children, count, action }: { children: React.ReactNode; count?: number | string; action?: React.ReactNode }) {
+  return (
+    <div className="mt-6 mb-3 flex items-center gap-2">
+      <h2 className="text-base font-semibold">{children}</h2>
+      {count !== undefined && <Badge variant="secondary">{count}</Badge>}
+      <div className="flex-1" />
+      {action}
+    </div>
+  );
+}
+
+const Empty = ({ children }: { children: React.ReactNode }) => (
+  <Card><CardContent className="text-center text-sm text-muted-foreground">{children}</CardContent></Card>
 );
 
-const Banner = ({ kind, icon, children }: { kind: "lunch" | "free" | "busy" | "alert"; icon: string; children: React.ReactNode }) => (
-  <div className={cn("mb-3 flex items-center gap-3 rounded-2xl border px-4 py-3 font-medium",
-    kind === "lunch" && "border-[#f9c66a] bg-[#fff3dc] text-[#7a4b00]",
-    kind === "free" && "border-[#9fd8b6] bg-[#e8f6ee] text-[#0d5c2c]",
-    kind === "busy" && "border-[#b8cfee] bg-soft text-navy",
-    kind === "alert" && "border-[#f5a99f] bg-[#fff0ee] text-[#9b1c12]")}>
-    <span className="text-2xl">{icon}</span><div>{children}</div>
-  </div>
-);
+/** Card with separated rows */
+function ListCard({ children }: { children: React.ReactNode[] }) {
+  return (
+    <Card className="gap-0 py-0">
+      {children.map((c, i) => <Fragment key={i}>{i > 0 && <Separator />}<div className="flex items-center gap-3 px-(--card-spacing) py-3">{c}</div></Fragment>)}
+    </Card>
+  );
+}
 
-const Empty = ({ children }: { children: React.ReactNode }) => <div className="px-3 py-7 text-center text-muted-foreground">{children}</div>;
+const Time = ({ t }: { t?: number | null }) => <span className="w-16 shrink-0 text-xs font-medium tabular-nums text-primary">{hm(t)}</span>;
 
 function sessionsOfDay(state: Core.State, day: string, f?: (s: Session) => boolean) {
   return state.sessions.filter((s) => s.day === day && (!f || f(s))).sort((a, b) => a.start - b.start);
@@ -76,14 +81,14 @@ function PrBanner({ name }: { name: string }) {
   if (!state) return null;
   const t = now();
   const l = Core.lunchWindow(state, name, day);
-  if (dayOf(t) !== day) return l ? <Banner kind="busy" icon="🍽">Lunch on {dayLabel(state, day)}: {hm(l[0])}–{hm(l[1])}</Banner> : null;
+  if (dayOf(t) !== day) return l ? <Banner kind="busy" title={`Lunch on ${dayLabel(state, day)}: ${hm(l[0])}–${hm(l[1])}`} /> : null;
   const st = Core.prStateAt(state, name, t, day);
   const cur = Core.prCurrentSession(state, name, t);
   const nextBusy = Core.sessionsOfPr(state, name, day).map((s) => Core.busyWindow(s, state.settings)[0]).filter((x) => x > t).sort((a, b) => a - b)[0];
-  if ((st === "L" || st === "!") && l) return <Banner kind="lunch" icon="🍽">Lunch break until {hm(l[1])}{st === "!" && <b> – CLASH with a session, tell the Team Leader</b>}</Banner>;
-  if (st === "S" && cur) return <Banner kind="busy" icon="🎤">On duty: <b>{cur.title}</b> · on stage {hm(cur.start)}</Banner>;
-  const parts = [l && t < l[0] ? `lunch ${hm(l[0])}–${hm(l[1])}` : "", nextBusy ? `next speakers arrive ${hm(nextBusy)}` : ""].filter(Boolean);
-  return <Banner kind="free" icon="☕">You&apos;re free{nextBusy ? ` for ${dur(nextBusy - t)}` : ""}. {parts.length ? `Coming up: ${parts.join(" · ")}` : "No more sessions today."}</Banner>;
+  if ((st === "L" || st === "!") && l) return <Banner kind="lunch" title={`Lunch break until ${hm(l[1])}`}>{st === "!" && "Clash with a session – tell the Team Leader."}</Banner>;
+  if (st === "S" && cur) return <Banner kind="busy" title={`On duty: ${cur.title}`}>Speaker on stage at {hm(cur.start)}</Banner>;
+  const parts = [l && t < l[0] ? `Lunch ${hm(l[0])}–${hm(l[1])}` : "", nextBusy ? `Next speakers arrive ${hm(nextBusy)}` : ""].filter(Boolean);
+  return <Banner kind="free" title={`You're free${nextBusy ? ` for ${dur(nextBusy - t)}` : ""}`}>{parts.length ? parts.join(" · ") : "No more sessions today."}</Banner>;
 }
 
 export function MineView() {
@@ -99,18 +104,18 @@ export function MineView() {
     <>
       <DaySwitch />
       <PrBanner name={me.name} />
-      {alerts > 0 && <Banner kind="alert" icon="🔴">{alerts} speaker(s) need action now – see red below.</Banner>}
-      {mine.length > 0 && <p className="mx-0.5 mb-2 text-xs text-muted-foreground">You have <b>{nMine} speaker{nMine === 1 ? "" : "s"}</b> in {mine.length} session{mine.length === 1 ? "" : "s"} on {dayLabel(state, day)}.</p>}
+      {alerts > 0 && <Banner kind="alert" title={`${alerts} speaker(s) need action now`}>See the red statuses below.</Banner>}
+      {mine.length > 0 && <p className="mb-3 text-sm text-muted-foreground">You have <b className="text-foreground">{nMine} speaker{nMine === 1 ? "" : "s"}</b> in {mine.length} session{mine.length === 1 ? "" : "s"} on {dayLabel(state, day)}.</p>}
       {!mine.length && <Empty>No speakers assigned to you on {dayLabel(state, day)}.</Empty>}
       {up.map((s, i) => <SessionCard key={s.id} s={s} onlyPr={me.name} openDefault={i < 3} />)}
-      {past.length > 0 && (<><H2 count={past.length}>Finished</H2>{past.map((s) => <SessionCard key={s.id} s={s} onlyPr={me.name} />)}</>)}
+      {past.length > 0 && (<><SectionTitle count={past.length}>Finished</SectionTitle>{past.map((s) => <SessionCard key={s.id} s={s} onlyPr={me.name} />)}</>)}
     </>
   );
 }
 
 export function HallView() {
   const { state, day, now } = useApp();
-  const [filter, setFilter] = useState<"all" | "next">("all");
+  const [filter, setFilter] = useState("all");
   if (!state) return null;
   const t = now();
   let list = sessionsOfDay(state, day);
@@ -118,13 +123,9 @@ export function HallView() {
   return (
     <>
       <DaySwitch />
-      <div className="mb-3 flex gap-2">
-        {(["all", "next"] as const).map((f) => (
-          <button type="button" key={f} onClick={() => setFilter(f)} className={cn("rounded-full border-[1.5px] px-3.5 py-1 text-[13px] font-semibold", filter === f ? "border-brand bg-brand text-white" : "border-line bg-white text-brand")}>
-            {f === "all" ? "All sessions" : "Upcoming & live"}
-          </button>
-        ))}
-      </div>
+      <Tabs value={filter} onValueChange={(v) => setFilter(String(v))} className="mb-3">
+        <TabsList variant="line"><TabsTrigger value="all">All sessions</TabsTrigger><TabsTrigger value="next">Upcoming &amp; live</TabsTrigger></TabsList>
+      </Tabs>
       {list.length ? list.map((s) => <SessionCard key={s.id} s={s} />) : <Empty>Nothing here.</Empty>}
     </>
   );
@@ -148,22 +149,24 @@ export function ReportView() {
   };
   return (
     <>
-      <Card className="gap-0 px-4 py-4">
-        <h3 className="text-lg font-bold text-navy">Report an issue</h3>
-        <p className="text-xs text-muted-foreground">The Team Leader gets an instant alert.</p>
-        <Label className="mt-3 mb-1.5 text-xs text-muted-foreground">What happened?</Label>
-        <div className="flex flex-wrap gap-1.5">
-          {Core.INCIDENT_KINDS.map((k) => (
-            <button type="button" key={k} onClick={() => setKind(k)} className={cn("rounded-full border-[1.5px] px-3 py-1 text-[13px] font-semibold", kind === k ? "border-orange bg-orange text-white" : "border-line bg-white text-brand")}>{k}</button>
-          ))}
-        </div>
-        <Label className="mt-3 mb-1.5 text-xs text-muted-foreground">Session (optional)</Label>
-        <SessionSelect value={sid} onChange={setSid} sessions={opts} />
-        <Label className="mt-3 mb-1.5 text-xs text-muted-foreground">Details</Label>
-        <Textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Who / what / where" className="bg-white" />
-        <Button className="mt-3 h-11 rounded-full bg-st-urgent text-white hover:bg-st-urgent/90" onClick={send}>Send to Team Leader</Button>
+      <Card>
+        <CardHeader>
+          <CardTitle>Report an issue</CardTitle>
+          <CardDescription>The Team Leader gets an instant alert.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>What happened?</Label>
+            <ToggleGroup variant="outline" value={kind ? [kind] : []} onValueChange={(v: string[]) => setKind(v[0] ?? "")} className="flex-wrap justify-start">
+              {Core.INCIDENT_KINDS.map((k) => <ToggleGroupItem key={k} value={k} className="data-pressed:bg-primary data-pressed:text-primary-foreground">{k}</ToggleGroupItem>)}
+            </ToggleGroup>
+          </div>
+          <div className="space-y-2"><Label>Session (optional)</Label><SessionSelect value={sid} onChange={setSid} sessions={opts} /></div>
+          <div className="space-y-2"><Label>Details</Label><Textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Who / what / where" /></div>
+          <Button variant="destructive" size="lg" className="w-full" onClick={send}><Send /> Send to Team Leader</Button>
+        </CardContent>
       </Card>
-      <H2 count={state.incidents.filter((i) => i.status === "open").length}>Open issues</H2>
+      <SectionTitle count={state.incidents.filter((i) => i.status === "open").length}>Open issues</SectionTitle>
       <IncidentList admin={false} />
     </>
   );
@@ -172,10 +175,10 @@ export function ReportView() {
 export function SessionSelect({ value, onChange, sessions, allowNone = true }: { value: string; onChange: (v: string) => void; sessions: Session[]; allowNone?: boolean }) {
   const { state } = useApp();
   if (!state) return null;
-  const items = [...(allowNone ? [{ value: "__none__", label: "–" }] : []), ...sessions.map((s) => ({ value: s.id, label: `${dayLabel(state, s.day).slice(0, 3)} ${hm(s.start)} · ${s.title}` }))];
+  const items = [...(allowNone ? [{ value: "__none__", label: "None" }] : []), ...sessions.map((s) => ({ value: s.id, label: `${dayLabel(state, s.day).slice(0, 3)} ${hm(s.start)} · ${s.title}` }))];
   return (
     <Select value={value || "__none__"} onValueChange={(v) => onChange(!v || v === "__none__" ? "" : String(v))} items={items}>
-      <SelectTrigger className="h-10 w-full rounded-lg bg-white"><SelectValue /></SelectTrigger>
+      <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
       <SelectContent>{items.map((i) => <SelectItem key={i.value} value={i.value}>{i.label}</SelectItem>)}</SelectContent>
     </Select>
   );
@@ -186,30 +189,27 @@ function IncidentList({ admin }: { admin: boolean }) {
   if (!state) return null;
   let list = [...state.incidents].sort((a, b) => (a.status === "open" ? 0 : 1) - (b.status === "open" ? 0 : 1) || b.ts - a.ts);
   if (!admin) list = list.filter((i) => i.status === "open");
-  if (!list.length) return <Empty>No issues 🎉</Empty>;
+  if (!list.length) return <Empty>No issues.</Empty>;
   return (
-    <Card className="gap-0 py-0">
+    <ListCard>
       {list.map((i: Incident) => {
         const s = i.sid ? Core.sessionById(state, i.sid) : null;
         const p = i.pid ? Core.personById(state, i.pid) : null;
         const owner = p ? Core.memberByName(state, Core.prOf(state, p)) : null;
         return (
-          <div key={i.id} className={cn("flex items-center gap-3 border-t border-line px-4 py-2.5 first:border-t-0", i.status !== "open" && "opacity-55")}>
-            <div className="min-w-16 text-xs font-semibold whitespace-nowrap text-brand tabular-nums">{hm(i.ts)}</div>
-            <div className="min-w-0 flex-1">
-              <div className="font-semibold">{i.status === "open" ? "🔴 " : "✅ "}{i.kind}</div>
-              {i.note && <div className="text-xs">{i.note}</div>}
-              <div className="text-[11px] text-muted-foreground">by {i.by}{s ? ` · ${hm(s.start)} ${s.title}` : ""}{p ? ` · ${p.name}` : ""}{i.status !== "open" ? ` · resolved by ${i.resolvedBy} ${hm(i.resolvedAt)}` : ""}</div>
+          <Fragment key={i.id}>
+            <Time t={i.ts} />
+            <div className={cn("min-w-0 flex-1", i.status !== "open" && "opacity-60")}>
+              <div className="flex items-center gap-2 font-medium">{i.kind}<Badge variant={i.status === "open" ? "destructive" : "secondary"}>{i.status === "open" ? "Open" : "Resolved"}</Badge></div>
+              {i.note && <div className="text-sm">{i.note}</div>}
+              <div className="text-xs text-muted-foreground">by {i.by}{s ? ` · ${hm(s.start)} ${s.title}` : ""}{p ? ` · ${p.name}` : ""}{i.status !== "open" ? ` · resolved by ${i.resolvedBy} ${hm(i.resolvedAt)}` : ""}</div>
             </div>
             {admin && owner?.phone && <CallLink phone={owner.phone} title={`Call ${owner.name}`} />}
-            {admin && (
-              <Button size="sm" className={cn("h-8 rounded-full px-3", i.status === "open" ? "bg-orange text-white hover:bg-orange-dark" : "")} variant={i.status === "open" ? "default" : "outline"}
-                onClick={() => void act({ type: "resolveIncident", id: i.id, reopen: i.status !== "open" })}>{i.status === "open" ? "Resolve" : "Reopen"}</Button>
-            )}
-          </div>
+            {admin && <Button size="sm" variant={i.status === "open" ? "default" : "outline"} onClick={() => void act({ type: "resolveIncident", id: i.id, reopen: i.status !== "open" })}>{i.status === "open" ? "Resolve" : "Reopen"}</Button>}
+          </Fragment>
         );
       })}
-    </Card>
+    </ListCard>
   );
 }
 
@@ -229,46 +229,62 @@ export function RotaBoard() {
   const nowIdx = slots.findIndex((s) => t >= s && t < s + 900000);
   const free = slots.map(() => 0);
   const rows = state.team.map((m) => ({ m, cells: slots.map((s, i) => { const v = Core.prStateAt(state, m.name, s + 1000, day); if (!v) free[i]!++; return v; }) }));
-  const cellCls = (v: string) => (v === "S" ? "bg-brand" : v === "L" ? "bg-amber" : v === "!" ? "bg-st-urgent" : "");
+  const cellCls = (v: string) => (v === "S" ? "bg-primary" : v === "L" ? "bg-amber" : v === "!" ? "bg-destructive" : "");
+  const nowCls = "shadow-[inset_2px_0_0_var(--color-orange),inset_-2px_0_0_var(--color-orange)]";
   return (
-    <>
-      <div className="mx-0.5 mb-2 flex flex-wrap gap-3 text-xs text-muted-foreground">
-        <span><i className="mr-1 inline-block size-3 rounded-sm bg-brand align-[-2px]" />With speakers</span>
-        <span><i className="mr-1 inline-block size-3 rounded-sm bg-amber align-[-2px]" />Lunch</span>
-        <span><i className="mr-1 inline-block size-3 rounded-sm bg-st-urgent align-[-2px]" />Clash</span>
-        <span><i className="mr-1 inline-block size-3 rounded-sm border border-line bg-white align-[-2px]" />Free / break</span>
-        {nowIdx >= 0 && <span><i className="mr-1 inline-block size-3 rounded-sm bg-orange align-[-2px]" />Now</span>}
-      </div>
-      <div className="overflow-x-auto rounded-xl border border-line bg-white">
-        <table className="border-collapse text-[11px]">
-          <thead>
-            <tr>
-              <th className="sticky left-0 z-10 min-w-24 bg-white px-2 text-left font-semibold text-muted-foreground md:min-w-40">PR</th>
-              {slots.map((s, i) => { const top = hm24(s).slice(3) === "00"; return (
-                <th key={s} className={cn("h-7 min-w-5 font-semibold text-muted-foreground", top && "border-l border-line", i === nowIdx && "shadow-[inset_2px_0_0_var(--color-orange),inset_-2px_0_0_var(--color-orange)]")}>{top ? hourLabel(s) : ""}</th>
-              ); })}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map(({ m, cells }) => (
-              <tr key={m.name} className="border-t border-line">
-                <td className="sticky left-0 z-10 bg-white px-2 text-xs font-semibold whitespace-nowrap text-navy"><span className="md:hidden">{shortName(m.name)}</span><span className="hidden md:inline">{m.name}</span></td>
-                {cells.map((v, i) => <td key={i} title={hm(slots[i])} className={cn("h-8 min-w-5 border-r border-[#eef2f8]", cellCls(v), hm24(slots[i]).slice(3) === "00" && "border-l border-line", i === nowIdx && "shadow-[inset_2px_0_0_var(--color-orange),inset_-2px_0_0_var(--color-orange)]")} />)}
+    <Card>
+      <CardHeader>
+        <CardTitle>Team timeline</CardTitle>
+        <CardDescription>15-minute blocks. Busy = from {state.settings.arriveMin} min before a session until the speaker walks on stage. Give breaks only when at least 2 PRs are free.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="flex flex-wrap gap-2">
+          <Badge variant="outline"><i className="size-2.5 rounded-sm bg-primary" />With speakers</Badge>
+          <Badge variant="outline"><i className="size-2.5 rounded-sm bg-amber" />Lunch</Badge>
+          <Badge variant="outline"><i className="size-2.5 rounded-sm bg-destructive" />Clash</Badge>
+          <Badge variant="outline"><i className="size-2.5 rounded-sm border" />Free</Badge>
+          {nowIdx >= 0 && <Badge variant="outline"><i className="size-2.5 rounded-sm bg-orange" />Now</Badge>}
+        </div>
+        <div className="overflow-x-auto rounded-lg border">
+          <table className="border-collapse text-[11px]">
+            <thead>
+              <tr>
+                <th className="sticky left-0 z-10 min-w-24 bg-card px-2 text-left font-medium text-muted-foreground md:min-w-40">PR</th>
+                {slots.map((s, i) => { const top = hm24(s).slice(3) === "00"; return <th key={s} className={cn("h-7 min-w-5 font-medium text-muted-foreground", top && "border-l", i === nowIdx && nowCls)}>{top ? hourLabel(s) : ""}</th>; })}
               </tr>
-            ))}
-            <tr className="border-t border-line">
-              <td className="sticky left-0 z-10 bg-white px-2 text-xs font-bold text-navy">Free PRs</td>
-              {free.map((f, i) => <td key={i} className={cn("text-center", f < 2 ? "font-bold text-st-urgent" : "text-muted-foreground")}>{f}</td>)}
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <p className="mx-0.5 mt-2 text-xs text-muted-foreground">Blocks = 15 min. &ldquo;With speakers&rdquo; = from {state.settings.arriveMin} min before a session until the speaker walks on stage. Red number = fewer than 2 PRs free → no breaks then.</p>
-    </>
+            </thead>
+            <tbody>
+              {rows.map(({ m, cells }) => (
+                <tr key={m.name} className="border-t">
+                  <td className="sticky left-0 z-10 bg-card px-2 text-xs font-medium whitespace-nowrap"><span className="md:hidden">{shortName(m.name)}</span><span className="hidden md:inline">{m.name}</span></td>
+                  {cells.map((v, i) => <td key={i} title={hm(slots[i])} className={cn("h-8 min-w-5 border-r border-border/40", cellCls(v), hm24(slots[i]).slice(3) === "00" && "border-l", i === nowIdx && nowCls)} />)}
+                </tr>
+              ))}
+              <tr className="border-t">
+                <td className="sticky left-0 z-10 bg-card px-2 text-xs font-semibold">Free PRs</td>
+                {free.map((f, i) => <td key={i} className={cn("text-center", f < 2 ? "font-bold text-destructive" : "text-muted-foreground")}>{f}</td>)}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
 // ---------- admin views ----------
+function Stat({ n, label, hot }: { n: number; label: string; hot?: boolean }) {
+  const alarm = hot && n > 0;
+  return (
+    <Card size="sm" className={cn(alarm && "ring-2 ring-destructive")}>
+      <CardHeader>
+        <CardDescription>{label}</CardDescription>
+        <CardTitle className={cn("text-2xl tabular-nums", alarm && "text-destructive")}>{n}</CardTitle>
+      </CardHeader>
+    </Card>
+  );
+}
+
 export function LiveView() {
   const { state, day, now } = useApp();
   const modal = useModal();
@@ -277,12 +293,6 @@ export function LiveView() {
   const c = Core.counts(state, day, t);
   const openInc = state.incidents.filter((i) => i.status === "open");
   const clashes = state.sessions.filter((s) => s.day === day && !["OK", "NO_PR"].includes(Core.rotaCheck(state, s))).length;
-  const Tile = ({ n, label, hot }: { n: number; label: string; hot?: boolean }) => (
-    <div className={cn("rounded-xl border bg-white px-2 py-2.5 text-center", hot && n ? "border-st-urgent bg-[#fff0ee]" : "border-line")}>
-      <b className={cn("block text-2xl leading-tight tabular-nums", hot && n ? "text-st-urgent" : "text-brand")}>{n}</b>
-      <span className="text-[10.5px] font-semibold tracking-wide text-muted-foreground uppercase">{label}</span>
-    </div>
-  );
   const att: { p: Core.Person; s: Session; code: Core.StatusCode }[] = [];
   for (const s of state.sessions) {
     if (s.day !== day || s.end <= t) continue;
@@ -297,60 +307,59 @@ export function LiveView() {
   return (
     <>
       <DaySwitch />
-      <div className="grid grid-cols-4 gap-2 lg:grid-cols-8">
-        <Tile n={c.LATE + c.TAKE_BACKSTAGE} label="Late" hot /><Tile n={c.CALLNOW} label="Call now" hot /><Tile n={openInc.length} label="Issues" hot /><Tile n={clashes} label="Rota clash" hot />
-        <Tile n={c.NOTCALLED} label="Not called" /><Tile n={c.CONFIRMED} label="En route" /><Tile n={c.ARRIVED + c.BACKSTAGE} label="Arrived" /><Tile n={c.DONE} label="Done" />
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
+        <Stat n={c.LATE + c.TAKE_BACKSTAGE} label="Late" hot /><Stat n={c.CALLNOW} label="Call now" hot /><Stat n={openInc.length} label="Issues" hot /><Stat n={clashes} label="Rota clash" hot />
+        <Stat n={c.NOTCALLED} label="Not called" /><Stat n={c.CONFIRMED} label="En route" /><Stat n={c.ARRIVED + c.BACKSTAGE} label="Arrived" /><Stat n={c.DONE} label="Done" />
       </div>
-      <div className="grid gap-3 lg:grid-cols-2">
+      <div className="grid gap-x-4 lg:grid-cols-2">
         <div>
-          <H2 count={att.length}>Needs attention</H2>
+          <SectionTitle count={att.length}>Needs attention</SectionTitle>
           {att.length ? (
-            <Card className="gap-0 py-0">
+            <ListCard>
               {att.slice(0, 25).map(({ p, s, code }) => {
                 const S = Core.STATUS[code];
                 const prName = Core.prOf(state, p);
                 const owner = Core.memberByName(state, prName);
                 return (
-                  <div key={p.id} className="flex items-center gap-3 border-t border-line px-4 py-2.5 first:border-t-0">
-                    <Dot tone={S.tone} />
-                    <div className="min-w-16 text-xs font-semibold whitespace-nowrap text-brand">{hm(s.start)}</div>
+                  <Fragment key={p.id}>
+                    <Dot tone={S.tone} /><Time t={s.start} />
                     <div className="min-w-0 flex-1">
-                      <div className="font-semibold text-navy">{p.name}</div>
-                      <div className={cn("text-xs font-semibold", TONE_TEXT[S.tone])}>{S.label}{p.eta ? ` · ETA ${p.eta}` : ""}</div>
-                      <div className="text-[11px] text-muted-foreground">{s.title} · PR {prName || "–"}</div>
+                      <div className="font-medium">{p.name}</div>
+                      <div className={cn("text-xs font-medium", TONE_TEXT[S.tone])}>{S.label}{p.eta ? ` · ETA ${p.eta}` : ""}</div>
+                      <div className="truncate text-xs text-muted-foreground">{s.title} · PR {prName || "–"}</div>
                     </div>
                     {p.phone && <CallLink phone={p.phone} title="Call speaker" />}
-                    {owner?.phone && <CallLink phone={owner.phone} title="Call PR" className="flex-col text-[10px] font-bold leading-none">📞<span>PR</span></CallLink>}
-                    <Button variant="outline" size="icon" className="size-9 rounded-lg border-line bg-soft text-brand" onClick={() => modal.open({ kind: "person", pid: p.id })}>⋯</Button>
-                  </div>
+                    {owner?.phone && <CallLink phone={owner.phone} label="PR" title={`Call ${owner.name}`} />}
+                    <Button variant="ghost" size="icon" onClick={() => modal.open({ kind: "person", pid: p.id })}><Ellipsis /></Button>
+                  </Fragment>
                 );
               })}
-            </Card>
-          ) : <Card className="px-4 py-3 text-sm text-muted-foreground">All good – nobody late or unreached. ✅</Card>}
-          <H2 count={openInc.length}>Open issues</H2>
+            </ListCard>
+          ) : <Empty>All good – nobody late or unreached.</Empty>}
+          <SectionTitle count={openInc.length}>Open issues</SectionTitle>
           <IncidentList admin={false} />
         </div>
         <div>
-          <H2>Now &amp; next</H2>
-          {upcoming.length ? upcoming.map((s) => <SessionCard key={s.id} s={s} manage />) : <Card className="px-4 py-3 text-sm text-muted-foreground">No more sessions today.</Card>}
-          <H2>Team {today ? "right now" : ""}</H2>
-          <Card className="gap-0 py-0">
+          <SectionTitle>Now &amp; next</SectionTitle>
+          {upcoming.length ? upcoming.map((s) => <SessionCard key={s.id} s={s} manage />) : <Empty>No more sessions today.</Empty>}
+          <SectionTitle>Team {today ? "right now" : ""}</SectionTitle>
+          <ListCard>
             {state.team.map((m) => {
               const stt = today ? Core.prStateAt(state, m.name, t, day) : "";
               const cur = today ? Core.prCurrentSession(state, m.name, t) : null;
               const l = Core.lunchWindow(state, m.name, day);
-              const label = stt === "L" && l ? `🍽 Lunch until ${hm(l[1])}` : stt === "S" ? `🎤 ${cur?.title ?? "On duty"}` : stt === "!" ? "⚠ CLASH" : today ? "☕ Free" : l ? `Lunch ${hm(l[0])}` : "";
+              const label = stt === "L" && l ? `Lunch until ${hm(l[1])}` : stt === "S" ? `On duty · ${cur?.title ?? ""}` : stt === "!" ? "Clash" : today ? "Free" : l ? `Lunch ${hm(l[0])}` : "";
               return (
-                <div key={m.name} className="flex items-center gap-3 border-t border-line px-4 py-2.5 first:border-t-0">
+                <Fragment key={m.name}>
                   <div className="min-w-0 flex-1">
-                    <div className="font-semibold text-navy">{m.name}{m.guest && <Chip className="ml-1.5">guest</Chip>}</div>
-                    <div className={cn("text-xs", stt === "" && today && "text-st-ok", stt === "L" && "text-st-warn")}>{label}</div>
+                    <div className="flex items-center gap-2 font-medium">{m.name}{m.guest && <Badge variant="outline">Guest</Badge>}</div>
+                    <div className={cn("truncate text-xs text-muted-foreground", stt === "" && today && "text-st-ok", stt === "L" && "text-st-warn")}>{label}</div>
                   </div>
                   {m.phone && <><CallLink phone={m.phone} /><WhatsAppLink phone={m.phone} /></>}
-                </div>
+                </Fragment>
               );
             })}
-          </Card>
+          </ListCard>
         </div>
       </div>
     </>
@@ -364,13 +373,15 @@ export function SessionsView() {
   return (
     <>
       <DaySwitch />
-      <div className="mb-3 flex items-start gap-3">
-        <p className="flex-1 text-xs text-muted-foreground">Tap a session to see its speakers and their PRs.</p>
-        <BrandButton className="h-9" onClick={() => modal.open({ kind: "sessionEdit" })}><Plus /> New session</BrandButton>
-      </div>
-      <Card className="mb-3 flex-row flex-wrap items-center gap-3 px-4 py-3">
-        <div className="min-w-0 flex-1 text-sm"><b>Each speaker has their own PR.</b> Open a session and use the <b>PR</b> dropdown under each speaker.</div>
-        <Button variant="outline" className="h-9 rounded-full border-brand text-brand" onClick={() => modal.open({ kind: "autoAssign" })}><Zap /> Auto-assign</Button>
+      <Card className="mb-3">
+        <CardHeader>
+          <CardTitle>Sessions</CardTitle>
+          <CardDescription>Each speaker has their own PR – open a session and use the PR menu under each speaker.</CardDescription>
+          <CardAction className="flex flex-wrap justify-end gap-2">
+            <Button variant="outline" onClick={() => modal.open({ kind: "autoAssign" })}><Zap /> Auto-assign</Button>
+            <Button onClick={() => modal.open({ kind: "sessionEdit" })}><Plus /> New session</Button>
+          </CardAction>
+        </CardHeader>
       </Card>
       {sessionsOfDay(state, day).map((s) => <SessionCard key={s.id} s={s} manage />)}
     </>
@@ -386,36 +397,39 @@ export function TeamAdminView() {
     <>
       <DaySwitch />
       <RotaBoard />
-      <div className="mt-5 flex items-center gap-3">
-        <h2 className="flex-1 text-[17px] font-bold text-navy">Team – {dayLabel(state, day)} <span className="text-xs font-medium text-muted-foreground">{state.team.length} people</span></h2>
-        <BrandButton className="h-9" onClick={() => modal.open({ kind: "member" })}><UserPlus /> Add member</BrandButton>
-      </div>
-      <Card className="mt-2.5 gap-0 overflow-x-auto py-0">
-        <Table>
-          <TableHeader>
-            <TableRow><TableHead>Name</TableHead><TableHead>Lunch ({state.settings.lunchMin} min)</TableHead><TableHead>Speakers</TableHead><TableHead>PIN</TableHead><TableHead /></TableRow>
-          </TableHeader>
-          <TableBody>
-            {state.team.map((m) => {
-              const mp = state.people.filter((p) => Core.sessionById(state, p.sid)?.day === day && Core.prOf(state, p) === m.name);
-              const clash = mp.some((p) => ["CLASH_LUNCH", "CLASH_DOUBLE"].includes(Core.personRota(state, p)));
-              return (
-                <TableRow key={m.name}>
-                  <TableCell className="font-semibold text-navy">{m.name}{m.guest && <Chip className="ml-1.5">guest</Chip>}{clash && <Chip className="ml-1.5 bg-st-urgent text-white">clash</Chip>}</TableCell>
-                  <TableCell>
-                    <Input type="time" step={900} className="h-9 w-32 bg-white" defaultValue={isD1 ? m.lunch1 : m.lunch2} key={`${m.name}-${day}-${isD1 ? m.lunch1 : m.lunch2}`}
-                      onBlur={(e) => { const v = e.target.value; if (v && v !== (isD1 ? m.lunch1 : m.lunch2)) void act({ type: "lunch", name: m.name, day, hhmm: v }, "Lunch updated"); }} />
-                  </TableCell>
-                  <TableCell>{mp.length}</TableCell>
-                  <TableCell><code className="rounded-md border border-line bg-soft px-1.5 py-0.5 text-navy">{m.pin}</code></TableCell>
-                  <TableCell><Button variant="outline" className="h-8 rounded-full border-brand text-brand" onClick={() => modal.open({ kind: "member", name: m.name })}><Pencil /> Edit</Button></TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+      <Card className="mt-4">
+        <CardHeader>
+          <CardTitle>Team · {dayLabel(state, day)}</CardTitle>
+          <CardDescription>{state.team.length} people. Admin PIN: <code className="rounded bg-muted px-1.5 py-0.5">{state.settings.adminPin}</code></CardDescription>
+          <CardAction><Button onClick={() => modal.open({ kind: "member" })}><UserPlus /> Add member</Button></CardAction>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow><TableHead>Name</TableHead><TableHead>Lunch ({state.settings.lunchMin} min)</TableHead><TableHead>Speakers</TableHead><TableHead>PIN</TableHead><TableHead /></TableRow>
+            </TableHeader>
+            <TableBody>
+              {state.team.map((m) => {
+                const mp = state.people.filter((p) => Core.sessionById(state, p.sid)?.day === day && Core.prOf(state, p) === m.name);
+                const clash = mp.some((p) => ["CLASH_LUNCH", "CLASH_DOUBLE"].includes(Core.personRota(state, p)));
+                const lunch = isD1 ? m.lunch1 : m.lunch2;
+                return (
+                  <TableRow key={m.name}>
+                    <TableCell className="font-medium"><div className="flex items-center gap-1.5">{m.name}{m.guest && <Badge variant="outline">Guest</Badge>}{clash && <Badge variant="destructive">Clash</Badge>}</div></TableCell>
+                    <TableCell>
+                      <Input type="time" step={900} className="w-32" defaultValue={lunch} key={`${m.name}-${day}-${lunch}`}
+                        onBlur={(e) => { const v = e.target.value; if (v && v !== lunch) void act({ type: "lunch", name: m.name, day, hhmm: v }, "Lunch updated"); }} />
+                    </TableCell>
+                    <TableCell>{mp.length}</TableCell>
+                    <TableCell><code className="rounded bg-muted px-1.5 py-0.5">{m.pin}</code></TableCell>
+                    <TableCell className="text-right"><Button variant="outline" size="sm" onClick={() => modal.open({ kind: "member", name: m.name })}><Pencil /> Edit</Button></TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </CardContent>
       </Card>
-      <p className="mt-2 text-xs text-muted-foreground">Admin PIN: <code className="rounded-md border border-line bg-soft px-1.5 py-0.5">{state.settings.adminPin}</code></p>
     </>
   );
 }
@@ -428,7 +442,7 @@ export function PhonesView() {
   if (!state) return null;
   const t = now();
   const sorted = [...state.people].sort((a, b) => a.name.localeCompare(b.name));
-  const apply = async () => {
+  const save = async () => {
     if (!preview) return;
     const rows = preview.filter((r) => r.phone && r.matches.length).map((r) => {
       const pers = Core.personById(state, r.matches[0]!)!;
@@ -442,55 +456,59 @@ export function PhonesView() {
     .sort((a, b) => Core.sessionById(state, a.sid)!.start - Core.sessionById(state, b.sid)!.start);
   return (
     <>
-      <Card className="gap-0 px-4 py-4">
-        <h3 className="text-lg font-bold text-navy">Paste today&apos;s speaker phone list</h3>
-        <p className="text-xs text-muted-foreground">One per line: <code>Name, phone</code> – also works straight from Excel / WhatsApp. Typos are fine.</p>
-        <Textarea rows={7} className="mt-3 bg-white" value={text} onChange={(e) => setText(e.target.value)} placeholder={"Maged Ghoneima, 01001234567\nAlison Cossette\t+20 100 765 4321"} />
-        <div className="mt-3 flex gap-2">
-          <BrandButton className="h-10" onClick={() => setPreview(Core.previewPhones(state, text))}>Check matches</BrandButton>
-          {preview && <Button variant="outline" className="h-10 rounded-full border-brand text-brand" onClick={apply}>Save {preview.filter((r) => r.matches.length && r.phone).length} matched</Button>}
-        </div>
-        {preview && (
-          <Table className="mt-3">
-            <TableHeader><TableRow><TableHead>Pasted name</TableHead><TableHead>Phone</TableHead><TableHead>Matched to</TableHead></TableRow></TableHeader>
-            <TableBody>
-              {preview.map((r, i) => {
-                const items = [{ value: "__none__", label: "– not matched –" }, ...sorted.map((p) => { const s = Core.sessionById(state, p.sid)!; return { value: p.id, label: `${p.name} · ${hm(s.start)} ${dayLabel(state, s.day).slice(0, 3)}` }; })];
-                return (
-                  <TableRow key={i}>
-                    <TableCell>{r.name}</TableCell>
-                    <TableCell>{r.phone || "⚠ no number"}</TableCell>
-                    <TableCell>
-                      <Select value={r.matches[0] || "__none__"} items={items} onValueChange={(v) => setPreview(preview.map((x, j) => (j === i ? { ...x, matches: v && v !== "__none__" ? [String(v)] : [] } : x)))}>
-                        <SelectTrigger className={cn("h-9 w-full rounded-lg bg-white", !r.matches.length && "border-st-warn")}><SelectValue /></SelectTrigger>
-                        <SelectContent>{items.map((it) => <SelectItem key={it.value} value={it.value}>{it.label}</SelectItem>)}</SelectContent>
-                      </Select>
-                      {r.matches.length > 1 && <div className="text-[11px] text-muted-foreground">Appears in {r.matches.length} sessions – number saved to all</div>}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        )}
+      <Card>
+        <CardHeader>
+          <CardTitle>Paste today&apos;s speaker phone list</CardTitle>
+          <CardDescription>One per line: name and number – straight from Excel or WhatsApp. Typos are fine.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Textarea rows={7} value={text} onChange={(e) => setText(e.target.value)} placeholder={"Maged Ghoneima, 01001234567\nAlison Cossette\t+20 100 765 4321"} />
+          <div className="flex gap-2">
+            <Button onClick={() => setPreview(Core.previewPhones(state, text))}>Check matches</Button>
+            {preview && <Button variant="outline" onClick={save}>Save {preview.filter((r) => r.matches.length && r.phone).length} matched</Button>}
+          </div>
+          {preview && (
+            <Table>
+              <TableHeader><TableRow><TableHead>Pasted name</TableHead><TableHead>Phone</TableHead><TableHead>Matched to</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {preview.map((r, i) => {
+                  const items = [{ value: "__none__", label: "Not matched" }, ...sorted.map((p) => { const s = Core.sessionById(state, p.sid)!; return { value: p.id, label: `${p.name} · ${hm(s.start)} ${dayLabel(state, s.day).slice(0, 3)}` }; })];
+                  return (
+                    <TableRow key={i}>
+                      <TableCell>{r.name}</TableCell>
+                      <TableCell>{r.phone || <Badge variant="destructive">No number</Badge>}</TableCell>
+                      <TableCell>
+                        <Select value={r.matches[0] || "__none__"} items={items} onValueChange={(v) => setPreview(preview.map((x, j) => (j === i ? { ...x, matches: v && v !== "__none__" ? [String(v)] : [] } : x)))}>
+                          <SelectTrigger className={cn("w-full", !r.matches.length && "border-destructive")}><SelectValue /></SelectTrigger>
+                          <SelectContent>{items.map((it) => <SelectItem key={it.value} value={it.value}>{it.label}</SelectItem>)}</SelectContent>
+                        </Select>
+                        {r.matches.length > 1 && <p className="mt-1 text-xs text-muted-foreground">In {r.matches.length} sessions – saved to all</p>}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
       </Card>
-      <div className="mt-4"><DaySwitch /></div>
-      <H2 count={missing.length}>Still missing a phone</H2>
+      <div className="mt-6"><DaySwitch /></div>
+      <SectionTitle count={missing.length}>Still missing a phone</SectionTitle>
       {missing.length ? (
-        <Card className="gap-0 py-0">
+        <ListCard>
           {missing.map((p) => {
             const s = Core.sessionById(state, p.sid)!;
             return (
-              <div key={p.id} className="flex items-center gap-3 border-t border-line px-4 py-2.5 first:border-t-0">
-                <div className="min-w-16 text-xs font-semibold whitespace-nowrap text-brand">{hm(s.start)}</div>
-                <div className="min-w-0 flex-1"><div className="font-semibold text-navy">{p.name}</div><div className="text-[11px] text-muted-foreground">{s.title} · PR {Core.prOf(state, p) || "–"}</div></div>
-                <Input type="tel" placeholder="01…" className="h-9 w-36 bg-white" value={inline[p.id] ?? ""} onChange={(e) => setInline({ ...inline, [p.id]: e.target.value })} />
-                <BrandButton className="h-9 px-4" onClick={() => { if (inline[p.id]) void act({ type: "phone", pid: p.id, phone: inline[p.id] }, "Saved"); }}>Save</BrandButton>
-              </div>
+              <Fragment key={p.id}>
+                <Time t={s.start} />
+                <div className="min-w-0 flex-1"><div className="font-medium">{p.name}</div><div className="truncate text-xs text-muted-foreground">{s.title} · PR {Core.prOf(state, p) || "–"}</div></div>
+                <Input type="tel" placeholder="01…" className="w-36" value={inline[p.id] ?? ""} onChange={(e) => setInline({ ...inline, [p.id]: e.target.value })} />
+                <Button onClick={() => { if (inline[p.id]) void act({ type: "phone", pid: p.id, phone: inline[p.id] }, "Saved"); }}>Save</Button>
+              </Fragment>
             );
           })}
-        </Card>
-      ) : <Card className="px-4 py-3 text-sm text-muted-foreground">Everyone has a number ✅</Card>}
+        </ListCard>
+      ) : <Empty>Everyone has a number.</Empty>}
     </>
   );
 }
@@ -499,7 +517,7 @@ export function IssuesView() {
   const modal = useModal();
   return (
     <>
-      <div className="flex items-center"><H2>Issues</H2><span className="flex-1" /><Button className="h-9 rounded-full bg-st-urgent text-white hover:bg-st-urgent/90" onClick={() => modal.open({ kind: "incident" })}><Plus /> Log issue</Button></div>
+      <SectionTitle action={<Button variant="destructive" onClick={() => modal.open({ kind: "incident" })}><Plus /> Log issue</Button>}>Issues</SectionTitle>
       <IncidentList admin />
     </>
   );
@@ -511,20 +529,14 @@ export function LogView() {
   const log = [...state.log].reverse();
   return (
     <>
-      <H2 count={`last ${log.length}`}>Activity</H2>
+      <SectionTitle count={log.length}>Activity</SectionTitle>
       {log.length ? (
-        <Card className="gap-0 py-0">
+        <ListCard>
           {log.map((e, i) => (
-            <div key={i} className="flex items-center gap-3 border-t border-line px-4 py-2.5 first:border-t-0">
-              <div className="min-w-16 text-xs font-semibold whitespace-nowrap text-brand">{hm(e.ts)}</div>
-              <div className="min-w-0 flex-1 text-sm">{e.text}</div>
-              <div className="text-[11px] text-muted-foreground">{e.by}</div>
-            </div>
+            <Fragment key={i}><Time t={e.ts} /><div className="min-w-0 flex-1 text-sm">{e.text}</div><Badge variant="outline">{e.by}</Badge></Fragment>
           ))}
-        </Card>
+        </ListCard>
       ) : <Empty>Nothing yet.</Empty>}
     </>
   );
 }
-
-export { PersonRow };

@@ -48,8 +48,8 @@ t("seed: agenda, team, one PR per speaker", async () => {
   admin = (await caller(null).auth.login({ name: "__admin__", pin: pin("__admin__") })).token;
   const r = await caller(admin).state.get({});
   if (r.unchanged) throw new Error("expected state");
-  expect(r.state.sessions).toHaveLength(27);
-  expect(r.state.people).toHaveLength(106);
+  expect(r.state.sessions).toHaveLength(26);
+  expect(r.state.people).toHaveLength(103);
   expect(r.state.people.every((p) => p.pr)).toBe(true);
 });
 

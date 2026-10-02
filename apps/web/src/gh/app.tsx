@@ -1,7 +1,11 @@
 "use client";
 
+import { Button } from "@great-hall-pr/ui/components/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@great-hall-pr/ui/components/card";
 import { Input } from "@great-hall-pr/ui/components/input";
+import { Label } from "@great-hall-pr/ui/components/label";
 import { cn } from "@great-hall-pr/ui/lib/utils";
+import { Badge } from "@great-hall-pr/ui/components/badge";
 import { useQuery } from "@tanstack/react-query";
 import { CalendarClock, ClipboardList, Contact, Landmark, MoreHorizontal, Radio, Star, TriangleAlert, Users } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -11,7 +15,7 @@ import { trpc } from "@/utils/trpc";
 import { hm } from "./format";
 import { Modals } from "./modals";
 import { AppProvider, useApp, useTick } from "./store";
-import { BrandButton, ModalCtx, type ModalSpec } from "./ui";
+import { ModalCtx, type ModalSpec } from "./ui";
 import { HallView, IssuesView, LiveView, LogView, MineView, myAlertCount, PhonesView, ReportView, SessionsView, TeamAdminView, TeamBoardView } from "./views";
 
 export function GreatHallApp() {
@@ -58,30 +62,37 @@ function Login() {
   };
   return (
     <div className="min-h-svh">
-      <div className="bg-brand px-5 pt-9 pb-7 text-center text-white">
+      <div className="bg-primary px-5 pt-9 pb-10 text-center text-primary-foreground">
         <Wordmark big />
         <p className="mt-3 text-sm opacity-85">Great Hall PR · Bibliotheca Alexandrina</p>
       </div>
-      <div className="mx-auto max-w-md px-5 pt-6 pb-10">
-        <p className="mb-2 text-xs font-medium text-muted-foreground">Who are you?</p>
-        {names.isLoading && <p className="text-muted-foreground">Loading…</p>}
-        {names.error && <p className="text-st-urgent">Cannot reach the server: {names.error.message}</p>}
-        <div className="grid grid-cols-2 gap-2">
-          {names.data?.map((n) => (
-            <button type="button" key={n} onClick={() => setWho(n)}
-              className={cn("rounded-xl border-[1.5px] px-2 py-3 text-sm font-semibold", who === n ? "border-orange bg-[#fff1eb] text-orange-dark" : "border-line bg-white text-navy")}>{n}</button>
-          ))}
-          <button type="button" onClick={() => setWho("__admin__")}
-            className={cn("col-span-2 rounded-xl border-[1.5px] px-2 py-3 text-sm font-semibold text-brand", who === "__admin__" ? "border-solid border-brand bg-soft" : "border-dashed border-brand bg-white")}>Team Leader (admin)</button>
-        </div>
-        {who && (
-          <form className="mt-4" onSubmit={(e) => { e.preventDefault(); void go(); }}>
-            <p className="mb-1.5 text-xs font-medium text-muted-foreground">PIN</p>
-            <Input autoFocus type="password" inputMode="numeric" maxLength={8} value={pin} onChange={(e) => setPin(e.target.value)} className="h-14 bg-white text-center text-2xl tracking-[10px]" />
-            <BrandButton type="submit" disabled={busy || !pin} className="mt-3 w-full">{busy ? "Checking…" : "Log in"}</BrandButton>
-          </form>
-        )}
-        <p className="mt-3 min-h-5 text-sm font-semibold text-st-urgent">{err}</p>
+      <div className="mx-auto -mt-4 max-w-md px-4 pb-10">
+        <Card>
+          <CardHeader>
+            <CardTitle>Log in</CardTitle>
+            <CardDescription>Choose your name, then enter your PIN.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {names.isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
+            {names.error && <p className="text-sm text-destructive">Cannot reach the server: {names.error.message}</p>}
+            <div className="grid grid-cols-2 gap-2">
+              {names.data?.map((n) => (
+                <Button key={n} type="button" variant={who === n ? "default" : "outline"} size="lg" className="h-11" onClick={() => setWho(n)}>{n}</Button>
+              ))}
+              <Button type="button" variant={who === "__admin__" ? "default" : "secondary"} size="lg" className="col-span-2 h-11" onClick={() => setWho("__admin__")}>Team Leader (admin)</Button>
+            </div>
+            {who && (
+              <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); void go(); }}>
+                <div className="space-y-2">
+                  <Label htmlFor="pin">PIN</Label>
+                  <Input id="pin" autoFocus type="password" inputMode="numeric" maxLength={8} value={pin} onChange={(e) => setPin(e.target.value)} className="h-12 text-center text-xl tracking-[8px]" />
+                </div>
+                <Button type="submit" size="lg" disabled={busy || !pin} className="h-11 w-full">{busy ? "Checking…" : "Log in"}</Button>
+              </form>
+            )}
+            {err && <p className="text-sm font-medium text-destructive">{err}</p>}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
@@ -117,26 +128,26 @@ function Shell() {
     <ModalCtx.Consumer>
       {(modal) => (
         <div className="min-h-svh">
-          <header className="sticky top-0 z-30 flex items-center gap-3 bg-brand px-4 py-2.5 text-white shadow-md">
+          <header className="sticky top-0 z-30 flex items-center gap-3 bg-primary px-4 py-2.5 text-primary-foreground shadow-sm">
             <div><Wordmark /><div className="mt-0.5 text-[10.5px] font-medium opacity-85">Great Hall PR</div></div>
             <div className="flex-1" />
             <div className="text-base font-semibold whitespace-nowrap tabular-nums md:text-lg">{hm(now())}</div>
             <span title={online ? "Live" : "Offline"} className={cn("size-2.5 rounded-full", !online ? "bg-[#ff6b5e]" : busy ? "bg-amber" : "bg-[#3ddc84]")} />
             <div className="text-right text-xs leading-tight"><b className="block text-[13px]">{me.name}</b><span className="opacity-80">{me.admin ? "Admin" : "PR"}</span></div>
-            <button type="button" onClick={() => modal.open({ kind: "menu" })} className="rounded-lg border-[1.5px] border-white/75 p-1.5" aria-label="Menu"><MoreHorizontal className="size-4" /></button>
+            <Button variant="secondary" size="icon" onClick={() => modal.open({ kind: "menu" })} aria-label="Menu"><MoreHorizontal /></Button>
           </header>
-          <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t border-line bg-white pb-[env(safe-area-inset-bottom)] shadow-[0_-2px_12px_rgba(12,23,54,.06)] md:top-[66px] md:right-auto md:bottom-0 md:w-24 md:flex-col md:border-t-0 md:border-r">
+          <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t bg-background pb-[env(safe-area-inset-bottom)] md:top-[66px] md:right-auto md:bottom-0 md:w-24 md:flex-col md:border-t-0 md:border-r">
             {tabs.map((x) => {
               const badge = (x.key === "issues" || x.key === "report") && openIssues ? openIssues : x.key === "mine" && mineAlerts ? mineAlerts : 0;
               const on = tab === x.key;
               const Icon = x.icon;
               return (
-                <button type="button" key={x.key} onClick={() => { setTab(x.key); window.scrollTo(0, 0); }}
-                  className={cn("relative flex flex-1 flex-col items-center gap-0.5 px-1 pt-2 pb-2.5 text-[11px] md:flex-none md:py-4", on ? "font-bold text-brand" : "font-medium text-muted-foreground")}>
-                  {on && <span className="absolute top-0 left-[22%] h-[3px] w-[56%] rounded-b bg-orange md:top-[20%] md:left-0 md:h-[60%] md:w-[3px] md:rounded-r" />}
+                <Button type="button" variant="ghost" key={x.key} onClick={() => { setTab(x.key); window.scrollTo(0, 0); }}
+                  className={cn("relative h-auto flex-1 flex-col gap-1 rounded-none px-1 pt-2 pb-2.5 text-[11px] md:flex-none md:py-4", on ? "text-primary" : "text-muted-foreground")}>
+                  {on && <span className="absolute top-0 left-[22%] h-0.5 w-[56%] rounded-b bg-primary md:top-[20%] md:left-0 md:h-[60%] md:w-0.5 md:rounded-r" />}
                   <Icon className="size-5" />{x.label}
-                  {badge > 0 && <span className="absolute top-1 left-1/2 ml-2 min-w-[18px] rounded-full bg-orange px-1.5 text-[11px] font-bold text-white">{badge}</span>}
-                </button>
+                  {badge > 0 && <Badge variant="destructive" className="absolute top-1 left-1/2 ml-2 h-4 min-w-4 px-1 text-[10px]">{badge}</Badge>}
+                </Button>
               );
             })}
           </nav>
