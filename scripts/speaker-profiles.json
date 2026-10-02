@@ -321,14 +321,19 @@
   "company": "",
   "photo": "https://avatars.sched.co/0/3c/25872927/avatar.jpg?ec7",
   "bio": "Kenzy Omar is a young doctor and medical content creator focused on the intersection of healthcare, technology and innovation. She is interested in how technology can make healthcare smarter and more accessible while keeping the human side of medicine central.",
-  "linkedin": "",
+  "linkedin": "https://www.linkedin.com/in/kenzy-omar-0304a31b6/",
   "otherLink": "",
   "sourceUrl": "https://technesummit2026.sched.com/speaker/kenzy_omar.2a4qwwsm",
-  "linkConfidence": "none",
-  "_evidence": "No matching profile found; results referred to other people.",
+  "linkConfidence": "high",
+  "_evidence": "No matching profile found; results referred to other people. | linkedin provided by Team Leader 2026-10-02",
   "_rawConfidence": "none",
   "_rawLinkedin": "",
-  "social": []
+  "social": [
+   {
+    "type": "linkedin",
+    "url": "https://www.linkedin.com/in/kenzy-omar-0304a31b6/"
+   }
+  ]
  },
  {
   "key": "sherif gamal",
