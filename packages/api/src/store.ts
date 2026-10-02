@@ -28,7 +28,7 @@ export async function loadState(db: Database): Promise<StoredState> {
     db.select().from(activityLog).orderBy(desc(activityLog.id)).limit(150),
     db.select().from(settings),
     db.select().from(appMeta).where(eq(appMeta.id, 1)),
-    db.select({ id: agendaChanges.id, kind: agendaChanges.kind, summary: agendaChanges.summary, warning: agendaChanges.warning, detectedAt: agendaChanges.detectedAt })
+    db.select({ id: agendaChanges.id, kind: agendaChanges.kind, summary: agendaChanges.summary, warning: agendaChanges.warning, detectedAt: agendaChanges.detectedAt, payload: agendaChanges.payload })
       .from(agendaChanges).where(eq(agendaChanges.status, "pending")),
   ]);
   return {
@@ -38,7 +38,13 @@ export async function loadState(db: Database): Promise<StoredState> {
     people: p.map(stripSort) as Person[],
     incidents: i as Incident[],
     log: l.reverse().map(({ ts, by, text }) => ({ ts, by, text })),
-    agendaChanges: ac.sort((a, b) => a.detectedAt - b.detectedAt),
+    agendaChanges: ac.sort((a, b) => a.detectedAt - b.detectedAt).map(({ payload, ...c }) => {
+      // which of our sessions the change is about, so the app can show its day / time / stage
+      const pl = JSON.parse(payload) as { actions?: Record<string, unknown>[]; newSession?: { day: string; start: string; end: string; title: string } | null };
+      const a = pl.actions?.[0] ?? {};
+      const sid = (a.sid as string | undefined) ?? (a.pid ? p.find((x) => x.id === a.pid)?.sid : undefined);
+      return { ...c, ...(sid ? { sid } : {}), ...(pl.newSession ? { newSession: { day: pl.newSession.day, start: pl.newSession.start, end: pl.newSession.end, title: pl.newSession.title } } : {}) };
+    }),
     version: meta[0]?.version ?? 0,
   };
 }

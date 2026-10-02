@@ -5,10 +5,17 @@ import { createDb } from "@great-hall-pr/db";
 import { readFileSync } from "node:fs";
 
 import { runAgendaCheck } from "./agenda-store";
+import { fetchSchedGreatHall } from "./agenda-sync";
+import { fillMissingProfiles } from "./agenda-profiles";
+import { loadState } from "./store";
 
 const env = readFileSync(new URL("../../../apps/web/.env", import.meta.url), "utf8");
 const url = process.env.DATABASE_URL || /^DATABASE_URL=(.+)$/m.exec(env)?.[1]?.trim();
 if (!url) throw new Error("DATABASE_URL missing");
-const result = await runAgendaCheck(createDb({ DATABASE_URL: url }));
-console.log(new Date().toISOString(), JSON.stringify(result));
+const db = createDb({ DATABASE_URL: url });
+const state = await loadState(db);
+const got = await fetchSchedGreatHall([state.settings.day1, state.settings.day2]);
+const result = await runAgendaCheck(db, { sched: got.sessions, mode: got.mode });
+const profiles = got.mode === "full" ? await fillMissingProfiles(db, await loadState(db), got.sessions) : [];
+console.log(new Date().toISOString(), JSON.stringify({ ...result, profilesAdded: profiles }));
 if (!result.ok) process.exitCode = 1;

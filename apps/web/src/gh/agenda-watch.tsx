@@ -5,7 +5,8 @@ import { Badge } from "@great-hall-pr/ui/components/badge";
 import { Button } from "@great-hall-pr/ui/components/button";
 import { DialogDescription, DialogHeader, DialogTitle } from "@great-hall-pr/ui/components/dialog";
 import { Separator } from "@great-hall-pr/ui/components/separator";
-import { BellRing, Check, RefreshCw, X } from "lucide-react";
+import { BellRing, CalendarDays, Check, Clock, MapPin, RefreshCw, X } from "lucide-react";
+import type { AgendaChange, State } from "@great-hall-pr/core";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -20,6 +21,32 @@ const KIND_LABEL: Record<string, string> = {
   remove_person: "Speaker removed", new_session: "New session", removed_session: "Session removed",
 };
 
+const to12 = (hhmm: string) => { const [h, m] = hhmm.split(":").map(Number); return `${h! % 12 || 12}:${String(m).padStart(2, "0")} ${h! < 12 ? "AM" : "PM"}`; };
+const dayName = (st: State, d: string) => (d === st.settings.day1 ? "Sat 3 Oct" : d === st.settings.day2 ? "Sun 4 Oct" : d);
+
+/** Where the change happens: day · time · stage (current times from our agenda). */
+function sessionWhere(st: State, c: AgendaChange) {
+  const s = c.sid ? st.sessions.find((x) => x.id === c.sid) : null;
+  if (s) return { day: dayName(st, s.day), time: `${hm(s.start)} – ${hm(s.end)}`, title: s.title };
+  if (c.newSession) return { day: dayName(st, c.newSession.day), time: `${to12(c.newSession.start)} – ${to12(c.newSession.end)}`, title: c.newSession.title };
+  return null;
+}
+
+export function ChangeWhere({ change, compact }: { change: AgendaChange; compact?: boolean }) {
+  const { state } = useApp();
+  if (!state) return null;
+  const w = sessionWhere(state, change);
+  if (!w) return null;
+  if (compact) return <span className="block text-xs opacity-80">{w.day} · {w.time} · Stage 01 · The Great Hall</span>;
+  return (
+    <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+      <span className="flex items-center gap-1"><CalendarDays className="size-3.5" />{w.day}</span>
+      <span className="flex items-center gap-1"><Clock className="size-3.5" />{w.time}</span>
+      <span className="flex items-center gap-1"><MapPin className="size-3.5" />Stage 01 · The Great Hall</span>
+    </div>
+  );
+}
+
 /** Shown at the top of every screen while official-agenda changes are waiting. */
 export function AgendaWatchBanner() {
   const { state, me } = useApp();
@@ -32,7 +59,7 @@ export function AgendaWatchBanner() {
       <AlertTitle>Official agenda changed – {pending.length} update{pending.length === 1 ? "" : "s"} {me.admin ? "need your approval" : "waiting for the Team Leader"}</AlertTitle>
       <AlertDescription>
         <ul className="mt-1 list-disc pl-4">
-          {pending.slice(0, 3).map((c) => <li key={c.id}>{c.summary}</li>)}
+          {pending.slice(0, 3).map((c) => <li key={c.id} className="mb-1">{c.summary}<ChangeWhere change={c} compact /></li>)}
           {pending.length > 3 && <li>and {pending.length - 3} more…</li>}
         </ul>
         {!me.admin && <p className="mt-1">Nothing changes in the app until {state.settings.adminName} approves. If they haven&apos;t seen it, call them.</p>}
@@ -85,6 +112,7 @@ export function AgendaChangesDialog() {
           <div key={c.id} className="space-y-2 rounded-lg border p-3">
             <div className="flex items-center gap-2"><Badge variant="secondary">{KIND_LABEL[c.kind] ?? c.kind}</Badge><span className="text-xs text-muted-foreground">found {hm(c.detectedAt)}</span></div>
             <p className="text-sm">{c.summary}</p>
+            <ChangeWhere change={c} />
             {c.warning && <p className="text-xs font-medium text-destructive">{c.warning}</p>}
             <div className="flex gap-2">
               <Button size="sm" disabled={!!busy} onClick={() => decide(c.id, true)}><Check />Approve</Button>

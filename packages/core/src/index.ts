@@ -59,7 +59,13 @@ export type Settings = {
   agendaLastTimesCheck?: number;
 };
 /** A difference with the official agenda waiting for the Team Leader's approval */
-export type AgendaChange = { id: string; kind: string; summary: string; warning: string; detectedAt: number };
+export type AgendaChange = {
+  id: string; kind: string; summary: string; warning: string; detectedAt: number;
+  /** the affected session in our agenda (for showing day / time / stage next to the change) */
+  sid?: string;
+  /** for a brand-new session: its official day and times */
+  newSession?: { day: string; start: string; end: string; title: string };
+};
 export type Member = { name: string; fullName: string; phone: string; pin: string; lunch1: string; lunch2: string; guest: boolean };
 export type Session = { id: string; day: string; start: number; end: number; title: string; type: string; owner: string; notes: string };
 export type Person = {

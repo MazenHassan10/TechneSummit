@@ -49,9 +49,9 @@ function Logo({ className }: { className?: string }) {
 function Wordmark({ big }: { big?: boolean }) {
   return (
     <div className={cn("leading-none font-bold text-white", big ? "text-center" : "")}>
-      <div className={cn(big ? "text-4xl tracking-[6px]" : "text-[17px] tracking-[2px]")}>TECHNE</div>
+      <div className={cn(big ? "text-4xl tracking-[6px]" : "text-[15px] tracking-[1.5px] sm:text-[17px] sm:tracking-[2px]")}>TECHNE</div>
       {big && <div className="mt-1.5 text-[15px] font-medium tracking-[6px]">SUMMIT</div>}
-      <span className={cn("mt-1 inline-block bg-orange font-semibold text-white", big ? "px-2.5 py-0.5 text-[11px] tracking-[4px]" : "px-1.5 py-px text-[8.5px] tracking-[2.5px]")}>ALEXANDRIA</span>
+      <span className={cn("mt-1 inline-block bg-orange font-semibold text-white", big ? "px-2.5 py-0.5 text-[11px] tracking-[4px]" : "px-1 py-px text-[7.5px] tracking-[1.5px] sm:px-1.5 sm:text-[8.5px] sm:tracking-[2.5px]")}>ALEXANDRIA</span>
     </div>
   );
 }
@@ -139,15 +139,20 @@ function Shell() {
     <ModalCtx.Consumer>
       {(modal) => (
         <div className="min-h-svh">
-          <header className="sticky top-0 z-30 flex items-center gap-3 bg-primary px-4 py-2.5 text-primary-foreground shadow-sm">
-            <div className="flex items-center gap-2.5"><Logo className="size-10" /><div><Wordmark /><div className="mt-0.5 text-[10.5px] font-medium opacity-85">Great Hall PR</div></div></div>
-            <div className="flex-1" />
-            <div className="text-base font-semibold whitespace-nowrap tabular-nums md:text-lg">{hm(now())}</div>
-            <span title={online ? "Live" : "Offline"} className={cn("size-2.5 rounded-full", !online ? "bg-[#ff6b5e]" : busy ? "bg-amber" : "bg-[#3ddc84]")} />
-            <div className="text-right text-xs leading-tight"><b className="block text-[13px]">{me.name}</b><span className="opacity-80">{me.admin ? "Admin" : "PR"}</span></div>
-            <Button variant="secondary" size="icon" onClick={() => modal.open({ kind: "menu" })} aria-label="Menu"><MoreHorizontal /></Button>
+          <header className="sticky top-0 z-30 flex items-center gap-2 bg-primary px-3 py-2 text-primary-foreground shadow-sm sm:gap-3 sm:px-4 sm:py-2.5">
+            <div className="flex shrink-0 items-center gap-2"><Logo className="size-9 sm:size-10" /><div><Wordmark /><div className="mt-0.5 text-[10px] font-medium opacity-85 sm:text-[10.5px]">Great Hall PR</div></div></div>
+            <div className="min-w-0 flex-1" />
+            <div className="flex shrink-0 items-center gap-1.5">
+              <span className="text-sm font-semibold whitespace-nowrap tabular-nums sm:text-base md:text-lg">{hm(now())}</span>
+              <span title={online ? "Live" : "Offline"} className={cn("size-2 shrink-0 rounded-full sm:size-2.5", !online ? "bg-[#ff6b5e]" : busy ? "bg-amber" : "bg-[#3ddc84]")} />
+            </div>
+            <div className="min-w-0 max-w-24 text-right text-[11px] leading-tight sm:max-w-none sm:text-xs">
+              <b className="block truncate text-xs sm:text-[13px]"><span className="sm:hidden">{me.name.split(" ")[0]}</span><span className="hidden sm:inline">{me.name}</span></b>
+              <span className="opacity-80">{me.admin ? "Admin" : "PR"}</span>
+            </div>
+            <Button variant="secondary" size="icon" className="shrink-0" onClick={() => modal.open({ kind: "menu" })} aria-label="Menu"><MoreHorizontal /></Button>
           </header>
-          <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t bg-background pb-[env(safe-area-inset-bottom)] md:top-[66px] md:right-auto md:bottom-0 md:w-24 md:flex-col md:border-t-0 md:border-r">
+          <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t bg-background pb-[env(safe-area-inset-bottom)] md:top-[var(--toph,66px)] md:right-auto md:bottom-0 md:w-24 md:flex-col md:border-t-0 md:border-r">
             {tabs.map((x) => {
               const badge = (x.key === "issues" || x.key === "report") && openIssues ? openIssues : x.key === "mine" && mineAlerts ? mineAlerts : 0;
               const on = tab === x.key;

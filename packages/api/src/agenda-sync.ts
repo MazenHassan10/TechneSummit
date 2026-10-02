@@ -4,7 +4,7 @@ import { normName, peopleOf, type Action, type State } from "@great-hall-pr/core
 
 export const SCHED_BASE = "https://technesummit2026.sched.com/";
 
-export type SchedPerson = { name: string; role: "Moderator" | "Speaker" };
+export type SchedPerson = { name: string; role: "Moderator" | "Speaker"; profileUrl?: string };
 export type SchedSession = { day: string; start: string; end: string; title: string; people: SchedPerson[] };
 
 export type ChangeKind = "time" | "rename" | "role" | "add_person" | "remove_person" | "new_session" | "removed_session";
@@ -46,8 +46,8 @@ export function parseSchedDay(html: string, day: string): SchedSession[] {
     const roles = /<strong>(Moderators?|Speakers?)<\/strong>([\s\S]*?)(?=<strong>|$)/g;
     for (let rm = roles.exec(block); rm; rm = roles.exec(block)) {
       const role = rm[1]!.startsWith("Moderator") ? "Moderator" : "Speaker";
-      const names = /<h2><a [^>]*title="([^"]+)"/g;
-      for (let pm = names.exec(rm[2]!); pm; pm = names.exec(rm[2]!)) people.push({ name: decode(pm[1]!), role });
+      const names = /<h2><a href="([^"]+)"[^>]*title="([^"]+)"/g;
+      for (let pm = names.exec(rm[2]!); pm; pm = names.exec(rm[2]!)) people.push({ name: decode(pm[2]!), role, profileUrl: SCHED_BASE + pm[1]!.replace(/^\//, "") });
     }
     if (title) out.push({ day, start: to24(a ?? ""), end: to24(b ?? ""), title, people });
   }
