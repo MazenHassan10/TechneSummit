@@ -91,19 +91,32 @@ test('PRs cannot do admin actions', () => {
   assert.strictEqual(r.ok, false);
 });
 test('backstage tick auto-fills arrived; log written', () => {
-  const st = clone(SEED), p = st.people[5];
-  const r = Core.apply(st, { type: 'step', pid: p.id, step: 'backstage', value: true }, { name: 'Karim Hamed' }, 1000);
-  assert.ok(r.ok); assert.strictEqual(p.arrived, 1000); assert.strictEqual(p.backstage, 1000); assert.strictEqual(p.updatedBy, 'Karim Hamed');
+  const st = clone(SEED), p = st.people[5], pr = Core.prOf(st, p) || 'Karim Hamed';
+  p.pr = pr;
+  const r = Core.apply(st, { type: 'step', pid: p.id, step: 'backstage', value: true }, { name: pr }, 1000);
+  assert.ok(r.ok); assert.strictEqual(p.arrived, 1000); assert.strictEqual(p.backstage, 1000); assert.strictEqual(p.updatedBy, pr);
   assert.ok(st.log[st.log.length - 1].text.includes(p.name));
+});
+test('PRs cannot change speakers that are not theirs', () => {
+  const st = clone(SEED), p = st.people[5];
+  p.pr = 'Karim Hamed';
+  for (const a of [{ type: 'step', pid: p.id, step: 'called', value: true }, { type: 'phone', pid: p.id, phone: '0100' }, { type: 'noshow', pid: p.id, value: true }, { type: 'eta', pid: p.id, text: '5 min' }]) {
+    const r = Core.apply(st, a as Core.Action, { name: 'Fayrouz Yassin', admin: false }, 1);
+    assert.strictEqual(r.ok, false);
+  }
+  assert.strictEqual(p.called, null); assert.strictEqual(p.noshow, false);
+  assert.ok(Core.apply(st, { type: 'step', pid: p.id, step: 'called', value: true }, { name: 'Leader', admin: true }, 2).ok);
 });
 test('undo a step', () => {
   const st = clone(SEED), p = st.people[5];
+  p.pr = 'x';
   Core.apply(st, { type: 'step', pid: p.id, step: 'called', value: true }, { name: 'x' }, 5);
   Core.apply(st, { type: 'step', pid: p.id, step: 'called', value: false }, { name: 'x' }, 6);
   assert.strictEqual(p.called, null);
 });
 test('no-show creates incident', () => {
   const st = clone(SEED), p = st.people[3];
+  p.pr = 'x';
   Core.apply(st, { type: 'noshow', pid: p.id, value: true }, { name: 'x' }, 5);
   assert.strictEqual(st.incidents.length, 1); assert.strictEqual(st.incidents[0].status, 'open');
 });

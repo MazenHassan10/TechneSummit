@@ -51,6 +51,8 @@ export type Settings = {
   adminPin: string;
   /** Team Leader's phone – shown to every PR for urgent calls / WhatsApp */
   adminPhone?: string;
+  /** escalation chain + other important numbers (JSON) – shown in the Contacts tab */
+  contacts?: string;
   /** last time the official agenda was checked (epoch ms) and any error from that check */
   agendaLastCheck?: number;
   agendaLastError?: string;
@@ -346,7 +348,7 @@ function addLog(state: State, by: string, text: string, now: number) {
   state._newLog = [...(state._newLog || []), e];
 }
 
-const ADMIN_ONLY = new Set(["assign", "autoAssign", "owner", "importPhones", "savePerson", "deletePerson", "saveSession", "deleteSession", "saveMember", "removeMember", "pin", "settings"]);
+const ADMIN_ONLY = new Set(["assign", "phone", "autoAssign", "owner", "importPhones", "savePerson", "deletePerson", "saveSession", "deleteSession", "saveMember", "removeMember", "pin", "settings"]);
 const str = (v: unknown) => (v == null ? "" : String(v));
 const isHHMM = (v: unknown) => /^\d{1,2}:\d{2}$/.test(str(v));
 const pad5 = (v: unknown) => ("0" + str(v)).slice(-5);
@@ -359,6 +361,8 @@ export function apply(state: State, a: Action, actor: Actor, now: number): Apply
   const needP = () => {
     const p = personById(state, str(a.pid));
     if (!p) throw new Error("Speaker not found – refresh.");
+    // PRs only work on their own speakers
+    if (!actor.admin && prOf(state, p) !== by) throw new Error(`${p.name} is not your speaker – ask the Team Leader.`);
     const s = sessionById(state, p.sid);
     if (!s) throw new Error("Session not found – refresh.");
     return { p, s };

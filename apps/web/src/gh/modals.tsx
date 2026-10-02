@@ -79,9 +79,9 @@ function PersonSheet({ pid }: { pid: string }) {
       </SheetHeader>
       <div className={cn("text-sm font-semibold", TONE_TEXT[S.tone])}>{S.label}</div>
       <div className="text-xs text-muted-foreground">Call by {hm(d.callBy)} (day before) · ETA call {hm(d.etaBy)} · arrive {hm(d.arriveBy)} · backstage {hm(d.backstageBy)}</div>
-      <F label="Phone">
+      {me.admin && <F label="Phone">
         <div className="flex gap-2"><Input type="tel"  value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="01…" /><Button onClick={() => void act({ type: "phone", pid, phone }, "Phone saved")}>Save</Button></div>
-      </F>
+      </F>}
       {p.phone && <div className="flex gap-2"><CallLink phone={p.phone} label={`Call ${p.phone}`} /><WhatsAppLink phone={p.phone} label="WhatsApp" /></div>}
       <F label="ETA they gave you">
         <div className="flex gap-2"><Input  value={eta} onChange={(e) => setEta(e.target.value)} placeholder="e.g. 12:20 / 10 min away" /><Button onClick={() => void act({ type: "eta", pid, text: eta }, "ETA saved")}>Save</Button></div>

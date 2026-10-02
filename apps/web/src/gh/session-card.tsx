@@ -77,8 +77,10 @@ export function SessionCard({ s, manage, onlyPr, openDefault }: { s: Session; ma
           ))}
           {others.length > 0 && (
             <><Separator /><div className="flex flex-wrap items-center gap-1.5 px-(--card-spacing) pt-3 text-xs text-muted-foreground">
-              Also on this panel:
-              {others.map((p) => <Badge key={p.id} variant="outline">{p.name} · {shortName(Core.prOf(state, p) || "no PR")}</Badge>)}
+              Also on this panel
+            </div>
+            <div className="grid grid-cols-2 gap-3 px-(--card-spacing) pt-2 sm:grid-cols-3">
+              {others.map((p) => <PanelMate key={p.id} p={p} />)}
             </div></>
           )}
           {!ppl.length && <><Separator /><p className="px-(--card-spacing) pt-3 text-sm text-muted-foreground">No names listed yet.</p></>}
@@ -91,6 +93,21 @@ export function SessionCard({ s, manage, onlyPr, openDefault }: { s: Session; ma
         </CardFooter>
       )}
     </Card>
+  );
+}
+
+/** Someone else's speaker on the same panel – picture, name and their PR only. */
+function PanelMate({ p }: { p: Person }) {
+  const { state } = useApp();
+  const profiles = useProfiles();
+  if (!state) return null;
+  const pr = Core.prOf(state, p);
+  return (
+    <div className="flex flex-col items-center gap-1.5 text-center">
+      <SpeakerAvatar name={p.name} photo={profiles.get(p.name)?.photo} className="size-20" />
+      <div className="text-sm leading-tight font-medium">{p.name}</div>
+      <div className="text-xs leading-tight text-muted-foreground">{p.role !== "Speaker" ? `${p.role} · ` : ""}PR {pr ? shortName(pr) : "–"}</div>
+    </div>
   );
 }
 
@@ -122,11 +139,23 @@ export function PersonRow({ p, s, manage, hidePr }: { p: Person; s: Session; man
   };
   const prName = Core.prOf(state, p);
 
+  if (!me.admin && prName !== me.name) {
+    return (
+      <div className="flex items-center gap-3 px-(--card-spacing) py-3">
+        <SpeakerAvatar name={p.name} photo={profiles.get(p.name)?.photo} className="size-16" />
+        <div className="min-w-0 flex-1">
+          <div className="font-medium">{p.name}{p.role && p.role !== "Speaker" && <span className="text-muted-foreground"> · {p.role}</span>}</div>
+          {!hidePr && <Badge variant="secondary" className="mt-1">PR · {prName || "none yet"}</Badge>}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-2.5 px-(--card-spacing) py-3">
       <div className="flex items-start gap-2.5">
         <div className="relative shrink-0">
-          <SpeakerAvatar name={p.name} photo={profiles.get(p.name)?.photo} className="size-12" />
+          <SpeakerAvatar name={p.name} photo={profiles.get(p.name)?.photo} className="size-16" />
           <span className="absolute -right-0.5 -bottom-0.5 rounded-full ring-2 ring-card"><Dot tone={S.tone} /></span>
         </div>
         <div className="min-w-0 flex-1">
@@ -135,9 +164,9 @@ export function PersonRow({ p, s, manage, hidePr }: { p: Person; s: Session; man
           {hint && <div className="text-xs text-muted-foreground">{hint}</div>}
         </div>
         <div className="flex shrink-0 gap-1.5">
-          {p.phone ? (<><CallLink phone={p.phone} /><WhatsAppLink phone={p.phone} /></>) : (
+          {p.phone ? (<><CallLink phone={p.phone} /><WhatsAppLink phone={p.phone} /></>) : me.admin ? (
             <Button variant="outline" size="sm" onClick={() => modal.open({ kind: "person", pid: p.id })}><Plus /> Phone</Button>
-          )}
+          ) : <span className="self-center text-xs text-muted-foreground">No phone yet</span>}
           <Button variant="ghost" size="icon" onClick={() => modal.open({ kind: "person", pid: p.id })} aria-label="More"><Ellipsis /></Button>
         </div>
       </div>

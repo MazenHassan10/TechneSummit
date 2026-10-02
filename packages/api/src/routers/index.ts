@@ -1,4 +1,4 @@
-import { apply, memberByName, type Actor, type State } from "@great-hall-pr/core";
+import { apply, memberByName, prOf, type Actor, type State } from "@great-hall-pr/core";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
@@ -25,6 +25,8 @@ function publicState(state: StoredState, actor: Actor) {
   if (!actor.admin) {
     out.settings.adminPin = "";
     for (const m of out.team) m.pin = "";
+    // phone numbers only for the PR's own speakers
+    for (const p of out.people) if (prOf(out, p) !== actor.name) p.phone = "";
   }
   return out;
 }

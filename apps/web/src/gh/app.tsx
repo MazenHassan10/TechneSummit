@@ -7,7 +7,7 @@ import { Label } from "@great-hall-pr/ui/components/label";
 import { cn } from "@great-hall-pr/ui/lib/utils";
 import { Badge } from "@great-hall-pr/ui/components/badge";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarClock, CalendarDays, ClipboardList, Contact, Landmark, MoreHorizontal, Radio, Star, TriangleAlert, Users } from "lucide-react";
+import { BookUser, CalendarClock, CalendarDays, ClipboardList, Contact, Landmark, MoreHorizontal, Radio, Star, TriangleAlert, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { trpc } from "@/utils/trpc";
@@ -16,6 +16,7 @@ import { hm } from "./format";
 import { AgendaView } from "./agenda";
 import { AgendaWatchBanner } from "./agenda-watch";
 import { ConfirmHost } from "./confirm";
+import { ContactsView } from "./contacts";
 import { Modals } from "./modals";
 import { AppProvider, useApp, useTick } from "./store";
 import { ModalCtx, type ModalSpec } from "./ui";
@@ -116,6 +117,7 @@ const PR_TABS: Tab[] = [
   { key: "hall", label: "Great Hall", icon: Landmark, view: HallView },
   { key: "team", label: "Team", icon: CalendarClock, view: TeamBoardView },
   { key: "report", label: "Report", icon: TriangleAlert, view: ReportView },
+  { key: "contacts", label: "Contacts", icon: BookUser, view: ContactsView },
 ];
 const ADMIN_TABS: Tab[] = [
   { key: "live", label: "Live", icon: Radio, view: LiveView },
@@ -123,6 +125,7 @@ const ADMIN_TABS: Tab[] = [
   { key: "sessions", label: "Sessions", icon: ClipboardList, view: SessionsView },
   { key: "team", label: "Team", icon: Users, view: TeamAdminView },
   { key: "phones", label: "Phones", icon: Contact, view: PhonesView },
+  { key: "contacts", label: "Contacts", icon: BookUser, view: ContactsView },
   { key: "issues", label: "Issues", icon: TriangleAlert, view: IssuesView },
   { key: "log", label: "Log", icon: ClipboardList, view: LogView },
 ];
