@@ -210,3 +210,25 @@ test('PRs cannot add members or sessions', () => {
   assert.strictEqual(Core.apply(st, { type: 'saveSession', title: 'Z', startHHMM: '10:00', endHHMM: '11:00' }, pr, 0).ok, false);
 });
 
+test('clear all PRs, pick some by hand, fill the rest fairly', () => {
+  const st = clone(SEED); Core.autoAssign(st, null, false);
+  const day = st.sessions[0].day;
+  const r = Core.apply(st, { type: 'clearPrs', day }, { name: 'TL', admin: true }, 0);
+  assert.ok(r.ok);
+  const dayPeople = st.people.filter((p) => Core.sessionById(st, p.sid).day === day);
+  assert.ok(dayPeople.every((p) => !Core.prOf(st, p)));
+  assert.ok(st.people.some((p) => Core.sessionById(st, p.sid).day !== day && p.pr), 'other day untouched');
+  // three requests picked by hand
+  const picks = [[dayPeople[0], 'Fayrouz Yassin'], [dayPeople[8], 'Fayrouz Yassin'], [dayPeople[15], 'Karim Hamed']];
+  for (const [p, n] of picks) Core.apply(st, { type: 'assign', pid: p.id, pr: n }, { name: 'TL', admin: true }, 0);
+  Core.apply(st, { type: 'autoAssign', day, onlyUnassigned: true }, { name: 'TL', admin: true }, 0);
+  for (const [p, n] of picks) assert.strictEqual(p.pr, n);
+  assert.ok(dayPeople.every((p) => p.pr));
+  assert.ok(dayPeople.every((p) => Core.personRota(st, p) === 'OK'), 'never two on one panel');
+  const load = {}; dayPeople.forEach((p) => { load[p.pr] = (load[p.pr] || 0) + 1; });
+  const v = Object.values(load); assert.ok(Math.max(...v) - Math.min(...v) <= 1, JSON.stringify(load));
+});
+test('PRs cannot clear PRs', () => {
+  const st = clone(SEED);
+  assert.strictEqual(Core.apply(st, { type: 'clearPrs', day: null }, { name: 'Karim Hamed', admin: false }, 0).ok, false);
+});

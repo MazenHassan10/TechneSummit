@@ -14,7 +14,7 @@ import { Tabs, TabsList, TabsTrigger } from "@great-hall-pr/ui/components/tabs";
 import { Textarea } from "@great-hall-pr/ui/components/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@great-hall-pr/ui/components/toggle-group";
 import { cn } from "@great-hall-pr/ui/lib/utils";
-import { Ellipsis, Pencil, Plus, Repeat, Send, ShieldUser, UserPlus } from "lucide-react";
+import { Ellipsis, Eraser, Pencil, Plus, Repeat, Send, ShieldUser, UserPlus } from "lucide-react";
 import { Fragment, useState } from "react";
 import { toast } from "sonner";
 
@@ -388,12 +388,13 @@ export function SessionsView() {
       <Card className="mb-3">
         <CardHeader>
           <CardTitle>Sessions</CardTitle>
-          <CardDescription>Each speaker has their own PR, given out in rotation. Open a session to change a PR with the menu under the speaker.</CardDescription>
+          <CardDescription>Each speaker has their own PR. Open a session to change a PR with the menu under the speaker. “Clear PRs” → pick requests by hand → “Fill the rest”.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex flex-wrap gap-2">
             <Button onClick={() => modal.open({ kind: "sessionEdit" })}><Plus /> New session</Button>
-            <Button variant="outline" onClick={() => modal.open({ kind: "autoAssign" })}><Repeat /> Assign in rotation</Button>
+            <Button variant="outline" onClick={() => modal.open({ kind: "autoAssign" })}><Repeat /> Assign PRs</Button>
+            <Button variant="outline" className="text-destructive" onClick={() => modal.open({ kind: "autoAssign" })}><Eraser /> Clear PRs</Button>
           </div>
           <CheckStatus />
         </CardContent>
@@ -418,6 +419,23 @@ export function TeamAdminView() {
         </CardHeader>
         <CardContent className="space-y-3">
           <Button onClick={() => modal.open({ kind: "member" })}><UserPlus /> Add member</Button>
+          <div className="divide-y md:hidden">
+            {state.team.map((m, idx) => {
+              const mp = state.people.filter((p) => Core.sessionById(state, p.sid)?.day === day && Core.prOf(state, p) === m.name);
+              const clash = mp.some((p) => Core.personRota(state, p) === "SAME_PANEL");
+              return (
+                <div key={m.name} className="flex items-center gap-3 py-3">
+                  <span className="w-5 shrink-0 text-sm text-muted-foreground tabular-nums">{idx + 1}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-1.5 font-medium">{m.name}{m.guest && <Badge variant="outline">Guest</Badge>}{clash && <Badge variant="destructive">2 on a panel</Badge>}</div>
+                    <div className="text-xs text-muted-foreground tabular-nums">{m.phone || "No phone"} · {mp.length} speaker{mp.length === 1 ? "" : "s"} · PIN <code className="rounded bg-muted px-1">{m.pin}</code></div>
+                  </div>
+                  <Button variant="outline" size="icon" onClick={() => modal.open({ kind: "member", name: m.name })} aria-label={`Edit ${m.name}`}><Pencil /></Button>
+                </div>
+              );
+            })}
+          </div>
+          <div className="hidden md:block">
           <Table>
             <TableHeader>
               <TableRow><TableHead>Order</TableHead><TableHead>Name</TableHead><TableHead>Phone</TableHead><TableHead>Speakers</TableHead><TableHead>PIN</TableHead><TableHead /></TableRow>
@@ -439,6 +457,7 @@ export function TeamAdminView() {
               })}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
     </>
@@ -511,10 +530,14 @@ export function PhonesView() {
             const s = Core.sessionById(state, p.sid)!;
             return (
               <Fragment key={p.id}>
-                <Time t={s.start} />
-                <div className="min-w-0 flex-1"><div className="font-medium">{p.name}</div><div className="truncate text-xs text-muted-foreground">{s.title} · PR {Core.prOf(state, p) || "–"}</div></div>
-                <Input type="tel" placeholder="01…" className="w-36" value={inline[p.id] ?? ""} onChange={(e) => setInline({ ...inline, [p.id]: e.target.value })} />
-                <Button onClick={() => { if (inline[p.id]) void act({ type: "phone", pid: p.id, phone: inline[p.id] }, "Saved"); }}>Save</Button>
+                <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                  <div className="flex min-w-0 flex-1 items-baseline gap-3"><Time t={s.start} />
+                    <div className="min-w-0 flex-1"><div className="font-medium">{p.name}</div><div className="line-clamp-2 text-xs text-muted-foreground">{s.title} · PR {Core.prOf(state, p) || "–"}</div></div></div>
+                  <div className="flex gap-2 sm:w-auto">
+                    <Input type="tel" inputMode="tel" placeholder="01…" className="min-w-0 flex-1 sm:w-36 sm:flex-none" value={inline[p.id] ?? ""} onChange={(e) => setInline({ ...inline, [p.id]: e.target.value })} />
+                    <Button onClick={() => { if (inline[p.id]) void act({ type: "phone", pid: p.id, phone: inline[p.id] }, "Saved"); }}>Save</Button>
+                  </div>
+                </div>
               </Fragment>
             );
           })}

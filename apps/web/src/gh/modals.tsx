@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@great-hall-pr/ui/components/sheet";
 import { Textarea } from "@great-hall-pr/ui/components/textarea";
 import { cn } from "@great-hall-pr/ui/lib/utils";
-import { Flag, Pencil, Save, Trash2 } from "lucide-react";
+import { Separator } from "@great-hall-pr/ui/components/separator";
+import { Eraser, Flag, Pencil, Repeat, Save, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -233,8 +234,16 @@ function AutoAssign() {
   const { state, day, act } = useApp();
   const modal = useModal();
   if (!state) return null;
+  const label = dayLabel(state, day);
+  const assigned = state.people.filter((p) => Core.sessionById(state, p.sid)?.day === day && Core.prOf(state, p)).length;
+  const total = state.people.filter((p) => Core.sessionById(state, p.sid)?.day === day).length;
+  const clear = async () => {
+    if (!(await ask({ title: `Clear all PRs on ${label}?`, description: `${assigned} speaker(s) lose their PR. Then pick the special requests by hand and press “Fill the rest”.`, confirmLabel: "Clear all", destructive: true }))) return;
+    const r = await act({ type: "clearPrs", day });
+    if (r.ok) toast.success(`Cleared ${r.result} speaker(s)`);
+  };
   const run = async (all: boolean) => {
-    if (all && !(await ask({ title: `Re-assign all speakers on ${dayLabel(state, day)}?`, description: "Every speaker gets a PR in rotation again – manual changes on this day are replaced.", confirmLabel: "Re-assign", destructive: true }))) return;
+    if (all && !(await ask({ title: `Re-assign all speakers on ${label}?`, description: "Every speaker gets a PR in strict rotation again – choices made by hand on this day are replaced.", confirmLabel: "Re-assign", destructive: true }))) return;
     const r = await act({ type: "autoAssign", day, onlyUnassigned: !all });
     if (r.ok) { toast.success(`${r.result} speaker(s) assigned`); modal.close(); }
   };
@@ -242,12 +251,19 @@ function AutoAssign() {
   return (
     <>
       <DialogHeader>
-        <DialogTitle>Assign PRs in rotation – {dayLabel(state, day)}</DialogTitle>
-        <DialogDescription>Speakers are handed out in agenda order to the team in order (1st member, 2nd, 3rd … then back to the 1st), continuing into the next session. Nobody gets two speakers on the same panel.</DialogDescription>
+        <DialogTitle>Assign PRs – {label}</DialogTitle>
+        <DialogDescription>{assigned} of {total} speakers have a PR.</DialogDescription>
       </DialogHeader>
-      <p className="text-xs text-muted-foreground">Order: {order}</p>
-      <Button size="lg" className="w-full" onClick={() => run(false)}>Fill only speakers without a PR</Button>
-      <Button variant="outline" size="lg" className="w-full" onClick={() => run(true)}>Re-assign the whole day</Button>
+      <ol className="space-y-1.5 text-sm">
+        <li><b>1.</b> Clear all PRs for the day.</li>
+        <li><b>2.</b> Pick the PRs who asked for a specific speaker – open the session and use the PR menu under the speaker.</li>
+        <li><b>3.</b> Fill the rest: your picks stay, nobody gets two speakers on one panel, PRs busy with another speaker at that time are skipped, then the PR with the fewest speakers gets the next one (in team order).</li>
+      </ol>
+      <Button variant="destructive" size="lg" className="w-full" disabled={!assigned} onClick={clear}><Eraser />1. Clear all PRs</Button>
+      <Button size="lg" className="w-full" disabled={assigned === total} onClick={() => run(false)}><Repeat />3. Fill the rest ({total - assigned})</Button>
+      <Separator />
+      <Button variant="outline" size="lg" className="w-full" onClick={() => run(true)}>Re-assign the whole day in strict rotation</Button>
+      <p className="text-xs text-muted-foreground">Team order: {order}</p>
     </>
   );
 }

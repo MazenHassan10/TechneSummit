@@ -243,18 +243,12 @@ export function autoAssign(state: State, day: string | null, onlyUnassigned: boo
   const names = state.team.map((m) => m.name);
   if (!names.length) return 0;
   const sessions = state.sessions.filter((s) => !day || s.day === day).sort((a, b) => a.start - b.start || a.title.localeCompare(b.title));
+  if (onlyUnassigned) return fillUnassigned(state, sessions, names);
   let next = 0;
   let changed = 0;
   for (const s of sessions) {
-    const ppl = peopleOf(state, s.id);
     const used = new Set<string>();
-    if (onlyUnassigned) for (const p of ppl) if (p.pr && names.includes(p.pr)) used.add(p.pr);
-    for (const p of ppl) {
-      if (onlyUnassigned && p.pr && names.includes(p.pr)) {
-        // keep it, and continue the rotation after this member
-        next = (names.indexOf(p.pr) + 1) % names.length;
-        continue;
-      }
+    for (const p of peopleOf(state, s.id)) {
       let pick = names[next % names.length]!;
       // skip members already on this panel (only possible to avoid when the panel is smaller than the team)
       for (let i = 0; i < names.length && used.has(pick); i++) { next++; pick = names[next % names.length]!; }
@@ -265,6 +259,46 @@ export function autoAssign(state: State, day: string | null, onlyUnassigned: boo
     }
   }
   return changed;
+}
+
+/**
+ * Keeps every PR already chosen (e.g. picked by hand) and gives the rest out fairly:
+ * never twice on one panel, avoid PRs busy with another speaker at that time, then the PR with
+ * the fewest speakers so far; ties go round in team order (so an empty day is a plain rotation).
+ */
+function fillUnassigned(state: State, sessions: Session[], names: string[]) {
+  const load = new Map(names.map((n) => [n, 0]));
+  for (const s of sessions) for (const p of peopleOf(state, s.id)) if (p.pr && load.has(p.pr)) load.set(p.pr, load.get(p.pr)! + 1);
+  let next = 0;
+  let changed = 0;
+  for (const s of sessions) {
+    const ppl = peopleOf(state, s.id);
+    const used = new Set(ppl.map((p) => p.pr).filter((n) => load.has(n)));
+    for (const p of ppl) {
+      if (p.pr && load.has(p.pr)) continue;
+      const busy = busyPrsAt(state, s);
+      const order = names.map((_, i) => names[(next + i) % names.length]!);
+      const pool = order.filter((n) => !used.has(n));
+      const free = pool.filter((n) => !busy.has(n));
+      const cands = free.length ? free : pool.length ? pool : order;
+      const pick = cands.reduce((best, n) => (load.get(n)! < load.get(best)! ? n : best), cands[0]!);
+      next = (names.indexOf(pick) + 1) % names.length;
+      used.add(pick); load.set(pick, load.get(pick)! + 1);
+      p.pr = pick; changed++;
+    }
+  }
+  return changed;
+}
+
+/** Removes every PR (speakers and session owners) – before picking by hand and filling the rest. */
+export function clearPrs(state: State, day: string | null) {
+  let n = 0;
+  for (const s of state.sessions) {
+    if (day && s.day !== day) continue;
+    s.owner = "";
+    for (const p of peopleOf(state, s.id)) if (p.pr) { p.pr = ""; n++; }
+  }
+  return n;
 }
 
 // ---------- phones ----------
@@ -348,7 +382,7 @@ function addLog(state: State, by: string, text: string, now: number) {
   state._newLog = [...(state._newLog || []), e];
 }
 
-const ADMIN_ONLY = new Set(["assign", "phone", "autoAssign", "owner", "importPhones", "savePerson", "deletePerson", "saveSession", "deleteSession", "saveMember", "removeMember", "pin", "settings"]);
+const ADMIN_ONLY = new Set(["assign", "phone", "autoAssign", "clearPrs", "owner", "importPhones", "savePerson", "deletePerson", "saveSession", "deleteSession", "saveMember", "removeMember", "pin", "settings"]);
 const str = (v: unknown) => (v == null ? "" : String(v));
 const isHHMM = (v: unknown) => /^\d{1,2}:\d{2}$/.test(str(v));
 const pad5 = (v: unknown) => ("0" + str(v)).slice(-5);
@@ -454,6 +488,12 @@ export function apply(state: State, a: Action, actor: Actor, now: number): Apply
         touch(p); dirty.push("people");
         addLog(state, by, `Assigned ${p.name} (${s.title}): ${was || "–"} → ${p.pr || "–"}`, now);
         return { ok: true, dirty, result: personRota(state, p) };
+      }
+      case "clearPrs": {
+        const n = clearPrs(state, a.day ? str(a.day) : null);
+        dirty.push("people", "sessions");
+        addLog(state, by, `Cleared all PRs${a.day ? " for " + str(a.day) : ""} (${n} speakers)`, now);
+        return { ok: true, dirty, result: n };
       }
       case "autoAssign": {
         const n = autoAssign(state, a.day ? str(a.day) : null, !!a.onlyUnassigned);
