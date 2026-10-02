@@ -309,7 +309,7 @@ export function normName(s: string) {
 }
 
 export function normPhone(s: unknown) {
-  let d = String(s || "").replace(/[^\d+]/g, "");
+  let d = String(s || "").replace(/[^\d+]/g, "").replace(/^00/, "+");
   if (/^\+?20\d{10}$/.test(d)) d = "0" + d.replace(/^\+?20/, "");
   return d;
 }
@@ -532,7 +532,8 @@ export function apply(state: State, a: Action, actor: Actor, now: number): Apply
         if (a.pr && !memberByName(state, str(a.pr))) throw new Error("PR not found");
         if (a.pid) {
           const { p } = needP();
-          p.name = name; p.role = str(a.role) || "Speaker"; p.phone = normPhone(a.phone); p.sid = sid;
+          p.name = name; p.role = str(a.role) || "Speaker"; p.sid = sid;
+          if (a.phone !== undefined) p.phone = normPhone(a.phone);
           if (a.alert !== undefined) p.alert = str(a.alert).slice(0, 300);
           if (a.pr !== undefined) p.pr = str(a.pr);
           touch(p);

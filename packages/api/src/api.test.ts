@@ -83,7 +83,7 @@ t("poll is cheap when nothing changed", async () => {
 t("a PR's tap is saved in Postgres and visible to everyone", async () => {
   const r = await caller(karim).state.get({});
   if (r.unchanged) throw new Error();
-  const p = r.state.people[0]!;
+  const p = r.state.people.find((x) => x.pr === "Karim Hamed")!;
   const res = await caller(karim).state.act({ action: { type: "step", pid: p.id, step: "arrived", value: true } });
   expect(res.ok).toBe(true);
   const fresh = await caller(admin).state.get({});
@@ -98,11 +98,38 @@ t("a PR's tap is saved in Postgres and visible to everyone", async () => {
 t("phone keeps the leading zero", async () => {
   const r = await caller(karim).state.get({});
   if (r.unchanged) throw new Error();
-  const p = r.state.people[1]!;
-  await caller(karim).state.act({ action: { type: "phone", pid: p.id, phone: "+20 100 123 4567" } });
+  const p = r.state.people.find((x) => x.pr === "Karim Hamed")!;
+  // PRs can't change phones any more – only the Team Leader
+  expect((await caller(karim).state.act({ action: { type: "phone", pid: p.id, phone: "0100" } })).ok).toBe(false);
+  await caller(admin).state.act({ action: { type: "phone", pid: p.id, phone: "+20 100 123 4567" } });
   const fresh = await caller(karim).state.get({});
   if (fresh.unchanged) throw new Error();
   expect(fresh.state.people.find((x) => x.id === p.id)!.phone).toBe("01001234567");
+});
+
+t("PR cannot tick another PR's speaker; their screen never gets other speakers' phones", async () => {
+  const r = await caller(karim).state.get({});
+  if (r.unchanged) throw new Error();
+  const other = r.state.people.find((x) => x.pr && x.pr !== "Karim Hamed")!;
+  const res = await caller(karim).state.act({ action: { type: "step", pid: other.id, step: "called", value: true } });
+  expect(res.ok).toBe(false);
+  expect(r.state.people.filter((x) => x.pr !== "Karim Hamed").every((x) => !x.phone && !x.alert)).toBe(true);
+});
+
+t("Team Leader edit and a PR tap on the same speaker at the same moment both survive", async () => {
+  const r = await caller(admin).state.get({});
+  if (r.unchanged) throw new Error();
+  const p = r.state.people.find((x) => x.pr === "Karim Hamed" && !x.arrived)!;
+  await Promise.all([
+    caller(karim).state.act({ action: { type: "step", pid: p.id, step: "arrived", value: true } }),
+    caller(admin).state.act({ action: { type: "savePerson", pid: p.id, sid: p.sid, name: p.name, role: p.role, alert: "test heads-up" } }),
+  ]);
+  const fresh = await caller(admin).state.get({});
+  if (fresh.unchanged) throw new Error();
+  const saved = fresh.state.people.find((x) => x.id === p.id)!;
+  expect(saved.arrived).toBeTruthy();
+  expect(saved.alert).toBe("test heads-up");
+  expect(saved.phone).toBe(p.phone); // phone not sent → kept
 });
 
 t("PR cannot do admin actions", async () => {
@@ -166,7 +193,8 @@ t("two PRs tapping at the same time don't overwrite each other", async () => {
   const seif = (await caller(null).auth.login({ name: "Seif Eldein Mahmoud", pin: pin("Seif Eldein Mahmoud") })).token;
   const r = await caller(admin).state.get({});
   if (r.unchanged) throw new Error();
-  const [a, b] = [r.state.people[20]!, r.state.people[21]!];
+  const a = r.state.people.find((x) => x.pr === "Karim Hamed" && !x.called)!;
+  const b = r.state.people.find((x) => x.pr === "Seif Eldein Mahmoud" && !x.called)!;
   await Promise.all([
     caller(karim).state.act({ action: { type: "step", pid: a.id, step: "called", value: true } }),
     caller(seif).state.act({ action: { type: "step", pid: b.id, step: "called", value: true } }),

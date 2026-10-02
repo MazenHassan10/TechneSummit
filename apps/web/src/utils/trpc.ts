@@ -13,6 +13,15 @@ export const trpcClient = createTRPCClient<AppRouter>({
   links: [
     httpBatchLink({
       url: "/api/trpc",
+      // bad signal in the hall: give up after 12 s so the app shows "offline" instead of hanging
+      // (plain AbortController + timer – works on older iPhones too)
+      fetch: (input, init) => {
+        const ctl = new AbortController();
+        const timer = setTimeout(() => ctl.abort(), 12000);
+        const outer = init?.signal as AbortSignal | undefined | null;
+        if (outer) { if (outer.aborted) ctl.abort(); else outer.addEventListener("abort", () => ctl.abort(), { once: true }); }
+        return fetch(input, { ...init, signal: ctl.signal }).finally(() => clearTimeout(timer));
+      },
       headers() {
         const token = typeof window !== "undefined" ? window.localStorage.getItem(TOKEN_KEY) : null;
         return token ? { "x-gh-token": token } : {};

@@ -75,7 +75,7 @@ function copy(phone: string) {
 
 export function CallLink({ phone, label, title }: { phone: string; label?: string; title?: string }) {
   return (
-    <a href={`tel:${phone}`} onClick={() => copy(phone)} title={title || "Call"}
+    <a href={`tel:${phone.replace(/[^\d+]/g, "")}`} onClick={() => copy(phone)} title={title || "Call"}
       className={buttonVariants({ variant: "outline", size: label ? "default" : "icon" })}>
       <Phone />{label}
     </a>

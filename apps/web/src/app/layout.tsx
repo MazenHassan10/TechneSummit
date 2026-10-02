@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   title: "Great Hall PR – Techne Summit",
   description: "Speaker & VIP tracking for the Great Hall, Techne Summit Alexandria",
   applicationName: "Great Hall PR",
-  appleWebApp: { capable: true, title: "Great Hall PR", statusBarStyle: "black-translucent" },
+  appleWebApp: { capable: true, title: "Great Hall PR", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = { themeColor: "#105ca8", width: "device-width", initialScale: 1, maximumScale: 1 };

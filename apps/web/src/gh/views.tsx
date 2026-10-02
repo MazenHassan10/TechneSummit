@@ -70,7 +70,7 @@ export function myAlertCount(state: Core.State, name: string, t: number) {
   let n = 0;
   for (const s of state.sessions)
     for (const p of Core.peopleOf(state, s.id)) {
-      if (Core.prOf(state, p) !== name) continue;
+      if (s.end <= t || Core.prOf(state, p) !== name) continue;
       const c = Core.personStatus(p, s, state.settings, t);
       if (c === "LATE" || c === "CALLNOW" || c === "TAKE_BACKSTAGE") n++;
     }
@@ -504,7 +504,7 @@ export function PhonesView() {
     if (res.ok) { toast.success(`Saved ${res.result} numbers`); setPreview(null); setText(""); }
   };
   const missing = state.people.filter((p) => { const s = Core.sessionById(state, p.sid); return !p.phone && s?.day === day && s.end > t; })
-    .sort((a, b) => Core.sessionById(state, a.sid)!.start - Core.sessionById(state, b.sid)!.start);
+    .sort((a, b) => (Core.sessionById(state, a.sid)?.start ?? 0) - (Core.sessionById(state, b.sid)?.start ?? 0));
   return (
     <>
       <Card>
@@ -523,7 +523,7 @@ export function PhonesView() {
               <TableHeader><TableRow><TableHead>Pasted name</TableHead><TableHead>Phone</TableHead><TableHead>Matched to</TableHead></TableRow></TableHeader>
               <TableBody>
                 {preview.map((r, i) => {
-                  const items = [{ value: "__none__", label: "Not matched" }, ...sorted.map((p) => { const s = Core.sessionById(state, p.sid)!; return { value: p.id, label: `${p.name} · ${hm(s.start)} ${dayLabel(state, s.day).slice(0, 3)}` }; })];
+                  const items = [{ value: "__none__", label: "Not matched" }, ...sorted.flatMap((p) => { const s = Core.sessionById(state, p.sid); return s ? [{ value: p.id, label: `${p.name} · ${hm(s.start)} ${dayLabel(state, s.day).slice(0, 3)}` }] : []; })];
                   return (
                     <TableRow key={i}>
                       <TableCell>{r.name}</TableCell>

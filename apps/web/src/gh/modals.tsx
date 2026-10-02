@@ -15,7 +15,7 @@ import { Eraser, Flag, Pencil, Repeat, Save, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { hm, hm24 } from "./format";
+import { dayOf, hm, hm24 } from "./format";
 import { useApp } from "./store";
 import { CallLink, TONE_TEXT, useModal, type ModalSpec, WhatsAppLink } from "./ui";
 import { ask } from "./confirm";
@@ -68,8 +68,8 @@ function PersonSheet({ pid }: { pid: string }) {
   const [phone, setPhone] = useState(p?.phone ?? "");
   const [eta, setEta] = useState(p?.eta ?? "");
   const [note, setNote] = useState(p?.notes ?? "");
-  if (!state || !me || !p) return <SheetHeader><SheetTitle>Removed</SheetTitle></SheetHeader>;
-  const s = Core.sessionById(state, p.sid)!;
+  const s = state && p ? Core.sessionById(state, p.sid) : undefined;
+  if (!state || !me || !p || !s) return <SheetHeader><SheetTitle>Removed</SheetTitle></SheetHeader>;
   const S = Core.STATUS[Core.personStatus(p, s, state.settings, now())];
   const d = Core.deadlines(s, state.settings);
   return (
@@ -79,7 +79,7 @@ function PersonSheet({ pid }: { pid: string }) {
         <SheetDescription>{p.role} · {hm(s.start)} {s.title} · PR {Core.prOf(state, p) || "–"}</SheetDescription>
       </SheetHeader>
       <div className={cn("text-sm font-semibold", TONE_TEXT[S.tone])}>{S.label}</div>
-      <div className="text-xs text-muted-foreground">Call by {hm(d.callBy)} (day before) · ETA call {hm(d.etaBy)} · arrive {hm(d.arriveBy)} · backstage {hm(d.backstageBy)}</div>
+      <div className="text-xs text-muted-foreground">Call by {hm(d.callBy)}{dayOf(d.callBy) !== s.day ? " (day before)" : ""} · ETA call {hm(d.etaBy)} · arrive {hm(d.arriveBy)} · backstage {hm(d.backstageBy)}</div>
       {me.admin && <F label="Phone">
         <div className="flex gap-2"><Input type="tel"  value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="01…" /><Button onClick={() => void act({ type: "phone", pid, phone }, "Phone saved")}>Save</Button></div>
       </F>}

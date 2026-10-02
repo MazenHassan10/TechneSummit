@@ -172,10 +172,10 @@ export function diffAgenda(state: State, sched: SchedSession[], opts: { timesOnl
         used.add(hit.id);
         if (normName(hit.name) !== normName(sp.name))
           out.push({ id: `rename|${hit.id}|${normName(sp.name)}`, kind: "rename", summary: `Name spelling in “${o.title}”: ${hit.name} → ${sp.name}`,
-            actions: [{ type: "savePerson", pid: hit.id, sid: o.id, name: sp.name, role: hit.role, phone: hit.phone }] });
+            actions: [{ type: "savePerson", pid: hit.id, sid: o.id, name: sp.name, role: hit.role }] });
         else if (hit.role !== sp.role && (hit.role === "Speaker" || hit.role === "Moderator"))
           out.push({ id: `role|${hit.id}|${sp.role}`, kind: "role", summary: `${hit.name} is now ${sp.role} in “${o.title}”`,
-            actions: [{ type: "savePerson", pid: hit.id, sid: o.id, name: hit.name, role: sp.role, phone: hit.phone }] });
+            actions: [{ type: "savePerson", pid: hit.id, sid: o.id, name: hit.name, role: sp.role }] });
       } else {
         out.push({ id: `add_person|${o.id}|${normName(sp.name)}`, kind: "add_person", summary: `${sp.name} (${sp.role}) added to “${o.title}”`,
           actions: [{ type: "savePerson", sid: o.id, name: sp.name, role: sp.role }], person: sp });

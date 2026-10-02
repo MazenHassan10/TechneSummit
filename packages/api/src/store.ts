@@ -81,7 +81,7 @@ export async function persist(db: Database, before: State, after: State, dirty: 
   for (const name of new Set(dirty)) {
     const { table, key } = TABLES[name];
     const hasSort = name === "team" || name === "people";
-    const prev = new Map((before[name] as unknown as Row[]).map((r, i) => [r[key] as string, { json: JSON.stringify(r), idx: i }]));
+    const prev = new Map((before[name] as unknown as Row[]).map((r, i) => [r[key] as string, { row: r, json: JSON.stringify(r), idx: i }]));
     const rows = after[name] as unknown as Row[];
     // biome-ignore lint/suspicious/noExplicitAny: dynamic key column
     const col = (table as any)[key];
@@ -92,7 +92,12 @@ export async function persist(db: Database, before: State, after: State, dirty: 
       const row = hasSort ? { ...r, sort: idx } : r;
       const old = prev.get(k);
       if (!old) queries.push(db.insert(table).values(row as never));
-      else if (old.json !== JSON.stringify(r) || (hasSort && old.idx !== idx)) queries.push(db.update(table).set(row as never).where(eq(col, k)));
+      else if (old.json !== JSON.stringify(r) || (hasSort && old.idx !== idx)) {
+        // only the fields that changed – so two people saving the same row at once don't undo each other
+        const set: Row = {};
+        for (const f of Object.keys(row)) if (JSON.stringify(row[f]) !== JSON.stringify((f === "sort" ? old.idx : old.row[f]))) set[f] = row[f];
+        if (Object.keys(set).length) queries.push(db.update(table).set(set as never).where(eq(col, k)));
+      }
     });
     const gone = [...prev.keys()].filter((k) => !seen.has(k));
     if (gone.length) queries.push(db.delete(table).where(inArray(col, gone)));

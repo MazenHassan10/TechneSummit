@@ -17,7 +17,11 @@ type Level = { title: string; note?: string; people: Contact[] };
 type Contacts = { chain: Level[]; other: Level[] };
 
 function parse(raw?: string): Contacts {
-  try { const c = JSON.parse(raw || "") as Partial<Contacts>; return { chain: c.chain ?? [], other: c.other ?? [] }; }
+  try {
+    const c = JSON.parse(raw || "") as Partial<Contacts>;
+    const ok = (ls: unknown) => (Array.isArray(ls) ? ls : []).filter((l): l is Level => !!l && typeof l === "object").map((l) => ({ ...l, title: String(l.title ?? ""), people: (Array.isArray(l.people) ? l.people : []).filter((x) => x && x.phone) }));
+    return { chain: ok(c.chain), other: ok(c.other) };
+  }
   catch { return { chain: [], other: [] }; }
 }
 

@@ -15,6 +15,7 @@ import { trpc } from "@/utils/trpc";
 import { hm } from "./format";
 import { AgendaView } from "./agenda";
 import { AgendaWatchBanner } from "./agenda-watch";
+import { ScreenBoundary } from "./boundary";
 import { ConfirmHost } from "./confirm";
 import { ContactsView } from "./contacts";
 import { Modals } from "./modals";
@@ -173,8 +174,8 @@ function Shell() {
             })}
           </nav>
           <main className="mx-auto max-w-6xl px-3 pt-3 pb-28 md:pr-4 md:pb-10 md:pl-28">
-            <AgendaWatchBanner />
-            <View />
+            <ScreenBoundary key={`banner`}><AgendaWatchBanner /></ScreenBoundary>
+            <ScreenBoundary key={tab}><View /></ScreenBoundary>
           </main>
         </div>
       )}

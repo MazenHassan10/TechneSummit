@@ -33,6 +33,9 @@ export const useApp = () => {
 };
 
 const ME_KEY = "gh_me";
+// structuredClone is missing on older iPhones (< iOS 15.4)
+const clone = <T,>(x: T): T => (typeof structuredClone === "function" ? structuredClone(x) : JSON.parse(JSON.stringify(x)));
+const STATE_KEY = "gh_state"; // last good copy, so the app still opens without signal
 const isExpired = (e: unknown) => String((e as Error)?.message || e).includes("SESSION_EXPIRED");
 
 /** System notification (works while the app is open or in a background tab, once allowed in the menu). */
@@ -69,15 +72,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const now = useCallback(() => Date.now() + skew.current, []);
 
-  // restore session
+  const autoDay = useRef("");
+
+  // restore session (+ last saved copy of the event, shown until the first poll answers)
   useEffect(() => {
-    const raw = localStorage.getItem(ME_KEY);
-    if (raw && localStorage.getItem(TOKEN_KEY)) setMe(JSON.parse(raw));
+    try {
+      const raw = localStorage.getItem(ME_KEY);
+      if (!raw || !localStorage.getItem(TOKEN_KEY)) return;
+      const who = JSON.parse(raw) as Actor;
+      setMe(who);
+      const cached = JSON.parse(localStorage.getItem(STATE_KEY) || "null") as { who: string; state: State } | null;
+      if (cached?.who === who.name && cached.state) setState(cached.state);
+    } catch {}
   }, []);
 
   const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(ME_KEY);
+    localStorage.removeItem(STATE_KEY);
     version.current = 0;
     seenIncidents.current = null;
     seenLate.current = null;
@@ -90,13 +102,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     skew.current = res.serverNow - Date.now();
     if (res.me) { setMe(res.me); localStorage.setItem(ME_KEY, JSON.stringify(res.me)); }
     if (res.unchanged || !res.state) return;
+    // a slow, older poll must not undo a newer tap
+    if (res.version < version.current) return;
     version.current = res.version;
     setState(res.state);
-    setDay((d) => {
-      if (d) return d;
-      const today = dayOf(Date.now() + skew.current);
-      return today === res.state!.settings.day2 ? res.state!.settings.day2 : res.state!.settings.day1;
-    });
+    try { localStorage.setItem(STATE_KEY, JSON.stringify({ who: meRef.current?.name ?? res.me?.name, state: res.state })); } catch {}
+    // pick today's tab on start, and again when the date changes (app left open overnight)
+    const today = dayOf(Date.now() + skew.current);
+    if (autoDay.current !== today) {
+      autoDay.current = today;
+      setDay(today === res.state.settings.day2 ? res.state.settings.day2 : res.state.settings.day1);
+    }
   }, []);
 
   const checkAlerts = useCallback((st: State, who: Actor) => {
@@ -111,6 +127,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const late: string[] = [];
     for (const s of st.sessions)
       for (const p of Core.peopleOf(st, s.id)) {
+        if (s.end <= t) continue; // finished sessions never need action
         if (!who.admin && Core.prOf(st, p) !== who.name) continue;
         const c = Core.personStatus(p, s, st.settings, t);
         if (c === "LATE" || c === "CALLNOW" || c === "TAKE_BACKSTAGE") late.push(p.id + c);
@@ -159,7 +176,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const vis = () => { if (!document.hidden) poll(); };
     document.addEventListener("visibilitychange", vis);
     return () => { clearInterval(id); document.removeEventListener("visibilitychange", vis); };
-  }, [me, poll]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [me?.name, me?.admin, poll]);
 
   const login = useCallback(async (name: string, pin: string) => {
     const r = await trpcClient.auth.login.mutate({ name, pin });
@@ -174,8 +192,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const who = meRef.current;
     if (!cur || !who) return { ok: false };
     // optimistic: apply the same rules locally so the tap feels instant; roll back if the server disagrees
-    const local = structuredClone(cur);
-    const pre = Core.apply(local, structuredClone(action), who, Date.now() + skew.current);
+    const local = clone(cur);
+    const pre = Core.apply(local, clone(action), who, Date.now() + skew.current);
     if (!pre.ok) { toast.error(pre.error); return pre; }
     delete local._newLog;
     setState(local);
@@ -183,18 +201,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try {
       const res = await trpcClient.state.act.mutate({ action });
       setOnline(true);
-      if (!res.ok) { setState(cur); toast.error(res.error); return res; }
+      if (!res.ok) { setState(cur); toast.error(res.error); version.current = 0; void poll(); return res; }
       accept({ ...res, me: undefined });
       if (okMsg) toast.success(okMsg);
       return { ok: true, result: res.result };
     } catch (e) {
       setState(cur);
-      if (isExpired(e)) { logout(); toast.error("Please log in again"); } else { setOnline(false); toast.error("Connection problem – try again"); }
+      version.current = 0;
+      if (isExpired(e)) { logout(); toast.error("Please log in again"); } else { setOnline(false); toast.error("Connection problem – not saved, try again"); }
       return { ok: false };
     } finally {
       setBusy((b) => b - 1);
     }
-  }, [accept, logout]);
+  }, [accept, logout, poll]);
 
   const refresh = useCallback(() => { version.current = 0; poll(); }, [poll]);
 
