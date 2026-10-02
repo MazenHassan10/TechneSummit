@@ -15,6 +15,7 @@ import { trpc } from "@/utils/trpc";
 import { hm } from "./format";
 import { AgendaView } from "./agenda";
 import { AgendaWatchBanner } from "./agenda-watch";
+import { ConfirmHost } from "./confirm";
 import { Modals } from "./modals";
 import { AppProvider, useApp, useTick } from "./store";
 import { ModalCtx, type ModalSpec } from "./ui";
@@ -36,6 +37,7 @@ function Root() {
     <ModalCtx.Provider value={{ open: setModal, close: () => setModal(null) }}>
       {state ? <Shell /> : <div className="grid h-svh place-items-center text-muted-foreground">Loading Great Hall…</div>}
       <Modals spec={modal} />
+      <ConfirmHost />
     </ModalCtx.Provider>
   );
 }

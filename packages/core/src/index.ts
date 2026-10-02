@@ -63,8 +63,11 @@ export type AgendaChange = {
   id: string; kind: string; summary: string; warning: string; detectedAt: number;
   /** the affected session in our agenda (for showing day / time / stage next to the change) */
   sid?: string;
-  /** for a brand-new session: its official day and times */
-  newSession?: { day: string; start: string; end: string; title: string };
+  /** for a brand-new session: its official day, times and people */
+  newSession?: { day: string; start: string; end: string; title: string; people?: { name: string; role: string }[] };
+  /** add_person: who is added (official title/photo when known); remove_person: our person id */
+  person?: { name: string; role: string; photo?: string; position?: string; company?: string };
+  pid?: string;
 };
 export type Member = { name: string; fullName: string; phone: string; pin: string; lunch1: string; lunch2: string; guest: boolean };
 export type Session = { id: string; day: string; start: number; end: number; title: string; type: string; owner: string; notes: string };
@@ -602,4 +605,36 @@ export function counts(state: State, day: string | null, now: number) {
     for (const p of peopleOf(state, s.id)) { c[personStatus(p, s, state.settings, now)]++; total++; }
   }
   return { ...c, total };
+}
+
+// ---------- PR suggestions for official-agenda changes (the Team Leader decides) ----------
+export type PrSuggestion = { name: string; reason: string };
+
+const overlaps = (a: [number, number], b: [number, number]) => a[0] < b[1] && b[0] < a[1];
+
+/** PRs busy (with a speaker) during this session's window, excluding the session itself. */
+export function busyPrsAt(state: State, s: Session) {
+  const w = busyWindow(s, state.settings);
+  const out = new Map<string, string>(); // pr -> title of the other session
+  for (const o of state.sessions) {
+    if (o.id === s.id || o.day !== s.day || !overlaps(w, busyWindow(o, state.settings))) continue;
+    for (const p of peopleOf(state, o.id)) { const n = prOf(state, p); if (n && !out.has(n)) out.set(n, o.title); }
+  }
+  return out;
+}
+
+/** Best PR for a new speaker on this panel: not already on the panel, free at that time, lightest load that day. */
+export function suggestPr(state: State, s: Session, exclude: string[] = []): PrSuggestion | null {
+  const onPanel = new Set(peopleOf(state, s.id).map((p) => prOf(state, p)).filter(Boolean));
+  const busy = busyPrsAt(state, s);
+  const load = (n: string) => state.people.filter((p) => sessionById(state, p.sid)?.day === s.day && prOf(state, p) === n).length;
+  const cands = state.team.map((m) => m.name).filter((n) => !onPanel.has(n) && !exclude.includes(n));
+  const free = cands.filter((n) => !busy.has(n));
+  const pool = free.length ? free : cands;
+  const pick = [...pool].sort((a, b) => load(a) - load(b))[0];
+  if (!pick) return null;
+  const reason = free.length
+    ? `not on this panel, free at this time, ${load(pick)} speaker${load(pick) === 1 ? "" : "s"} that day`
+    : `not on this panel (everyone is busy at this time – ${pick} also has “${busy.get(pick)}”)`;
+  return { name: pick, reason };
 }

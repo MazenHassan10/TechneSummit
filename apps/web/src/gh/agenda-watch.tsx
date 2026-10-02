@@ -5,7 +5,9 @@ import { Badge } from "@great-hall-pr/ui/components/badge";
 import { Button } from "@great-hall-pr/ui/components/button";
 import { DialogDescription, DialogHeader, DialogTitle } from "@great-hall-pr/ui/components/dialog";
 import { Separator } from "@great-hall-pr/ui/components/separator";
-import { BellRing, CalendarDays, Check, Clock, MapPin, RefreshCw, X } from "lucide-react";
+import { BellRing, CalendarDays, Check, Clock, MapPin, RefreshCw, UserCog, X } from "lucide-react";
+import * as Core from "@great-hall-pr/core";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@great-hall-pr/ui/components/select";
 import type { AgendaChange, State } from "@great-hall-pr/core";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -14,6 +16,8 @@ import { trpcClient } from "@/utils/trpc";
 
 import { hm } from "./format";
 import { useApp } from "./store";
+import { SpeakerAvatar, useProfiles } from "./agenda";
+import { ask } from "./confirm";
 import { CallLink, useModal } from "./ui";
 
 const KIND_LABEL: Record<string, string> = {
@@ -73,53 +77,132 @@ export function AgendaWatchBanner() {
   );
 }
 
-/** Team Leader: approve / reject each change, approve all, check now. */
+type Advice = { lines: string[]; picks: { key: string; label: string; suggestion: Core.PrSuggestion | null }[] };
+
+/** PR suggestion for every kind of change – the Team Leader decides. */
+function prAdvice(state: State, c: AgendaChange, pending: AgendaChange[]): Advice {
+  const s = c.sid ? Core.sessionById(state, c.sid) : null;
+  const prsOn = s ? [...new Set(Core.peopleOf(state, s.id).map((p) => Core.prOf(state, p)).filter(Boolean))] : [];
+  if (c.kind === "add_person" && s) {
+    const out = pending.find((x) => x.kind === "remove_person" && x.sid === c.sid);
+    const gone = out?.pid ? Core.personById(state, out.pid) : null;
+    const goneTo = gone ? Core.prOf(state, gone) : "";
+    if (gone && goneTo) {
+      return { lines: [`Replaces ${gone.name} on this panel – suggested to keep their PR.`], picks: [{ key: c.id, label: c.person?.name ?? "New speaker", suggestion: { name: goneTo, reason: `was ${gone.name}'s PR on this panel` } }] };
+    }
+    return { lines: ["Brand-new addition to this panel."], picks: [{ key: c.id, label: c.person?.name ?? "New speaker", suggestion: Core.suggestPr(state, s) }] };
+  }
+  if (c.kind === "remove_person") {
+    const p = c.pid ? Core.personById(state, c.pid) : null;
+    const pr = p ? Core.prOf(state, p) : "";
+    const inn = pending.find((x) => x.kind === "add_person" && x.sid === c.sid);
+    if (inn) return { lines: [`Replaced by ${inn.person?.name ?? "a new speaker"}${pr ? ` – suggested to give ${pr} to them` : ""}.`], picks: [] };
+    return { lines: [pr ? `${pr} (${p?.name}'s PR) becomes free for this slot.` : "This speaker had no PR."], picks: [] };
+  }
+  if (c.kind === "new_session" && c.newSession) {
+    const ns = c.newSession;
+    const fake: Core.Session = { id: `new:${c.id}`, day: ns.day, start: Core.dayStart(ns.day, ns.start, state.settings.tz), end: Core.dayStart(ns.day, ns.end, state.settings.tz), title: ns.title, type: "Panel", owner: "", notes: "" };
+    const used: string[] = [];
+    const picks = (ns.people ?? []).map((p) => {
+      const sug = Core.suggestPr(state, fake, used);
+      if (sug) used.push(sug.name);
+      return { key: `${c.id}|${Core.normName(p.name)}`, label: `${p.name} (${p.role})`, suggestion: sug };
+    });
+    return { lines: [picks.length ? "Suggested PR for each speaker:" : "No speakers listed yet – add PRs when names are announced."], picks };
+  }
+  if (c.kind === "time") return { lines: [prsOn.length ? `PRs on this panel: ${prsOn.join(", ")} – make sure they know the new time.` : "No PRs assigned yet."], picks: [] };
+  if (c.kind === "removed_session") return { lines: [prsOn.length ? `Frees: ${prsOn.join(", ")}.` : "No PRs were assigned."], picks: [] };
+  if ((c.kind === "rename" || c.kind === "role") && c.pid) {
+    const p = Core.personById(state, c.pid);
+    const pr = p ? Core.prOf(state, p) : "";
+    return { lines: [pr ? `PR stays: ${pr}.` : "No PR yet."], picks: [] };
+  }
+  return { lines: [], picks: [] };
+}
+
+const NONE = "__none__";
+
+/** Team Leader: approve / reject each change (with PR suggestions), approve all, check now. */
 export function AgendaChangesDialog() {
   const { state, refresh } = useApp();
   const modal = useModal();
+  const profiles = useProfiles();
   const [busy, setBusy] = useState<string | null>(null);
+  const [choice, setChoice] = useState<Record<string, string>>({});
   if (!state) return null;
   const pending = state.agendaChanges ?? [];
-  const decide = async (id: string, approve: boolean) => {
-    setBusy(id);
+  const advice = new Map(pending.map((c) => [c.id, prAdvice(state, c, pending)]));
+  const chosen = (key: string, sug: Core.PrSuggestion | null) => (key in choice ? choice[key]! : sug?.name ?? "");
+  const prsFor = (ids: string[]) => {
+    const out: Record<string, string> = {};
+    for (const id of ids) for (const pk of advice.get(id)?.picks ?? []) out[pk.key] = chosen(pk.key, pk.suggestion);
+    return out;
+  };
+  const decide = async (ids: string[], approve: boolean) => {
+    setBusy(ids.length > 1 ? "all" : ids[0]!);
     try {
-      const r = await trpcClient.agenda.decide.mutate({ ids: [id], approve });
-      if (!r.ok) toast.error(r.error ?? "Could not apply"); else toast.success(approve ? "Applied to the agenda" : "Rejected");
+      const r = await trpcClient.agenda.decide.mutate({ ids, approve, prs: approve ? prsFor(ids) : undefined });
+      if (r.applied) toast.success(ids.length > 1 ? `${r.applied} change(s) applied` : "Applied to the agenda");
+      else if (r.ok) toast.success(approve ? "Applied to the agenda" : "Rejected");
+      if (!r.ok) toast.error(r.error ?? "Could not apply");
+      else if (ids.length > 1) modal.close();
     } catch (e) { toast.error((e as Error).message); }
     setBusy(null); refresh();
   };
   const approveAll = async () => {
-    if (!confirm(`Apply all ${pending.length} changes to the agenda?`)) return;
-    setBusy("all");
-    try {
-      const r = await trpcClient.agenda.decide.mutate({ ids: pending.map((c) => c.id), approve: true });
-      if (r.applied) toast.success(`${r.applied} change(s) applied`);
-      if (!r.ok) toast.error(r.error ?? "Some changes could not be applied");
-      else modal.close();
-    } catch (e) { toast.error((e as Error).message); }
-    setBusy(null); refresh();
+    if (!(await ask({ title: `Apply all ${pending.length} changes?`, description: "Each new speaker gets the PR shown on their card.", confirmLabel: "Apply all" }))) return;
+    await decide(pending.map((c) => c.id), true);
   };
+  const items = [{ value: NONE, label: "No PR yet" }, ...state.team.map((m) => ({ value: m.name, label: m.name }))];
   return (
     <>
       <DialogHeader>
         <DialogTitle>Official agenda changes</DialogTitle>
-        <DialogDescription>Found on technesummit2026.sched.com. Nothing changes until you approve. New speakers get a PR from the rotation.</DialogDescription>
+        <DialogDescription>Found on technesummit2026.sched.com. Nothing changes until you approve. Suggested PRs are pre-selected – change them if you like.</DialogDescription>
       </DialogHeader>
       <CheckStatus />
       {pending.length === 0 && <p className="py-4 text-center text-sm text-muted-foreground">No pending changes – the app matches the official agenda.</p>}
       <div className="space-y-2">
-        {pending.map((c) => (
-          <div key={c.id} className="space-y-2 rounded-lg border p-3">
-            <div className="flex items-center gap-2"><Badge variant="secondary">{KIND_LABEL[c.kind] ?? c.kind}</Badge><span className="text-xs text-muted-foreground">found {hm(c.detectedAt)}</span></div>
-            <p className="text-sm">{c.summary}</p>
-            <ChangeWhere change={c} />
-            {c.warning && <p className="text-xs font-medium text-destructive">{c.warning}</p>}
-            <div className="flex gap-2">
-              <Button size="sm" disabled={!!busy} onClick={() => decide(c.id, true)}><Check />Approve</Button>
-              <Button size="sm" variant="outline" disabled={!!busy} onClick={() => decide(c.id, false)}><X />Reject</Button>
+        {pending.map((c) => {
+          const adv = advice.get(c.id)!;
+          const removed = c.pid ? Core.personById(state, c.pid) : null;
+          const who = c.person ?? (removed ? { name: removed.name, role: removed.role, photo: profiles.get(removed.name)?.photo, position: profiles.get(removed.name)?.position, company: profiles.get(removed.name)?.company } : null);
+          return (
+            <div key={c.id} className="space-y-2.5 rounded-lg border p-3">
+              <div className="flex items-center gap-2"><Badge variant="secondary">{KIND_LABEL[c.kind] ?? c.kind}</Badge><span className="text-xs text-muted-foreground">found {hm(c.detectedAt)}</span></div>
+              {who && (
+                <div className="flex items-center gap-3">
+                  <SpeakerAvatar name={who.name} photo={who.photo || profiles.get(who.name)?.photo} className="size-12" />
+                  <div className="min-w-0 text-sm leading-tight"><div className="font-medium">{who.name} <span className="font-normal text-muted-foreground">· {who.role}</span></div>
+                    {(who.position || who.company) && <div className="text-xs text-muted-foreground">{[who.position, who.company].filter(Boolean).join(", ")}</div>}</div>
+                </div>
+              )}
+              <p className="text-sm">{c.summary}</p>
+              <ChangeWhere change={c} />
+              {c.warning && <p className="text-xs font-medium text-destructive">{c.warning}</p>}
+              {(adv.lines.length > 0 || adv.picks.length > 0) && (
+                <div className="space-y-2 rounded-md bg-muted/60 p-2.5">
+                  {adv.lines.map((l) => <p key={l} className="flex gap-1.5 text-xs"><UserCog className="mt-px size-3.5 shrink-0 text-primary" />{l}</p>)}
+                  {adv.picks.map((pk) => (
+                    <div key={pk.key} className="space-y-1">
+                      <div className="flex flex-wrap items-center gap-2 text-xs"><span className="font-medium">PR for {pk.label}</span>
+                        <Select value={chosen(pk.key, pk.suggestion) || NONE} items={items} onValueChange={(v) => setChoice({ ...choice, [pk.key]: !v || v === NONE ? "" : String(v) })}>
+                          <SelectTrigger size="sm" className="min-w-44 bg-background"><SelectValue /></SelectTrigger>
+                          <SelectContent>{items.map((it) => <SelectItem key={it.value} value={it.value}>{it.label}</SelectItem>)}</SelectContent>
+                        </Select>
+                      </div>
+                      {pk.suggestion && <p className="text-[11px] text-muted-foreground">Suggested {pk.suggestion.name}: {pk.suggestion.reason}</p>}
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="flex gap-2">
+                <Button size="sm" disabled={!!busy} onClick={() => decide([c.id], true)}><Check />Approve</Button>
+                <Button size="sm" variant="outline" disabled={!!busy} onClick={() => decide([c.id], false)}><X />Reject</Button>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
       {pending.length > 1 && (<><Separator /><Button size="lg" className="w-full" disabled={!!busy} onClick={approveAll}>Approve all {pending.length}</Button></>)}
     </>

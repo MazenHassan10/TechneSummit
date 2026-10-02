@@ -12,6 +12,7 @@ import { Check, ChevronDown, Ellipsis, Pencil, Plus } from "lucide-react";
 import { useState } from "react";
 
 import { dayOf, dur, hm, shortName } from "./format";
+import { ask } from "./confirm";
 import { useApp } from "./store";
 import { SpeakerAvatar, useProfiles } from "./agenda";
 import { CallLink, Dot, PrPicker, RotaBadge, TONE_TEXT, useModal, WhatsAppLink } from "./ui";
@@ -115,8 +116,8 @@ export function PersonRow({ p, s, manage, hidePr }: { p: Person; s: Session; man
   else if (code === "DONE") hint = `On stage ${hm(p.onstage)}`;
   if (p.notes) hint += ` · ${p.notes}`;
 
-  const tap = (k: Core.Step, done: boolean) => {
-    if (done && !confirm(`Undo "${Core.STEP_LABEL[k]}"?`)) return;
+  const tap = async (k: Core.Step, done: boolean) => {
+    if (done && !(await ask({ title: `Undo “${Core.STEP_LABEL[k]}” for ${p.name}?`, description: `This clears the time it was ticked (${hm(p[k])}).`, confirmLabel: "Undo", destructive: true }))) return;
     void act({ type: "step", pid: p.id, step: k, value: !done });
   };
   const prName = Core.prOf(state, p);
@@ -150,7 +151,7 @@ export function PersonRow({ p, s, manage, hidePr }: { p: Person; s: Session; man
           const done = !!p[k];
           const isNext = !done && k === next;
           return (
-            <Button key={k} type="button" disabled={p.noshow && !done} onClick={() => tap(k, done)}
+            <Button key={k} type="button" disabled={p.noshow && !done} onClick={() => void tap(k, done)}
               variant={done ? "secondary" : isNext ? "default" : "outline"}
               className={cn("h-auto min-h-11 flex-col items-center justify-center gap-0 px-0.5 py-1.5 text-center text-[11px] leading-tight whitespace-normal", done && "text-st-done")}>
               <span className="flex items-center justify-center gap-0.5">{done && <Check className="size-3" />}{Core.STEP_LABEL[k]}</span>

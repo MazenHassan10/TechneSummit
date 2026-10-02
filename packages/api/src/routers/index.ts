@@ -92,10 +92,12 @@ export const appRouter = router({
       return runAgendaCheck(ctx.db);
     }),
     /** approve / reject one or many pending changes (applied together in one save) */
-    decide: authedProcedure.input(z.object({ ids: z.array(z.string()).min(1).max(500), approve: z.boolean() })).mutation(async ({ ctx, input }) => {
-      const st = await loadState(ctx.db);
-      return decideChanges(ctx.db, input.ids, input.approve, actorFor(st, ctx.who));
-    }),
+    decide: authedProcedure
+      .input(z.object({ ids: z.array(z.string()).min(1).max(500), approve: z.boolean(), prs: z.record(z.string(), z.string()).optional() }))
+      .mutation(async ({ ctx, input }) => {
+        const st = await loadState(ctx.db);
+        return decideChanges(ctx.db, input.ids, input.approve, actorFor(st, ctx.who), input.prs ?? {});
+      }),
   }),
 
   state: router({

@@ -4,7 +4,11 @@ import { normName, peopleOf, type Action, type State } from "@great-hall-pr/core
 
 export const SCHED_BASE = "https://technesummit2026.sched.com/";
 
-export type SchedPerson = { name: string; role: "Moderator" | "Speaker"; profileUrl?: string };
+export type SchedPerson = {
+  name: string; role: "Moderator" | "Speaker"; profileUrl?: string;
+  /** photo + "title, company" as shown on the agenda page – used to spot profile changes cheaply */
+  photo?: string; headline?: string;
+};
 export type SchedSession = { day: string; start: string; end: string; title: string; people: SchedPerson[] };
 
 export type ChangeKind = "time" | "rename" | "role" | "add_person" | "remove_person" | "new_session" | "removed_session";
@@ -16,6 +20,8 @@ export type Proposal = {
   /** actions applied on approval; for new_session the session is created first and `{sid}` is filled in */
   actions: Action[];
   newSession?: { day: string; start: string; end: string; title: string; people: SchedPerson[] };
+  /** add_person: who is being added (with their official profile link) */
+  person?: SchedPerson;
   warning?: string;
 };
 
@@ -46,8 +52,15 @@ export function parseSchedDay(html: string, day: string): SchedSession[] {
     const roles = /<strong>(Moderators?|Speakers?)<\/strong>([\s\S]*?)(?=<strong>|$)/g;
     for (let rm = roles.exec(block); rm; rm = roles.exec(block)) {
       const role = rm[1]!.startsWith("Moderator") ? "Moderator" : "Speaker";
-      const names = /<h2><a href="([^"]+)"[^>]*title="([^"]+)"/g;
-      for (let pm = names.exec(rm[2]!); pm; pm = names.exec(rm[2]!)) people.push({ name: decode(pm[2]!), role, profileUrl: SCHED_BASE + pm[1]!.replace(/^\//, "") });
+      for (const chunk of rm[2]!.split("sched-person-session").slice(1)) {
+        const pm = /<h2><a href="([^"]+)"[^>]*title="([^"]+)"/.exec(chunk);
+        if (!pm) continue;
+        let photo = /<img src="([^"]+)"/.exec(chunk)?.[1] ?? "";
+        if (photo.startsWith("//")) photo = "https:" + photo;
+        if (/avatar-empty/.test(photo)) photo = "";
+        const headline = decode(/sched-event-details-role-company">([\s\S]*?)<\/div>/.exec(chunk)?.[1] ?? "");
+        people.push({ name: decode(pm[2]!), role, profileUrl: SCHED_BASE + pm[1]!.replace(/^\//, ""), photo, headline });
+      }
     }
     if (title) out.push({ day, start: to24(a ?? ""), end: to24(b ?? ""), title, people });
   }
@@ -165,7 +178,7 @@ export function diffAgenda(state: State, sched: SchedSession[], opts: { timesOnl
             actions: [{ type: "savePerson", pid: hit.id, sid: o.id, name: hit.name, role: sp.role, phone: hit.phone }] });
       } else {
         out.push({ id: `add_person|${o.id}|${normName(sp.name)}`, kind: "add_person", summary: `${sp.name} (${sp.role}) added to “${o.title}”`,
-          actions: [{ type: "savePerson", sid: o.id, name: sp.name, role: sp.role }] });
+          actions: [{ type: "savePerson", sid: o.id, name: sp.name, role: sp.role }], person: sp });
       }
     }
     for (const p of ours) if (!used.has(p.id) && !/^TBC/i.test(p.name)) {

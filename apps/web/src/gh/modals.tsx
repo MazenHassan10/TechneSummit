@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { hm, hm24 } from "./format";
 import { useApp } from "./store";
 import { CallLink, TONE_TEXT, useModal, type ModalSpec, WhatsAppLink } from "./ui";
+import { ask } from "./confirm";
 import { dayLabel, LeaderCard, SessionSelect } from "./views";
 import { AgendaChangesDialog, NotificationToggle } from "./agenda-watch";
 
@@ -91,7 +92,7 @@ function PersonSheet({ pid }: { pid: string }) {
       </F>
       <div className="flex flex-wrap gap-2">
         <Button variant={p.noshow ? "outline" : "destructive"}
-          onClick={() => { if (!p.noshow && !confirm("Mark as NO-SHOW? The Team Leader will be alerted.")) return; void act({ type: "noshow", pid, value: !p.noshow }); }}>
+          onClick={async () => { if (!p.noshow && !(await ask({ title: `Mark ${p.name} as NO-SHOW?`, description: "The Team Leader will be alerted.", confirmLabel: "Mark no-show", destructive: true }))) return; void act({ type: "noshow", pid, value: !p.noshow }); }}>
           {p.noshow ? "Undo no-show" : "Mark NO-SHOW"}
         </Button>
         <Button variant="outline" onClick={() => modal.open({ kind: "incident", sid: p.sid, pid: p.id, note: `${p.name}: ` })}><Flag /> Report issue</Button>
@@ -126,7 +127,7 @@ function PersonEdit({ pid, sid }: { pid?: string; sid?: string }) {
       <F label="Session"><SessionSelect value={session} onChange={setSession} sessions={[...state.sessions].sort((a, b) => a.start - b.start)} allowNone={false} /></F>
       <div className="flex gap-2">
         <Button className="flex-1" onClick={save}>Save</Button>
-        {pid && <Button variant="destructive" size="lg" onClick={async () => { if (!confirm("Delete this person?")) return; const r = await act({ type: "deletePerson", pid }, "Deleted"); if (r.ok) modal.close(); }}>Delete</Button>}
+        {pid && <Button variant="destructive" size="lg" onClick={async () => { if (!(await ask({ title: `Delete ${name || "this person"}?`, description: "They will be removed from the session on everyone's screen.", confirmLabel: "Delete", destructive: true }))) return; const r = await act({ type: "deletePerson", pid }, "Deleted"); if (r.ok) modal.close(); }}>Delete</Button>}
       </div>
     </>
   );
@@ -164,7 +165,7 @@ function SessionEdit({ sid }: { sid?: string }) {
       <Button className="w-full" size="lg" onClick={save}>{sid ? "Save changes" : "Create session"}</Button>
       {sid && (
         <Button variant="destructive" size="lg" className="w-full" onClick={async () => {
-          if (!confirm("Cancel this session? It and its speakers will be removed from everyone's screen.")) return;
+          if (!(await ask({ title: "Cancel this session?", description: "It and its speakers will be removed from everyone's screen.", confirmLabel: "Cancel session", cancelLabel: "Keep it", destructive: true }))) return;
           const r = await act({ type: "deleteSession", sid }, "Session cancelled");
           if (r.ok) modal.close();
         }}>Cancel this session</Button>
@@ -198,7 +199,7 @@ function MemberEdit({ name }: { name?: string }) {
       <Button className="w-full" size="lg" onClick={save}>{name ? "Save" : "Add to team"}</Button>
       {name && (
         <Button variant="destructive" size="lg" className="w-full" onClick={async () => {
-          if (!confirm(`Remove ${name} from the team? Their speakers will have no PR until you reassign them.`)) return;
+          if (!(await ask({ title: `Remove ${name} from the team?`, description: "Their speakers will have no PR until you reassign them.", confirmLabel: "Remove", destructive: true }))) return;
           const r = await act({ type: "removeMember", name });
           if (r.ok) { const n = r.result as number; n ? toast.warning(`${n} speaker(s) need a new PR – check Sessions`) : toast.success("Removed"); modal.close(); }
         }}>Remove from team</Button>
@@ -233,7 +234,7 @@ function AutoAssign() {
   const modal = useModal();
   if (!state) return null;
   const run = async (all: boolean) => {
-    if (all && !confirm(`Re-assign ALL speakers on ${dayLabel(state, day)} in rotation? Manual changes on this day will be replaced.`)) return;
+    if (all && !(await ask({ title: `Re-assign all speakers on ${dayLabel(state, day)}?`, description: "Every speaker gets a PR in rotation again – manual changes on this day are replaced.", confirmLabel: "Re-assign", destructive: true }))) return;
     const r = await act({ type: "autoAssign", day, onlyUnassigned: !all });
     if (r.ok) { toast.success(`${r.result} speaker(s) assigned`); modal.close(); }
   };

@@ -40,10 +40,18 @@ export async function loadState(db: Database): Promise<StoredState> {
     log: l.reverse().map(({ ts, by, text }) => ({ ts, by, text })),
     agendaChanges: ac.sort((a, b) => a.detectedAt - b.detectedAt).map(({ payload, ...c }) => {
       // which of our sessions the change is about, so the app can show its day / time / stage
-      const pl = JSON.parse(payload) as { actions?: Record<string, unknown>[]; newSession?: { day: string; start: string; end: string; title: string } | null };
+      type Pl = { actions?: Record<string, unknown>[]; newSession?: { day: string; start: string; end: string; title: string; people?: { name: string; role: string }[] } | null;
+        person?: { name: string; role: string } | null; profiles?: Record<string, { photo?: string; position?: string; company?: string }> };
+      const pl = JSON.parse(payload) as Pl;
       const a = pl.actions?.[0] ?? {};
-      const sid = (a.sid as string | undefined) ?? (a.pid ? p.find((x) => x.id === a.pid)?.sid : undefined);
-      return { ...c, ...(sid ? { sid } : {}), ...(pl.newSession ? { newSession: { day: pl.newSession.day, start: pl.newSession.start, end: pl.newSession.end, title: pl.newSession.title } } : {}) };
+      const pid = a.pid as string | undefined;
+      const sid = (a.sid as string | undefined) ?? (pid ? p.find((x) => x.id === pid)?.sid : undefined);
+      const prof = pl.person ? pl.profiles?.[pl.person.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z\u0600-\u06ff]+/g, " ").trim()] : undefined;
+      return {
+        ...c, ...(sid ? { sid } : {}), ...(pid ? { pid } : {}),
+        ...(pl.person ? { person: { name: pl.person.name, role: pl.person.role, photo: prof?.photo, position: prof?.position, company: prof?.company } } : {}),
+        ...(pl.newSession ? { newSession: { day: pl.newSession.day, start: pl.newSession.start, end: pl.newSession.end, title: pl.newSession.title, people: (pl.newSession.people ?? []).map((x) => ({ name: x.name, role: x.role })) } } : {}),
+      };
     }),
     version: meta[0]?.version ?? 0,
   };
