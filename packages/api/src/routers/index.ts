@@ -5,6 +5,7 @@ import { z } from "zod";
 import { authedProcedure, publicProcedure, router } from "../index";
 import { createToken, getVersion, loadState, persist, type StoredState } from "../store";
 import { speakerProfiles } from "@great-hall-pr/db/schema/index";
+import { decideChanges, runAgendaCheck } from "../agenda-store";
 
 const ADMIN = "__admin__";
 
@@ -56,6 +57,20 @@ export const appRouter = router({
   /** Speaker photos / bios / links for the Agenda tab – fetched once, not on every poll. */
   speakers: router({
     list: authedProcedure.query(async ({ ctx }) => ctx.db.select().from(speakerProfiles)),
+  }),
+
+  /** Official-agenda watch: proposals are decided by the Team Leader only. */
+  agenda: router({
+    check: authedProcedure.mutation(async ({ ctx }) => {
+      const st = await loadState(ctx.db);
+      if (!actorFor(st, ctx.who).admin) throw new TRPCError({ code: "FORBIDDEN", message: "Only the Team Leader can run a check." });
+      return runAgendaCheck(ctx.db);
+    }),
+    /** approve / reject one or many pending changes (applied together in one save) */
+    decide: authedProcedure.input(z.object({ ids: z.array(z.string()).min(1).max(500), approve: z.boolean() })).mutation(async ({ ctx, input }) => {
+      const st = await loadState(ctx.db);
+      return decideChanges(ctx.db, input.ids, input.approve, actorFor(st, ctx.who));
+    }),
   }),
 
   state: router({

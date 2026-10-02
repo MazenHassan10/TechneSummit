@@ -1,0 +1,23 @@
+# Checks the official Techne Summit agenda every 30 minutes.
+# Differences become "pending changes" in the app: everyone is alerted, only the Team Leader approves.
+name: Agenda watch
+
+on:
+  schedule:
+    - cron: "*/30 * * * *" # UTC; GitHub may start runs a few minutes late
+  workflow_dispatch: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check official agenda
+        env:
+          APP_URL: ${{ vars.APP_URL || 'https://techne-summit-xi.vercel.app' }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -n "$CRON_SECRET" ]; then AUTH="Authorization: Bearer $CRON_SECRET"; else AUTH="X-No-Secret: 1"; fi
+          code=$(curl -sS -o result.json -w "%{http_code}" -H "$AUTH" "$APP_URL/api/cron/agenda")
+          cat result.json; echo
+          test "$code" = "200"

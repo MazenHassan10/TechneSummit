@@ -99,3 +99,18 @@ export const speakerProfiles = pgTable("speaker_profiles", {
   /** high = name + company confirmed, medium = name + role confirmed, none = no link found */
   linkConfidence: text("link_confidence").notNull().default("none"),
 });
+
+// Differences found between the official sched agenda and ours, waiting for the Team Leader.
+// status: pending → approved | rejected | obsolete (the official site went back) | failed
+export const agendaChanges = pgTable("agenda_changes", {
+  id: text("id").primaryKey(),
+  kind: text("kind").notNull(),
+  summary: text("summary").notNull(),
+  warning: text("warning").notNull().default(""),
+  payload: text("payload").notNull(),
+  status: text("status").notNull().default("pending"),
+  detectedAt: ms("detected_at").notNull(),
+  decidedBy: text("decided_by").notNull().default(""),
+  decidedAt: ms("decided_at"),
+  error: text("error").notNull().default(""),
+});

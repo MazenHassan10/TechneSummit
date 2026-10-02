@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { dayOf, dur, hm, hourLabel, hm24, shortName } from "./format";
 import { SessionCard } from "./session-card";
 import { useApp } from "./store";
+import { CheckStatus } from "./agenda-watch";
 import { Banner, CallLink, DayTabs, Dot, RotaBadge, TONE_TEXT, useModal, WhatsAppLink } from "./ui";
 
 // ---------- shared ----------
@@ -388,6 +389,7 @@ export function SessionsView() {
         <CardHeader>
           <CardTitle>Sessions</CardTitle>
           <CardDescription>Each speaker has their own PR, given out in rotation. Open a session to change a PR with the menu under the speaker.</CardDescription>
+          <CheckStatus />
           <CardAction className="flex flex-wrap justify-end gap-2">
             <Button variant="outline" onClick={() => modal.open({ kind: "autoAssign" })}><Repeat /> Assign in rotation</Button>
             <Button onClick={() => modal.open({ kind: "sessionEdit" })}><Plus /> New session</Button>

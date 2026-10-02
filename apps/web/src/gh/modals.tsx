@@ -18,6 +18,7 @@ import { hm, hm24 } from "./format";
 import { useApp } from "./store";
 import { CallLink, TONE_TEXT, useModal, type ModalSpec, WhatsAppLink } from "./ui";
 import { dayLabel, LeaderCard, SessionSelect } from "./views";
+import { AgendaChangesDialog, NotificationToggle } from "./agenda-watch";
 
 const F = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <div className="space-y-2"><Label>{label}</Label>{children}</div>
@@ -51,6 +52,7 @@ export function Modals({ spec }: { spec: ModalSpec | null }) {
         {spec.kind === "member" && <MemberEdit name={spec.name} />}
         {spec.kind === "incident" && <IncidentForm sid={spec.sid} pid={spec.pid} note={spec.note} />}
         {spec.kind === "autoAssign" && <AutoAssign />}
+        {spec.kind === "agendaChanges" && <AgendaChangesDialog />}
         {spec.kind === "menu" && <Menu />}
       </DialogContent>
     </Dialog>
@@ -262,6 +264,7 @@ function Menu() {
         <Button variant="outline" onClick={() => { refresh(); modal.close(); }}>↻ Refresh now</Button>
         <Button variant="destructive" onClick={() => { modal.close(); logout(); }}>Log out</Button>
       </div>
+      <NotificationToggle />
       {!me?.admin && <LeaderCard />}
       <p className="text-xs text-muted-foreground">Updates every few seconds. Green dot = live, red = offline.</p>
     </>

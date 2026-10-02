@@ -51,7 +51,12 @@ export type Settings = {
   adminPin: string;
   /** Team Leader's phone – shown to every PR for urgent calls / WhatsApp */
   adminPhone?: string;
+  /** last time the official agenda was checked (epoch ms) and any error from that check */
+  agendaLastCheck?: number;
+  agendaLastError?: string;
 };
+/** A difference with the official agenda waiting for the Team Leader's approval */
+export type AgendaChange = { id: string; kind: string; summary: string; warning: string; detectedAt: number };
 export type Member = { name: string; fullName: string; phone: string; pin: string; lunch1: string; lunch2: string; guest: boolean };
 export type Session = { id: string; day: string; start: number; end: number; title: string; type: string; owner: string; notes: string };
 export type Person = {
@@ -71,6 +76,8 @@ export type State = {
   people: Person[];
   incidents: Incident[];
   log: LogEntry[];
+  /** pending official-agenda changes (read-only here – decided through the agenda router) */
+  agendaChanges?: AgendaChange[];
   _newLog?: LogEntry[];
 };
 export type Actor = { name: string; admin: boolean };

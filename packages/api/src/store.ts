@@ -1,14 +1,14 @@
 import type { Incident, LogEntry, Member, Person, Session, Settings, State, Table } from "@great-hall-pr/core";
 import { autoAssign } from "@great-hall-pr/core";
 import type { Database } from "@great-hall-pr/db";
-import { activityLog, appMeta, authTokens, incidents, members, people, sessions, settings } from "@great-hall-pr/db/schema/index";
+import { activityLog, agendaChanges, appMeta, authTokens, incidents, members, people, sessions, settings } from "@great-hall-pr/db/schema/index";
 import { desc, eq, inArray, sql } from "drizzle-orm";
 
 import SEED from "./seed.json";
 
 export type StoredState = State & { version: number };
 
-const TEXT_SETTINGS = new Set(["day1", "day2", "tz", "tzName", "adminName", "adminPin", "adminPhone"]);
+const TEXT_SETTINGS = new Set(["day1", "day2", "tz", "tzName", "adminName", "adminPin", "adminPhone", "agendaLastError"]);
 
 function parseSettings(rows: { key: string; value: string }[]): Settings {
   const out: Record<string, string | number> = {};
@@ -20,7 +20,7 @@ const stripSort = <T extends { sort?: number }>({ sort: _s, ...rest }: T) => res
 
 /** Reads the whole event (≈150 rows) in one round-trip. */
 export async function loadState(db: Database): Promise<StoredState> {
-  const [m, s, p, i, l, st, meta] = await db.batch([
+  const [m, s, p, i, l, st, meta, ac] = await db.batch([
     db.select().from(members).orderBy(members.sort),
     db.select().from(sessions),
     db.select().from(people).orderBy(people.sort),
@@ -28,6 +28,8 @@ export async function loadState(db: Database): Promise<StoredState> {
     db.select().from(activityLog).orderBy(desc(activityLog.id)).limit(150),
     db.select().from(settings),
     db.select().from(appMeta).where(eq(appMeta.id, 1)),
+    db.select({ id: agendaChanges.id, kind: agendaChanges.kind, summary: agendaChanges.summary, warning: agendaChanges.warning, detectedAt: agendaChanges.detectedAt })
+      .from(agendaChanges).where(eq(agendaChanges.status, "pending")),
   ]);
   return {
     settings: parseSettings(st),
@@ -36,6 +38,7 @@ export async function loadState(db: Database): Promise<StoredState> {
     people: p.map(stripSort) as Person[],
     incidents: i as Incident[],
     log: l.reverse().map(({ ts, by, text }) => ({ ts, by, text })),
+    agendaChanges: ac.sort((a, b) => a.detectedAt - b.detectedAt),
     version: meta[0]?.version ?? 0,
   };
 }

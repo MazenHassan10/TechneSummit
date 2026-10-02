@@ -35,6 +35,11 @@ export const useApp = () => {
 const ME_KEY = "gh_me";
 const isExpired = (e: unknown) => String((e as Error)?.message || e).includes("SESSION_EXPIRED");
 
+/** System notification (works while the app is open or in a background tab, once allowed in the menu). */
+export function notify(title: string, body: string) {
+  try { if ("Notification" in window && Notification.permission === "granted") new Notification(title, { body, tag: "gh-agenda" }); } catch {}
+}
+
 function buzz() {
   try { navigator.vibrate?.([200, 100, 200]); } catch {}
   try {
@@ -56,6 +61,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const polling = useRef(false);
   const seenIncidents = useRef<string[] | null>(null);
   const seenLate = useRef<string[] | null>(null);
+  const seenChanges = useRef<string[] | null>(null);
   const stateRef = useRef<State | null>(null);
   const meRef = useRef<Actor | null>(null);
   stateRef.current = state;
@@ -75,6 +81,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     version.current = 0;
     seenIncidents.current = null;
     seenLate.current = null;
+    seenChanges.current = null;
     setMe(null);
     setState(null);
   }, []);
@@ -113,6 +120,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (n) { toast.error(`${n} speaker(s) need action now`); buzz(); }
     }
     seenLate.current = late;
+    // official agenda changes: alert EVERYONE once per new change (only the Team Leader can approve)
+    const ch = (st.agendaChanges ?? []).map((c) => c.id);
+    if (seenChanges.current) {
+      const fresh = (st.agendaChanges ?? []).filter((c) => !seenChanges.current!.includes(c.id));
+      if (fresh.length) {
+        const msg = fresh.length === 1 ? fresh[0]!.summary : `${fresh.length} changes on the official agenda`;
+        toast.warning(`Official agenda changed – ${msg}`, { duration: 15000 });
+        notify("Great Hall agenda changed", who.admin ? `${msg} – review and approve in the app` : `${msg} – waiting for the Team Leader`);
+        buzz();
+      }
+    }
+    seenChanges.current = ch;
   }, []);
 
   const poll = useCallback(async () => {

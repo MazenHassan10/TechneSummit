@@ -117,6 +117,7 @@ export type ModalSpec =
   | { kind: "member"; name?: string }
   | { kind: "incident"; sid?: string; pid?: string; note?: string }
   | { kind: "autoAssign" }
+  | { kind: "agendaChanges" }
   | { kind: "menu" };
 
 export const ModalCtx = createContext<{ open: (m: ModalSpec) => void; close: () => void }>({ open: () => {}, close: () => {} });

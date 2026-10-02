@@ -14,6 +14,7 @@ import { trpc } from "@/utils/trpc";
 
 import { hm } from "./format";
 import { AgendaView } from "./agenda";
+import { AgendaWatchBanner } from "./agenda-watch";
 import { Modals } from "./modals";
 import { AppProvider, useApp, useTick } from "./store";
 import { ModalCtx, type ModalSpec } from "./ui";
@@ -155,6 +156,7 @@ function Shell() {
             })}
           </nav>
           <main className="mx-auto max-w-6xl px-3 pt-3 pb-28 md:pr-4 md:pb-10 md:pl-28">
+            <AgendaWatchBanner />
             <View />
           </main>
         </div>
