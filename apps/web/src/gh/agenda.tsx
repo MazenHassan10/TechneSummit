@@ -22,7 +22,7 @@ import { queryClient, trpc, trpcClient } from "@/utils/trpc";
 
 import { hm, shortName } from "./format";
 import { useApp } from "./store";
-import { CallLink, WhatsAppLink } from "./ui";
+import { CallLink, HeadsUp, WhatsAppLink } from "./ui";
 import { DaySwitch } from "./views";
 
 type Profile = {
@@ -136,9 +136,10 @@ function Timeline({ profiles }: { profiles: ReturnType<typeof useProfiles> }) {
                           <button key={p.id} type="button" onClick={() => openProfile(p.name)}
                             className="flex items-center gap-3 rounded-xl border bg-background p-2 text-left transition-colors hover:bg-muted">
                             <SpeakerAvatar name={p.name} photo={pr?.photo} className="size-16" />
-                            <span className="min-w-0 leading-tight">
+                            <span className="min-w-0 flex-1 leading-tight">
                               <span className="block font-medium">{p.name}</span>
                               {pr && (pr.position || pr.company) && <span className="mt-0.5 line-clamp-2 block text-xs text-muted-foreground">{[pr.position, pr.company].filter(Boolean).join(", ")}</span>}
+                              <HeadsUp text={p.alert} compact className="mt-1.5" />
                             </span>
                           </button>
                         );
@@ -267,6 +268,7 @@ function ProfileSheet({ name, profiles, onClose }: { name: string | null; profil
               })}
             </div>
           </div>
+          {[...new Set(entries.map((p) => p.alert).filter(Boolean))].map((a) => <HeadsUp key={a} text={a} />)}
           {phone && (
             <>
               <Separator />

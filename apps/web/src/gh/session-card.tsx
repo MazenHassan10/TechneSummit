@@ -15,7 +15,7 @@ import { dayOf, dur, hm, shortName } from "./format";
 import { ask } from "./confirm";
 import { useApp } from "./store";
 import { SpeakerAvatar, useProfiles } from "./agenda";
-import { CallLink, Dot, PrPicker, RotaBadge, TONE_TEXT, useModal, WhatsAppLink } from "./ui";
+import { CallLink, Dot, HeadsUp, PrPicker, RotaBadge, TONE_TEXT, useModal, WhatsAppLink } from "./ui";
 
 const FLAG: Record<Core.Readiness["flag"], { text: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   READY: { text: "Ready", variant: "secondary" },
@@ -170,6 +170,7 @@ export function PersonRow({ p, s, manage, hidePr }: { p: Person; s: Session; man
           <Button variant="ghost" size="icon" onClick={() => modal.open({ kind: "person", pid: p.id })} aria-label="More"><Ellipsis /></Button>
         </div>
       </div>
+      <HeadsUp text={p.alert} />
       {manage ? (
         <div className="flex flex-wrap items-center gap-2"><span className="text-xs text-muted-foreground">PR</span><PrPicker person={p} /><RotaBadge code={Core.personRota(state, p)} /></div>
       ) : !hidePr ? (

@@ -43,6 +43,17 @@ const BANNER = {
   alert: { icon: TriangleAlert, cls: "" },
 } as const;
 
+/** Team Leader's heads-up about reaching a speaker (only sent to that speaker's PR and the admin). */
+export function HeadsUp({ text, compact, className }: { text?: string; compact?: boolean; className?: string }) {
+  if (!text) return null;
+  return (
+    <div className={cn("flex items-start gap-1.5 rounded-md border border-amber/50 bg-amber/15 text-foreground", compact ? "px-2 py-1 text-[11px]" : "px-2.5 py-2 text-xs", className)}>
+      <TriangleAlert className={cn("mt-px shrink-0 text-amber", compact ? "size-3" : "size-3.5")} />
+      <span><b className="font-semibold">Heads-up:</b> {text}</span>
+    </div>
+  );
+}
+
 export function Banner({ kind, title, children }: { kind: keyof typeof BANNER; title: React.ReactNode; children?: React.ReactNode }) {
   const B = BANNER[kind];
   const Icon = B.icon;

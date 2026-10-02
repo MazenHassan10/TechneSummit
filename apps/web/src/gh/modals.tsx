@@ -111,11 +111,12 @@ function PersonEdit({ pid, sid }: { pid?: string; sid?: string }) {
   const [name, setName] = useState(p?.name ?? "");
   const [role, setRole] = useState(p?.role ?? "Speaker");
   const [phone, setPhone] = useState(p?.phone ?? "");
+  const [alert, setAlert] = useState(p?.alert ?? "");
   const [pr, setPr] = useState(p && state ? Core.prOf(state, p) : "");
   const [session, setSession] = useState(p?.sid ?? sid ?? "");
   if (!state) return null;
   const save = async () => {
-    const r = await act({ type: "savePerson", pid, sid: session, name: name.trim(), role, phone, pr }, "Saved");
+    const r = await act({ type: "savePerson", pid, sid: session, name: name.trim(), role, phone, pr, alert: alert.trim() }, "Saved");
     if (r.ok) modal.close();
   };
   return (
@@ -124,6 +125,7 @@ function PersonEdit({ pid, sid }: { pid?: string; sid?: string }) {
       <F label="Name"><Input  value={name} onChange={(e) => setName(e.target.value)} /></F>
       <F label="Role"><Pick value={role} onChange={setRole} options={Core.ROLES.map((r) => ({ value: r, label: r }))} /></F>
       <F label="Phone"><Input type="tel"  value={phone} onChange={(e) => setPhone(e.target.value)} /></F>
+      <F label="Heads-up for the PR (optional)"><Input value={alert} onChange={(e) => setAlert(e.target.value)} placeholder="e.g. WhatsApp only – UK number" /></F>
       <F label="PR for this speaker"><Pick value={pr || "__none__"} onChange={(v) => setPr(v === "__none__" ? "" : v)} options={[{ value: "__none__", label: "– no PR yet –" }, ...state.team.map((m) => ({ value: m.name, label: m.name }))]} /></F>
       <F label="Session"><SessionSelect value={session} onChange={setSession} sessions={[...state.sessions].sort((a, b) => a.start - b.start)} allowNone={false} /></F>
       <div className="flex gap-2">

@@ -77,6 +77,8 @@ export type Person = {
   id: string; sid: string; pr: string; name: string; role: string; phone: string;
   called: number | null; etaCall: number | null; eta: string; arrived: number | null; backstage: number | null; onstage: number | null;
   noshow: boolean; notes: string; updatedBy: string; updatedAt: number | null;
+  /** heads-up from the Team Leader about reaching this speaker */
+  alert?: string;
 };
 export type Incident = {
   id: string; ts: number; by: string; sid: string; pid: string; kind: string; note: string;
@@ -531,12 +533,13 @@ export function apply(state: State, a: Action, actor: Actor, now: number): Apply
         if (a.pid) {
           const { p } = needP();
           p.name = name; p.role = str(a.role) || "Speaker"; p.phone = normPhone(a.phone); p.sid = sid;
+          if (a.alert !== undefined) p.alert = str(a.alert).slice(0, 300);
           if (a.pr !== undefined) p.pr = str(a.pr);
           touch(p);
           addLog(state, by, `Edited ${p.name}`, now);
         } else {
           const np: Person = {
-            id: uid("P"), sid, pr: str(a.pr), name, role: str(a.role) || "Speaker", phone: normPhone(a.phone),
+            id: uid("P"), sid, pr: str(a.pr), name, role: str(a.role) || "Speaker", phone: normPhone(a.phone), alert: str(a.alert).slice(0, 300),
             called: null, etaCall: null, eta: "", arrived: null, backstage: null, onstage: null, noshow: false, notes: "", updatedBy: by, updatedAt: now,
           };
           state.people.push(np);

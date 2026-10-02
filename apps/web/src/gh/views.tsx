@@ -2,6 +2,7 @@
 
 import * as Core from "@great-hall-pr/core";
 import type { Incident, Session } from "@great-hall-pr/core";
+import { Alert, AlertDescription, AlertTitle } from "@great-hall-pr/ui/components/alert";
 import { Badge } from "@great-hall-pr/ui/components/badge";
 import { Button } from "@great-hall-pr/ui/components/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@great-hall-pr/ui/components/card";
@@ -14,7 +15,7 @@ import { Tabs, TabsList, TabsTrigger } from "@great-hall-pr/ui/components/tabs";
 import { Textarea } from "@great-hall-pr/ui/components/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@great-hall-pr/ui/components/toggle-group";
 import { cn } from "@great-hall-pr/ui/lib/utils";
-import { Ellipsis, Eraser, Pencil, Plus, Repeat, Send, ShieldUser, UserPlus } from "lucide-react";
+import { Ellipsis, Eraser, TriangleAlert, Pencil, Plus, Repeat, Send, ShieldUser, UserPlus } from "lucide-react";
 import { Fragment, useState } from "react";
 import { toast } from "sonner";
 
@@ -104,6 +105,24 @@ function PrBanner({ name }: { name: string }) {
   return <Banner kind="free" title={nextBusy ? `Free for ${dur(nextBusy - t)}` : "You're free"}>{nextBusy ? `Your next speaker arrives at ${hm(nextBusy)}` : "No more speakers today."}</Banner>;
 }
 
+/** Every heads-up on this PR's speakers for the day, at the top of "My speakers". */
+function HeadsUpList({ name, day }: { name: string; day: string }) {
+  const { state } = useApp();
+  if (!state) return null;
+  const list = state.people.filter((p) => p.alert && Core.prOf(state, p) === name && Core.sessionById(state, p.sid)?.day === day)
+    .map((p) => ({ p, s: Core.sessionById(state, p.sid)! })).sort((a, b) => a.s.start - b.s.start);
+  if (!list.length) return null;
+  return (
+    <Alert className="mb-3 border-amber/60 bg-amber/10">
+      <TriangleAlert className="text-amber" />
+      <AlertTitle>Heads-up on {list.length} of your speaker{list.length === 1 ? "" : "s"}</AlertTitle>
+      <AlertDescription>
+        <ul className="mt-1 space-y-1">{list.map(({ p, s }) => <li key={p.id}><b className="text-foreground">{hm(s.start)} · {p.name}:</b> {p.alert}</li>)}</ul>
+      </AlertDescription>
+    </Alert>
+  );
+}
+
 export function MineView() {
   const { state, me, day, now } = useApp();
   if (!state || !me) return null;
@@ -119,6 +138,7 @@ export function MineView() {
       <PrBanner name={me.name} />
       {alerts > 0 && <Banner kind="alert" title={`${alerts} speaker(s) need action now`}>See the red statuses below. Can't reach them? Call the Team Leader.</Banner>}
       <LeaderCard compact />
+      <HeadsUpList name={me.name} day={day} />
       {mine.length > 0 && <p className="mb-3 text-sm text-muted-foreground">You have <b className="text-foreground">{nMine} speaker{nMine === 1 ? "" : "s"}</b> in {mine.length} session{mine.length === 1 ? "" : "s"} on {dayLabel(state, day)}.</p>}
       {!mine.length && <Empty>No speakers assigned to you on {dayLabel(state, day)}.</Empty>}
       {up.map((s, i) => <SessionCard key={s.id} s={s} onlyPr={me.name} openDefault={i < 3} />)}
