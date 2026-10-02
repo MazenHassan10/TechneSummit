@@ -12,10 +12,13 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { Tabs, TabsList, TabsTrigger } from "@great-hall-pr/ui/components/tabs";
 import { cn } from "@great-hall-pr/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { ExternalLink, MapPin, Search } from "lucide-react";
+import { ExternalLink, MapPin, Pencil, Search } from "lucide-react";
+import { Button } from "@great-hall-pr/ui/components/button";
+import { Textarea } from "@great-hall-pr/ui/components/textarea";
+import { toast } from "sonner";
 import { createContext, useContext, useMemo, useState } from "react";
 
-import { trpc } from "@/utils/trpc";
+import { queryClient, trpc, trpcClient } from "@/utils/trpc";
 
 import { hm, shortName } from "./format";
 import { useApp } from "./store";
@@ -57,7 +60,7 @@ function BrandIcon({ type, className }: { type: string; className?: string }) {
 const initials = (n: string) => n.replace(/^(Eng\.|Dr\.|H\.E\.?|Mr\.|Ms\.)\s*/i, "").split(/\s+/).map((x) => x[0]).slice(0, 2).join("").toUpperCase();
 
 export function useProfiles() {
-  const q = useQuery({ ...trpc.speakers.list.queryOptions(), staleTime: 10 * 60_000 });
+  const q = useQuery({ ...trpc.speakers.list.queryOptions(), staleTime: 2 * 60_000, refetchInterval: 5 * 60_000 });
   return useMemo(() => {
     const map = new Map<string, Profile>();
     for (const p of (q.data ?? []) as Profile[]) map.set(p.key, p);
@@ -193,6 +196,29 @@ function Directory({ profiles }: { profiles: ReturnType<typeof useProfiles> }) {
   );
 }
 
+function EditLinks({ profile }: { profile: Profile }) {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState(socials(profile).map((x) => x.url).join("\n"));
+  const [busy, setBusy] = useState(false);
+  if (!open) return <div className="flex justify-center"><Button variant="ghost" size="sm" onClick={() => setOpen(true)}><Pencil />Edit links</Button></div>;
+  const save = async () => {
+    setBusy(true);
+    try {
+      const r = await trpcClient.speakers.setSocial.mutate({ key: profile.key, urls: text.split(/\s+/).filter(Boolean) });
+      if (!r.ok) toast.error(r.error);
+      else { toast.success("Links saved"); setOpen(false); await queryClient.invalidateQueries({ queryKey: trpc.speakers.list.queryKey() }); }
+    } catch (e) { toast.error((e as Error).message); }
+    setBusy(false);
+  };
+  return (
+    <div className="space-y-2 rounded-lg border p-3">
+      <p className="text-xs text-muted-foreground">One link per line – LinkedIn, X, Instagram, Facebook, YouTube, TikTok or Behance. Only add profiles you're sure are this person.</p>
+      <Textarea rows={3} value={text} onChange={(e) => setText(e.target.value)} placeholder="https://www.linkedin.com/in/…" />
+      <div className="flex gap-2"><Button size="sm" disabled={busy} onClick={save}>Save links</Button><Button size="sm" variant="outline" onClick={() => setOpen(false)}>Cancel</Button></div>
+    </div>
+  );
+}
+
 function ProfileSheet({ name, profiles, onClose }: { name: string | null; profiles: ReturnType<typeof useProfiles>; onClose: () => void }) {
   const { state, me } = useApp();
   if (!state || !me || !name) return null;
@@ -217,6 +243,7 @@ function ProfileSheet({ name, profiles, onClose }: { name: string | null; profil
             {prof?.sourceUrl && <a href={prof.sourceUrl} target="_blank" rel="noopener" className={buttonVariants({ variant: "ghost" })}><ExternalLink />Official profile</a>}
           </div>
           {prof && !socials(prof).length && <p className="text-center text-xs text-muted-foreground">No social profile confirmed yet – only profiles we verified are linked.</p>}
+          {me.admin && prof && <EditLinks profile={prof} />}
           <Separator />
           <div>
             <h3 className="mb-1.5 text-sm font-semibold">About</h3>

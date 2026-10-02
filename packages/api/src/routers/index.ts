@@ -5,6 +5,8 @@ import { z } from "zod";
 import { authedProcedure, publicProcedure, router } from "../index";
 import { createToken, getVersion, loadState, persist, type StoredState } from "../store";
 import { speakerProfiles } from "@great-hall-pr/db/schema/index";
+import { eq } from "drizzle-orm";
+import { cleanSocialUrl, socialType } from "../social";
 import { decideChanges, runAgendaCheck } from "../agenda-store";
 
 const ADMIN = "__admin__";
@@ -57,6 +59,29 @@ export const appRouter = router({
   /** Speaker photos / bios / links for the Agenda tab – fetched once, not on every poll. */
   speakers: router({
     list: authedProcedure.query(async ({ ctx }) => ctx.db.select().from(speakerProfiles)),
+    /** Team Leader adds / fixes a speaker's social links (LinkedIn, X, Instagram, Facebook, YouTube, TikTok, Behance – no websites). */
+    setSocial: authedProcedure
+      .input(z.object({ key: z.string().min(1), urls: z.array(z.string().max(300)).max(8) }))
+      .mutation(async ({ ctx, input }) => {
+        const st = await loadState(ctx.db);
+        const me = actorFor(st, ctx.who);
+        if (!me.admin) throw new TRPCError({ code: "FORBIDDEN", message: "Only the Team Leader can edit links." });
+        const social: { type: string; url: string }[] = [];
+        const bad: string[] = [];
+        for (const raw of input.urls.map((u) => u.trim()).filter(Boolean)) {
+          const type = socialType(raw);
+          if (!type) { bad.push(raw); continue; }
+          const url = cleanSocialUrl(raw);
+          if (!social.some((x) => x.type === type)) social.push({ type, url });
+        }
+        if (bad.length) return { ok: false as const, error: `Not a social profile link: ${bad.join(", ")}` };
+        const linkedin = social.find((x) => x.type === "linkedin")?.url ?? "";
+        const res = await ctx.db.update(speakerProfiles)
+          .set({ social: JSON.stringify(social), linkedin, linkConfidence: social.length ? "high" : "none" })
+          .where(eq(speakerProfiles.key, input.key)).returning({ key: speakerProfiles.key });
+        if (!res.length) return { ok: false as const, error: "Speaker profile not found" };
+        return { ok: true as const, social };
+      }),
   }),
 
   /** Official-agenda watch: proposals are decided by the Team Leader only. */

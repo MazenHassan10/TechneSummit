@@ -6,14 +6,19 @@
   "company": "Investment Analyst AI",
   "photo": "https://avatars.sched.co/0/f4/26959411/avatar.jpg?195",
   "bio": "Nour El-Shaeri is the Founder and CEO of IA – Investment Analyst AI, an AI screening and evaluation layer for venture funds and accelerators, and Chief Business Officer of GATEIT. He also leads startup and venture capital coverage at Arab News and serves as Strategic Communications Director at PACEHAUS.",
-  "linkedin": "",
+  "linkedin": "https://www.linkedin.com/in/nour-el-shaeri-010bb8142/",
   "otherLink": "",
   "sourceUrl": "https://technesummit2026.sched.com/moderator/nour_el_shaeri.2a65tz9r",
-  "linkConfidence": "none",
-  "_evidence": "No LinkedIn result matching name with Investment Analyst AI / GATEIT / Arab News found in searches.",
+  "linkConfidence": "high",
+  "_evidence": "No LinkedIn result matching name with Investment Analyst AI / GATEIT / Arab News found in searches. | LinkedIn provided by Team Leader (Mazen Hassan) 2026-10-02",
   "_rawConfidence": "none",
   "_rawLinkedin": "",
-  "social": []
+  "social": [
+   {
+    "type": "linkedin",
+    "url": "https://www.linkedin.com/in/nour-el-shaeri-010bb8142/"
+   }
+  ]
  },
  {
   "key": "samhaa beltagy",
@@ -22,14 +27,19 @@
   "company": "Nawy",
   "photo": "https://avatars.sched.co/8/eb/25450819/avatar.jpg?88a",
   "bio": "Dr. Samhaa R. El-Beltagy is Chief AI Officer at Nawy, leading its AI strategy, and Professor of Computer Science and Founding Dean of the School of Information Technology at Newgiza University. She co-founded NLP startup AIM Technologies and is a member of the technical committee of Egypt's National Council for AI.",
-  "linkedin": "",
+  "linkedin": "https://www.linkedin.com/in/samhaa-el-beltagy-b410a530/",
   "otherLink": "",
   "sourceUrl": "https://technesummit2026.sched.com/speaker/samhaa.beltagy",
-  "linkConfidence": "none",
-  "_evidence": "Searches returned only the Techne sched page and academic listings; no LinkedIn profile surfaced.",
+  "linkConfidence": "high",
+  "_evidence": "Searches returned only the Techne sched page and academic listings; no LinkedIn profile surfaced. | LinkedIn provided by Team Leader (Mazen Hassan) 2026-10-02",
   "_rawConfidence": "none",
   "_rawLinkedin": "",
-  "social": []
+  "social": [
+   {
+    "type": "linkedin",
+    "url": "https://www.linkedin.com/in/samhaa-el-beltagy-b410a530/"
+   }
+  ]
  },
  {
   "key": "abdelrahman sleem",
@@ -80,17 +90,17 @@
   "company": "M-Empire Angels",
   "photo": "https://avatars.sched.co/d/03/25561236/avatar.jpg?6ce",
   "bio": "Dr. Maged Ghoneima is Founder and General Partner of M Empire Angels, which has invested in more than 200 startups across over 30 countries, and Chairman of Startup Egypt. He holds a PhD from Northwestern University, worked at Intel and NVIDIA, and is a Professor of Mechatronics at Ain Shams University, where he founded the ASU Innovation Hub.",
-  "linkedin": "",
+  "linkedin": "https://www.linkedin.com/in/mghoneima/",
   "otherLink": "",
   "sourceUrl": "https://technesummit2026.sched.com/speaker/mghoneima",
   "linkConfidence": "high",
-  "_evidence": "No LinkedIn URL found. Twitter link listed for Dr. Maged Ghoneima (ASU iHub) on Startup Grind Cairo event page.",
+  "_evidence": "No LinkedIn URL found. Twitter link listed for Dr. Maged Ghoneima (ASU iHub) on Startup Grind Cairo event page. | LinkedIn provided by Team Leader (Mazen Hassan) 2026-10-02 | X removed at Team Leader request",
   "_rawConfidence": "none",
   "_rawLinkedin": "",
   "social": [
    {
-    "type": "x",
-    "url": "https://twitter.com/mghoneima"
+    "type": "linkedin",
+    "url": "https://www.linkedin.com/in/mghoneima/"
    }
   ]
  },
