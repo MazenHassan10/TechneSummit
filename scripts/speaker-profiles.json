@@ -237,14 +237,19 @@
   "company": "RESOLVE Consulting",
   "photo": "https://avatars.sched.co/5/ae/25828564/avatar.jpg?333",
   "bio": "Mohamed Shehab El-Din is CEO and Founder of RESOLVE Consulting, working as a consultant, coach, facilitator and speaker on leadership, strategic planning, negotiation and conflict resolution. He holds a master's in International Peace Studies from the University of Notre Dame and lectures in executive education at the American University in Cairo.",
-  "linkedin": "",
+  "linkedin": "https://www.linkedin.com/in/mohamedshehabeldin/",
   "otherLink": "",
   "sourceUrl": "https://technesummit2026.sched.com/moderator/mohamed_shehab_el_din.2a3h2f1q",
-  "linkConfidence": "none",
-  "_evidence": "Background verified via CRISP Berlin trainer page (founder of RESOLVE consulting) but no LinkedIn URL found.",
+  "linkConfidence": "high",
+  "_evidence": "Background verified via CRISP Berlin trainer page (founder of RESOLVE consulting) but no LinkedIn URL found. | linkedin provided by Team Leader 2026-10-02",
   "_rawConfidence": "none",
   "_rawLinkedin": "",
-  "social": []
+  "social": [
+   {
+    "type": "linkedin",
+    "url": "https://www.linkedin.com/in/mohamedshehabeldin/"
+   }
+  ]
  },
  {
   "key": "said baaghil",
