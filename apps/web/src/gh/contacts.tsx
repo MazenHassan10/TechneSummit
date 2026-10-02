@@ -3,7 +3,9 @@
 import { Badge } from "@great-hall-pr/ui/components/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@great-hall-pr/ui/components/card";
 import { Separator } from "@great-hall-pr/ui/components/separator";
-import { ArrowDown } from "lucide-react";
+import { buttonVariants } from "@great-hall-pr/ui/components/button";
+import { cn } from "@great-hall-pr/ui/lib/utils";
+import { ArrowDown, Phone, Siren } from "lucide-react";
 import { Fragment } from "react";
 
 import { useApp } from "./store";
@@ -45,11 +47,25 @@ export function ContactsView() {
   const { state } = useApp();
   if (!state) return null;
   const c = parse(state.settings.contacts);
-  const leader: Level | null = state.settings.adminPhone ? { title: "Team Leader", note: "Always call first", people: [{ name: state.settings.adminName, phone: state.settings.adminPhone }] } : null;
-  const chain = [...(leader ? [leader] : []), ...c.chain];
+  const lead = state.settings.adminPhone ? { name: state.settings.adminName, phone: state.settings.adminPhone } : null;
+  const chain = c.chain;
   return (
     <div className="mx-auto max-w-xl space-y-2">
-      <div className="mb-3"><h2 className="text-lg font-semibold">Important numbers</h2><p className="text-sm text-muted-foreground">If you can't solve it, go up one step at a time.</p></div>
+      <div className="mb-3"><h2 className="text-lg font-semibold">Important numbers</h2><p className="text-sm text-muted-foreground">Any problem: call the Team Leader first. Only go further up if they ask you to or can't be reached.</p></div>
+      {lead && (
+        <Card className="bg-primary text-primary-foreground ring-0">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><Siren className="size-5" />Your direct call – any problem</CardTitle>
+            <CardDescription className="text-primary-foreground/85">Team Leader · call or WhatsApp straight away</CardDescription>
+          </CardHeader>
+          <CardContent className="flex items-center gap-3">
+            <div className="min-w-0 flex-1"><div className="text-lg font-semibold">{lead.name}</div><div className="text-sm tabular-nums opacity-85">{lead.phone}</div></div>
+            <a href={`tel:${lead.phone}`} className={cn(buttonVariants({ variant: "secondary", size: "lg" }), "shrink-0")}><Phone />Call</a>
+            <WhatsAppLink phone={lead.phone} />
+          </CardContent>
+        </Card>
+      )}
+      {lead && chain.length > 0 && <p className="pt-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase">Escalation, after the Team Leader</p>}
       {chain.map((l, i) => (
         <Fragment key={l.title}>
           {i > 0 && <div className="flex justify-center text-muted-foreground"><ArrowDown className="size-4" /></div>}
@@ -57,7 +73,7 @@ export function ContactsView() {
         </Fragment>
       ))}
       {c.other.length > 0 && (<><Separator className="my-4" /><h3 className="text-sm font-semibold text-muted-foreground">Other numbers</h3>{c.other.map((l) => <LevelCard key={l.title} l={l} />)}</>)}
-      {!chain.length && !c.other.length && <p className="py-8 text-center text-sm text-muted-foreground">No numbers yet.</p>}
+      {!lead && !chain.length && !c.other.length && <p className="py-8 text-center text-sm text-muted-foreground">No numbers yet.</p>}
     </div>
   );
 }
