@@ -13,6 +13,7 @@ import { useState } from "react";
 
 import { dayOf, dur, hm, shortName } from "./format";
 import { useApp } from "./store";
+import { SpeakerAvatar, useProfiles } from "./agenda";
 import { CallLink, Dot, PrPicker, RotaBadge, TONE_TEXT, useModal, WhatsAppLink } from "./ui";
 
 const FLAG: Record<Core.Readiness["flag"], { text: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -95,6 +96,7 @@ export function SessionCard({ s, manage, onlyPr, openDefault }: { s: Session; ma
 export function PersonRow({ p, s, manage, hidePr }: { p: Person; s: Session; manage?: boolean; hidePr?: boolean }) {
   const { state, me, now, act } = useApp();
   const modal = useModal();
+  const profiles = useProfiles();
   if (!state || !me) return null;
   const t = now();
   const code = Core.personStatus(p, s, state.settings, t);
@@ -122,7 +124,10 @@ export function PersonRow({ p, s, manage, hidePr }: { p: Person; s: Session; man
   return (
     <div className="space-y-2.5 px-(--card-spacing) py-3">
       <div className="flex items-start gap-2.5">
-        <span className="pt-1.5"><Dot tone={S.tone} /></span>
+        <div className="relative shrink-0">
+          <SpeakerAvatar name={p.name} photo={profiles.get(p.name)?.photo} className="size-12" />
+          <span className="absolute -right-0.5 -bottom-0.5 rounded-full ring-2 ring-card"><Dot tone={S.tone} /></span>
+        </div>
         <div className="min-w-0 flex-1">
           <div className="font-medium">{p.name}{p.role && p.role !== "Speaker" && <span className="text-muted-foreground"> · {p.role}</span>}</div>
           <div className={cn("text-xs font-medium", TONE_TEXT[S.tone])}>{S.label}</div>

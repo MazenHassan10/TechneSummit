@@ -17,11 +17,12 @@ const bump = (db: Database) => db.update(appMeta).set({ version: sql`${appMeta.v
  * - pending proposals that disappeared from the official site are marked obsolete
  * Never changes the agenda itself.
  */
-export async function runAgendaCheck(db: Database, opts: { fetchFn?: typeof fetch; sched?: SchedSession[] } = {}) {
+export async function runAgendaCheck(db: Database, opts: { fetchFn?: typeof fetch; sched?: SchedSession[]; error?: string } = {}) {
   const now = Date.now();
   const state = await loadState(db);
   let proposals: Proposal[];
   try {
+    if (opts.error) throw new Error(opts.error);
     const sched = opts.sched ?? (await fetchSchedGreatHall([state.settings.day1, state.settings.day2], opts.fetchFn));
     proposals = diffAgenda(state, sched);
   } catch (e) {

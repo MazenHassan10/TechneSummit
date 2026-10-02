@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@great-hall-pr/api": "workspace:*",
+    "@great-hall-pr/core": "workspace:*",
     "@great-hall-pr/db": "workspace:*",
     "@great-hall-pr/ui": "workspace:*",
     "@swc/helpers": "^0.5.23",
@@ -20,6 +21,7 @@
     "@trpc/tanstack-react-query": "^11.18.0",
     "@varlock/nextjs-integration": "1.2.2",
     "babel-plugin-react-compiler": "^1.0.0",
+    "jose": "^6.2.12",
     "lucide-react": "catalog:",
     "next": "^16.3.4",
     "next-themes": "catalog:",
@@ -27,8 +29,7 @@
     "react-dom": "catalog:",
     "sonner": "catalog:",
     "varlock": "catalog:",
-    "zod": "catalog:",
-    "@great-hall-pr/core": "workspace:*"
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@great-hall-pr/config": "workspace:*",

@@ -36,7 +36,7 @@ const LinkedInIcon = ({ className }: { className?: string }) => (
 
 const initials = (n: string) => n.replace(/^(Eng\.|Dr\.|H\.E\.?|Mr\.|Ms\.)\s*/i, "").split(/\s+/).map((x) => x[0]).slice(0, 2).join("").toUpperCase();
 
-function useProfiles() {
+export function useProfiles() {
   const q = useQuery({ ...trpc.speakers.list.queryOptions(), staleTime: 10 * 60_000 });
   return useMemo(() => {
     const map = new Map<string, Profile>();
@@ -106,16 +106,16 @@ function Timeline({ profiles }: { profiles: ReturnType<typeof useProfiles> }) {
                 {[["Moderator", mods], ["Speakers", spk]].map(([label, group]) => (group as typeof ppl).length > 0 && (
                   <div key={label as string}>
                     <p className="mb-1.5 text-xs text-muted-foreground">{label as string}</p>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                       {(group as typeof ppl).map((p) => {
                         const pr = profiles.get(p.name);
                         return (
                           <button key={p.id} type="button" onClick={() => openProfile(p.name)}
-                            className="flex items-center gap-2 rounded-full border bg-background py-1 pr-3 pl-1 text-left transition-colors hover:bg-muted">
-                            <SpeakerAvatar name={p.name} photo={pr?.photo} size="sm" />
-                            <span className="text-sm leading-tight">
+                            className="flex items-center gap-3 rounded-xl border bg-background p-2 text-left transition-colors hover:bg-muted">
+                            <SpeakerAvatar name={p.name} photo={pr?.photo} className="size-16" />
+                            <span className="min-w-0 leading-tight">
                               <span className="block font-medium">{p.name}</span>
-                              {pr && (pr.position || pr.company) && <span className="block max-w-48 truncate text-[11px] text-muted-foreground">{[pr.position, pr.company].filter(Boolean).join(", ")}</span>}
+                              {pr && (pr.position || pr.company) && <span className="mt-0.5 line-clamp-2 block text-xs text-muted-foreground">{[pr.position, pr.company].filter(Boolean).join(", ")}</span>}
                             </span>
                           </button>
                         );
@@ -157,7 +157,7 @@ function Directory({ profiles }: { profiles: ReturnType<typeof useProfiles> }) {
           <button key={p.id} type="button" onClick={() => openProfile(p.name)} className="text-left">
             <Card size="sm" className="h-full transition-colors hover:bg-muted/50">
               <CardContent className="flex items-center gap-3">
-                <SpeakerAvatar name={p.name} photo={prof?.photo} size="lg" />
+                <SpeakerAvatar name={p.name} photo={prof?.photo} className="size-16" />
                 <div className="min-w-0 flex-1">
                   <div className="truncate font-medium">{p.name}</div>
                   <div className="truncate text-xs text-muted-foreground">{prof ? [prof.position, prof.company].filter(Boolean).join(", ") : p.role}</div>
@@ -184,7 +184,7 @@ function ProfileSheet({ name, profiles, onClose }: { name: string | null; profil
     <Sheet open onOpenChange={(o) => { if (!o) onClose(); }}>
       <SheetContent side="bottom" className="max-h-[92vh] overflow-y-auto sm:mx-auto sm:max-w-xl">
         <SheetHeader className="items-center text-center">
-          <Avatar className="size-24">{prof?.photo && <AvatarImage src={prof.photo} alt={name} />}<AvatarFallback className="text-2xl">{initials(name)}</AvatarFallback></Avatar>
+          <Avatar className="size-40">{prof?.photo && <AvatarImage src={prof.photo} alt={name} />}<AvatarFallback className="text-4xl">{initials(name)}</AvatarFallback></Avatar>
           <SheetTitle className="text-lg">{name}</SheetTitle>
           <SheetDescription>{prof ? [prof.position, prof.company].filter(Boolean).join(" · ") : ""}</SheetDescription>
           <div className="flex flex-wrap justify-center gap-1.5">{[...new Set(entries.map((p) => p.role))].map((r) => <Badge key={r} variant="secondary">{r}</Badge>)}</div>
