@@ -98,6 +98,8 @@ export const speakerProfiles = pgTable("speaker_profiles", {
   sourceUrl: text("source_url").notNull().default(""),
   /** high = name + company confirmed, medium = name + role confirmed, none = no link found */
   linkConfidence: text("link_confidence").notNull().default("none"),
+  /** verified social profiles: JSON array of { type: linkedin|x|instagram|facebook|youtube|tiktok|behance, url } */
+  social: text("social").notNull().default("[]"),
 });
 
 // Differences found between the official sched agenda and ours, waiting for the Team Leader.
