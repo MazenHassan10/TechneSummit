@@ -389,12 +389,14 @@ export function SessionsView() {
         <CardHeader>
           <CardTitle>Sessions</CardTitle>
           <CardDescription>Each speaker has their own PR, given out in rotation. Open a session to change a PR with the menu under the speaker.</CardDescription>
-          <CheckStatus />
-          <CardAction className="flex flex-wrap justify-end gap-2">
-            <Button variant="outline" onClick={() => modal.open({ kind: "autoAssign" })}><Repeat /> Assign in rotation</Button>
-            <Button onClick={() => modal.open({ kind: "sessionEdit" })}><Plus /> New session</Button>
-          </CardAction>
         </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={() => modal.open({ kind: "sessionEdit" })}><Plus /> New session</Button>
+            <Button variant="outline" onClick={() => modal.open({ kind: "autoAssign" })}><Repeat /> Assign in rotation</Button>
+          </div>
+          <CheckStatus />
+        </CardContent>
       </Card>
       {sessionsOfDay(state, day).map((s) => <SessionCard key={s.id} s={s} manage />)}
     </>
@@ -413,9 +415,9 @@ export function TeamAdminView() {
         <CardHeader>
           <CardTitle>Team · {dayLabel(state, day)}</CardTitle>
           <CardDescription>{state.team.length} people · rotation goes in this order. Admin PIN: <code className="rounded bg-muted px-1.5 py-0.5">{state.settings.adminPin}</code></CardDescription>
-          <CardAction><Button onClick={() => modal.open({ kind: "member" })}><UserPlus /> Add member</Button></CardAction>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
+          <Button onClick={() => modal.open({ kind: "member" })}><UserPlus /> Add member</Button>
           <Table>
             <TableHeader>
               <TableRow><TableHead>Order</TableHead><TableHead>Name</TableHead><TableHead>Phone</TableHead><TableHead>Speakers</TableHead><TableHead>PIN</TableHead><TableHead /></TableRow>

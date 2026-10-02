@@ -104,8 +104,9 @@ export function CheckStatus() {
   const [busy, setBusy] = useState(false);
   if (!state || !me) return null;
   const err = state.settings.agendaLastError;
-  const times = state.settings.agendaLastTimesCheck;
   const full = state.settings.agendaLastFullCheck;
+  // a full check (from the Mac) also covers times, so show whichever is more recent
+  const times = Math.max(state.settings.agendaLastTimesCheck ?? 0, full ?? 0) || undefined;
   const stale = (t?: number) => !t || Date.now() - t > 75 * 60_000;
   const check = async () => {
     setBusy(true);
@@ -118,7 +119,7 @@ export function CheckStatus() {
   };
   return (
     <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-      <span>Official agenda – times {times ? `checked ${hm(times)}` : "not checked yet"} · speakers {full ? `checked ${hm(full)}` : "not checked yet"} · every 30 min</span>
+      <span className="w-full sm:w-auto">Official agenda · times checked {times ? hm(times) : "–"} · speakers checked {full ? hm(full) : "–"} · every 30 min</span>
       {err && <Badge variant="destructive" title={err}>Last check failed</Badge>}
       {me.admin && stale(full) && <Badge variant="outline" title="Speaker changes are checked from the Team Leader's Mac – keep it on and online">Mac check overdue</Badge>}
       {me.admin && <Button size="xs" variant="outline" disabled={busy} onClick={check}><RefreshCw className={busy ? "animate-spin" : ""} />Check now</Button>}

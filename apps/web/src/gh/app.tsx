@@ -40,6 +40,12 @@ function Root() {
   );
 }
 
+/** The app logo (same file as the browser-tab icon). */
+function Logo({ className }: { className?: string }) {
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src="/icon.svg" alt="Great Hall PR logo" className={cn("shrink-0 rounded-[22%] shadow-md ring-2 ring-white/70", className)} />;
+}
+
 function Wordmark({ big }: { big?: boolean }) {
   return (
     <div className={cn("leading-none font-bold text-white", big ? "text-center" : "")}>
@@ -65,6 +71,7 @@ function Login() {
   return (
     <div className="min-h-svh">
       <div className="bg-primary px-5 pt-9 pb-10 text-center text-primary-foreground">
+        <Logo className="mx-auto mb-4 size-20" />
         <Wordmark big />
         <p className="mt-3 text-sm opacity-85">Great Hall PR · Bibliotheca Alexandrina</p>
       </div>
@@ -133,7 +140,7 @@ function Shell() {
       {(modal) => (
         <div className="min-h-svh">
           <header className="sticky top-0 z-30 flex items-center gap-3 bg-primary px-4 py-2.5 text-primary-foreground shadow-sm">
-            <div><Wordmark /><div className="mt-0.5 text-[10.5px] font-medium opacity-85">Great Hall PR</div></div>
+            <div className="flex items-center gap-2.5"><Logo className="size-10" /><div><Wordmark /><div className="mt-0.5 text-[10.5px] font-medium opacity-85">Great Hall PR</div></div></div>
             <div className="flex-1" />
             <div className="text-base font-semibold whitespace-nowrap tabular-nums md:text-lg">{hm(now())}</div>
             <span title={online ? "Live" : "Offline"} className={cn("size-2.5 rounded-full", !online ? "bg-[#ff6b5e]" : busy ? "bg-amber" : "bg-[#3ddc84]")} />
