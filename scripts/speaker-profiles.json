@@ -279,14 +279,19 @@
   "company": "Vezeeta",
   "photo": "https://avatars.sched.co/8/39/25851217/avatar.jpg?f85",
   "bio": "Menna El Husseiny is Marketing Communication & PR Manager at Vezeeta, with over 9 years of experience in marketing and communications across impact-driven startups and projects. She is an advocate for women empowerment, social development and mental wellness.",
-  "linkedin": "",
+  "linkedin": "https://www.linkedin.com/in/menna-el-husseiny/",
   "otherLink": "",
   "sourceUrl": "https://technesummit2026.sched.com/moderator/menna_el_husseiny.2a46bqdr",
-  "linkConfidence": "none",
-  "_evidence": "No LinkedIn result matching name with Vezeeta found.",
+  "linkConfidence": "high",
+  "_evidence": "No LinkedIn result matching name with Vezeeta found. | linkedin provided by Team Leader 2026-10-02",
   "_rawConfidence": "none",
   "_rawLinkedin": "",
-  "social": []
+  "social": [
+   {
+    "type": "linkedin",
+    "url": "https://www.linkedin.com/in/menna-el-husseiny/"
+   }
+  ]
  },
  {
   "key": "zeyad elhadary",
