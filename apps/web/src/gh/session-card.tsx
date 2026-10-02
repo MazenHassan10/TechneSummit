@@ -180,11 +180,13 @@ export function PersonRow({ p, s, manage, hidePr }: { p: Person; s: Session; man
           const done = !!p[k];
           const isNext = !done && k === next;
           return (
-            <Button key={k} type="button" disabled={p.noshow && !done} onClick={() => void tap(k, done)}
-              variant={done ? "secondary" : isNext ? "default" : "outline"}
-              className={cn("h-auto min-h-11 flex-col items-center justify-center gap-0 px-0.5 py-1.5 text-center text-[11px] leading-tight whitespace-normal", done && "text-st-done")}>
+            <Button key={k} type="button" variant="outline" disabled={p.noshow && !done} onClick={() => void tap(k, done)}
+              className={cn("h-auto min-h-12 flex-col items-center justify-center gap-0 px-0.5 py-1.5 text-center text-[11px] leading-tight whitespace-normal",
+                done ? "border-st-done/40 bg-st-done/10 font-semibold text-st-done hover:bg-st-done/15 hover:text-st-done"
+                  : isNext ? "border-2 border-primary bg-primary/10 font-semibold text-primary hover:bg-primary/15 hover:text-primary"
+                    : "text-muted-foreground")}>
               <span className="flex items-center justify-center gap-0.5">{done && <Check className="size-3" />}{Core.STEP_LABEL[k]}</span>
-              {done && <span className="text-[10px] font-normal opacity-80">{hm(p[k])}</span>}
+              {done ? <span className="text-[10px] font-normal opacity-80">{hm(p[k])}</span> : isNext && <span className="text-[9px] font-medium tracking-wide uppercase opacity-80">tap next</span>}
             </Button>
           );
         })}

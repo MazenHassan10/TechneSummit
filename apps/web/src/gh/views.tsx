@@ -430,7 +430,8 @@ export function TeamAdminView() {
                     <div className="flex flex-wrap items-center gap-1.5 font-medium">{m.name}{m.guest && <Badge variant="outline">Guest</Badge>}{clash && <Badge variant="destructive">2 on a panel</Badge>}</div>
                     <div className="text-xs text-muted-foreground tabular-nums">{m.phone || "No phone"} · {mp.length} speaker{mp.length === 1 ? "" : "s"} · PIN <code className="rounded bg-muted px-1">{m.pin}</code></div>
                   </div>
-                  <Button variant="outline" size="icon" onClick={() => modal.open({ kind: "member", name: m.name })} aria-label={`Edit ${m.name}`}><Pencil /></Button>
+                  {m.phone && <><CallLink phone={m.phone} title={`Call ${m.name}`} /><WhatsAppLink phone={m.phone} /></>}
+                  <Button variant="ghost" size="icon" onClick={() => modal.open({ kind: "member", name: m.name })} aria-label={`Edit ${m.name}`}><Pencil /></Button>
                 </div>
               );
             })}
@@ -448,7 +449,7 @@ export function TeamAdminView() {
                   <TableRow key={m.name}>
                     <TableCell className="text-muted-foreground tabular-nums">{idx + 1}</TableCell>
                     <TableCell className="font-medium"><div className="flex items-center gap-1.5">{m.name}{m.guest && <Badge variant="outline">Guest</Badge>}{clash && <Badge variant="destructive">2 on a panel</Badge>}</div></TableCell>
-                    <TableCell className="tabular-nums">{m.phone || "–"}</TableCell>
+                    <TableCell className="tabular-nums">{m.phone ? <div className="flex items-center gap-1.5">{m.phone}<CallLink phone={m.phone} title={`Call ${m.name}`} /><WhatsAppLink phone={m.phone} /></div> : "–"}</TableCell>
                     <TableCell>{mp.length}</TableCell>
                     <TableCell><code className="rounded bg-muted px-1.5 py-0.5">{m.pin}</code></TableCell>
                     <TableCell className="text-right"><Button variant="outline" size="sm" onClick={() => modal.open({ kind: "member", name: m.name })}><Pencil /> Edit</Button></TableCell>
