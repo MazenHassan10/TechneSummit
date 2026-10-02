@@ -1,0 +1,3 @@
+{
+  "extends": "@great-hall-pr/config/tsconfig.base.json"
+}

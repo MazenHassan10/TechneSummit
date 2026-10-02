@@ -1,0 +1,6 @@
+{
+  "extends": "@great-hall-pr/config/tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true
+  }
+}
