@@ -153,17 +153,17 @@
   "company": "Founder & CEO of ClariTrace",
   "photo": "https://avatars.sched.co/9/5f/28059781/avatar.jpg?450",
   "bio": "Alison Cossette is Founder and CEO of ClariTrace, which builds graph-based intelligence for AI systems. Her work spans AI governance, physical AI and retrieval research, and she serves on the US NIST Generative AI Public Working Group.",
-  "linkedin": "https://www.linkedin.com/in/alison-cossette/",
+  "linkedin": "https://www.linkedin.com/in/alisoncossette/",
   "otherLink": "",
   "sourceUrl": "https://technesummit2026.sched.com/speaker/alison_cossette.2a76ofak",
   "linkConfidence": "high",
-  "_evidence": "WeAreDevelopers speaker page for Alison Cossette, CEO and Founder of ClariTrace, links this LinkedIn and claritrace.com.",
+  "_evidence": "WeAreDevelopers speaker page for Alison Cossette, CEO and Founder of ClariTrace, links this LinkedIn and claritrace.com. | LinkedIn replaced with link provided by Team Leader 2026-10-02",
   "_rawConfidence": "high",
   "_rawLinkedin": "https://www.linkedin.com/in/alison-cossette/",
   "social": [
    {
     "type": "linkedin",
-    "url": "https://www.linkedin.com/in/alison-cossette/"
+    "url": "https://www.linkedin.com/in/alisoncossette/"
    }
   ]
  },
