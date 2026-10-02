@@ -132,14 +132,19 @@
   "company": "PodMedia Network",
   "photo": "https://avatars.sched.co/9/59/28057186/avatar.jpg?af3",
   "bio": "Karim Wassim is Chief Operations Officer of PodMedia Network, running operations across Egypt, Saudi Arabia, the UAE and Bahrain. With 16 years across the EU, APAC, US and MENA, he has worked at Vodafone, Orange Business Services and Majid Al Futtaim, and has supported Egypt's entrepreneurship ecosystem for nine years.",
-  "linkedin": "",
+  "linkedin": "https://www.linkedin.com/in/karim-wassim-9539b849/",
   "otherLink": "",
   "sourceUrl": "https://technesummit2026.sched.com/moderator/karim_wassim.2a71q4lr",
-  "linkConfidence": "none",
-  "_evidence": "No LinkedIn result matching name with PodMedia Network found.",
+  "linkConfidence": "high",
+  "_evidence": "No LinkedIn result matching name with PodMedia Network found. | LinkedIn provided by Team Leader 2026-10-02",
   "_rawConfidence": "none",
   "_rawLinkedin": "",
-  "social": []
+  "social": [
+   {
+    "type": "linkedin",
+    "url": "https://www.linkedin.com/in/karim-wassim-9539b849/"
+   }
+  ]
  },
  {
   "key": "alison cossette",
