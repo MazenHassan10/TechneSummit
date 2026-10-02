@@ -677,14 +677,19 @@
   "company": "Kuadra",
   "photo": "https://avatars.sched.co/a/49/25872942/avatar.jpg?61d",
   "bio": "Ahmed Salem is Co-Founder and CEO of Kuadra, an AI-driven technology company building practical industry solutions for sectors including construction, logistics, and oil & gas. An engineer and entrepreneur, he brings nearly 20 years of experience in engineering, commercial management, business development, and project management across Egypt and the GCC.",
-  "linkedin": "",
+  "linkedin": "https://www.linkedin.com/in/ahmed-salem-00a51a41/",
   "otherLink": "",
   "sourceUrl": "https://technesummit2026.sched.com/speaker/ahmed_sallem.2a4qzixv",
-  "linkConfidence": "none",
-  "_evidence": "Press (Wamda/Zawya, Jul 2026) confirms Ahmed Salem as founder & CEO of Kuadra, but no LinkedIn result matched Kuadra; several unrelated Ahmed Salem profiles found.",
+  "linkConfidence": "high",
+  "_evidence": "Press (Wamda/Zawya, Jul 2026) confirms Ahmed Salem as founder & CEO of Kuadra, but no LinkedIn result matched Kuadra; several unrelated Ahmed Salem profiles found. | linkedin provided by Team Leader 2026-10-02",
   "_rawConfidence": "none",
   "_rawLinkedin": "",
-  "social": []
+  "social": [
+   {
+    "type": "linkedin",
+    "url": "https://www.linkedin.com/in/ahmed-salem-00a51a41/"
+   }
+  ]
  },
  {
   "key": "tamer taha",
