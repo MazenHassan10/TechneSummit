@@ -367,10 +367,14 @@
   "otherLink": "",
   "sourceUrl": "https://technesummit2026.sched.com/speaker/aisha_hassan.2a669c5h",
   "linkConfidence": "high",
-  "_evidence": "Searches for Aisha Hassan + Zahwa / mental health returned only unrelated people with similar names. | linkedin provided by Team Leader 2026-10-02",
+  "_evidence": "Searches for Aisha Hassan + Zahwa / mental health returned only unrelated people with similar names. | linkedin provided by Team Leader 2026-10-02 | facebook provided by Team Leader 2026-10-02",
   "_rawConfidence": "none",
   "_rawLinkedin": "",
   "social": [
+   {
+    "type": "facebook",
+    "url": "https://www.facebook.com/aisha.moh.hassan/"
+   },
    {
     "type": "linkedin",
     "url": "https://www.linkedin.com/in/aisha-hassan-6a674b111/"
