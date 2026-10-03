@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { authedProcedure, publicProcedure, router } from "../index";
 import { createToken, getVersion, loadState, persist, type StoredState } from "../store";
-import { speakerProfiles } from "@great-hall-pr/db/schema/index";
+import { speakerProfiles, summitSessions } from "@great-hall-pr/db/schema/index";
 import { eq } from "drizzle-orm";
 import { cleanSocialUrl, socialType } from "../social";
 import { decideChanges, runAgendaCheck } from "../agenda-store";
@@ -61,6 +61,9 @@ export const appRouter = router({
   /** Speaker photos / bios / links for the Agenda tab – fetched once, not on every poll. */
   speakers: router({
     list: authedProcedure.query(async ({ ctx }) => ctx.db.select().from(speakerProfiles)),
+    /** every session at the summit (all stages / workshops) – for "also at Techne Summit" on profiles */
+    summit: authedProcedure.query(async ({ ctx }) =>
+      (await ctx.db.select().from(summitSessions)).map((s) => ({ ...s, people: JSON.parse(s.people || "[]") as { name: string; role: string }[] }))),
     /** Team Leader adds / fixes a speaker's social links (LinkedIn, X, Instagram, Facebook, YouTube, TikTok, Behance – no websites). */
     setSocial: authedProcedure
       .input(z.object({ key: z.string().min(1), urls: z.array(z.string().max(300)).max(8) }))

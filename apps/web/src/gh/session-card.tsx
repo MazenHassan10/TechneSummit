@@ -14,7 +14,7 @@ import { useState } from "react";
 import { dayOf, dur, hm, shortName } from "./format";
 import { ask } from "./confirm";
 import { useApp } from "./store";
-import { SpeakerAvatar, useProfiles } from "./agenda";
+import { SpeakerAvatar, t12, useProfiles, useSummit, venueShort } from "./agenda";
 import { CallLink, Dot, HeadsUp, PrPicker, RotaBadge, TONE_TEXT, useModal, WhatsAppLink } from "./ui";
 
 const FLAG: Record<Core.Readiness["flag"], { text: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -115,6 +115,7 @@ export function PersonRow({ p, s, manage, hidePr }: { p: Person; s: Session; man
   const { state, me, now, act } = useApp();
   const modal = useModal();
   const profiles = useProfiles();
+  const summit = useSummit();
   if (!state || !me) return null;
   const t = now();
   const code = Core.personStatus(p, s, state.settings, t);
@@ -171,6 +172,15 @@ export function PersonRow({ p, s, manage, hidePr }: { p: Person; s: Session; man
         </div>
       </div>
       <HeadsUp text={p.alert} />
+      {(() => {
+        const other = summit.elsewhere(p.name).filter((x) => x.day === s.day);
+        return other.length > 0 && (
+          <div className="rounded-md bg-muted/70 px-2.5 py-2 text-xs">
+            <b className="font-semibold">Also today:</b>{" "}
+            {other.map((x, i) => <span key={x.id}>{i > 0 && " · "}{x.format || "Session"} {t12(x.start)}–{t12(x.end)}, {venueShort(x.venue)}</span>)}
+          </div>
+        );
+      })()}
       {manage ? (
         <div className="flex flex-wrap items-center gap-2"><span className="text-xs text-muted-foreground">PR</span><PrPicker person={p} /><RotaBadge code={Core.personRota(state, p)} /></div>
       ) : !hidePr ? (

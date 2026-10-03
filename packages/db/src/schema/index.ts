@@ -118,3 +118,18 @@ export const agendaChanges = pgTable("agenda_changes", {
   decidedAt: ms("decided_at"),
   error: text("error").notNull().default(""),
 });
+
+// Every session at the summit (all stages, workshop rooms…) so a speaker's profile can list everything
+// they're doing. Refreshed from the official agenda by the agenda watcher; one row per session.
+export const summitSessions = pgTable("summit_sessions", {
+  id: text("id").primaryKey(),
+  day: text("day").notNull(),
+  start: text("start").notNull(),
+  end: text("end").notNull(),
+  title: text("title").notNull(),
+  venue: text("venue").notNull().default(""),
+  track: text("track").notNull().default(""),
+  format: text("format").notNull().default(""),
+  /** JSON array of { name, role } */
+  people: text("people").notNull().default("[]"),
+});

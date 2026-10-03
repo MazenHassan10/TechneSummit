@@ -39,15 +39,19 @@ const to24 = (s: string) => {
   return `${String((+m[1]! % 12) + (m[3]!.toLowerCase() === "pm" ? 12 : 0)).padStart(2, "0")}:${m[2]}`;
 };
 
-/** Parses one day of `/<day>/list/descriptions/` and keeps only Great Hall sessions. */
-export function parseSchedDay(html: string, day: string): SchedSession[] {
-  const out: SchedSession[] = [];
+/** One session anywhere at the summit (any stage, workshop room, meet & greet…). */
+export type SummitSession = SchedSession & { venue: string; track: string; format: string };
+
+/** Parses one day of `/<day>/list/descriptions/` – every venue. */
+export function parseSchedDayAll(html: string, day: string): SummitSession[] {
+  const out: SummitSession[] = [];
   for (const block of html.split('<span class="event ev_').slice(1)) {
-    const loc = /list-single__location">\s*<a[^>]*>\s*([\s\S]*?)\s*<\/a>/.exec(block);
-    if (!loc || !/Great Hall/i.test(loc[1]!)) continue;
+    const venue = decode(/list-single__location">\s*<a[^>]*>\s*([\s\S]*?)\s*<\/a>/.exec(block)?.[1] ?? "");
     const title = decode(/session-title">([\s\S]*?)<\/span>/.exec(block)?.[1] ?? "");
     const when = decode(/list-single__date">([\s\S]*?)<span/.exec(block)?.[1] ?? "");
     const [a, b] = when.replace(/^.*?\d{4}\s*/, "").split(/\s+-\s+/);
+    // "Money Made Simple, Panel" → track + format
+    const types = [...(/sched-event-type">([\s\S]*?)<\/div>/.exec(block)?.[1] ?? "").matchAll(/<a[^>]*>([\s\S]*?)<\/a>/g)].map((m) => decode(m[1]!)).filter(Boolean);
     const people: SchedPerson[] = [];
     const roles = /<strong>(Moderators?|Speakers?)<\/strong>([\s\S]*?)(?=<strong>|$)/g;
     for (let rm = roles.exec(block); rm; rm = roles.exec(block)) {
@@ -62,9 +66,29 @@ export function parseSchedDay(html: string, day: string): SchedSession[] {
         people.push({ name: decode(pm[2]!), role, profileUrl: SCHED_BASE + pm[1]!.replace(/^\//, ""), photo, headline });
       }
     }
-    if (title) out.push({ day, start: to24(a ?? ""), end: to24(b ?? ""), title, people });
+    if (title) out.push({ day, start: to24(a ?? ""), end: to24(b ?? ""), title, people, venue, track: types[0] ?? "", format: types.length > 1 ? types[types.length - 1]! : "" });
   }
   return out;
+}
+
+/** Parses one day of `/<day>/list/descriptions/` and keeps only Great Hall sessions. */
+export function parseSchedDay(html: string, day: string): SchedSession[] {
+  return parseSchedDayAll(html, day).filter((s) => /Great Hall/i.test(s.venue)).map(({ day: d, start, end, title, people }) => ({ day: d, start, end, title, people }));
+}
+
+/** Every session of the given summit days (all venues) – Mac only (the site blocks cloud servers). Days that fail are left out. */
+export async function fetchSchedSummit(days: string[], fetchFn: typeof fetch = fetch) {
+  const headers = { "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Safari/537.36", Accept: "text/html" };
+  const byDay: Record<string, SummitSession[]> = {};
+  for (const day of days) {
+    try {
+      const res = await fetchFn(`${SCHED_BASE}${day}/list/descriptions/`, { headers, cache: "no-store" });
+      if (!res.ok) continue;
+      const list = parseSchedDayAll(await res.text(), day);
+      if (list.length >= 10) byDay[day] = list; // bot-check page or half page → keep yesterday's copy
+    } catch {}
+  }
+  return byDay;
 }
 
 /**

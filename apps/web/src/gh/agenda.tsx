@@ -68,6 +68,48 @@ export function useProfiles() {
   }, [q.data, q.isLoading]);
 }
 
+type SummitSession = { id: string; day: string; start: string; end: string; title: string; venue: string; track: string; format: string; people: { name: string; role: string }[] };
+
+/** Whole-summit agenda (all stages + workshops), so a profile can show everything a speaker is doing. */
+export function useSummit() {
+  const q = useQuery({ ...trpc.speakers.summit.queryOptions(), staleTime: 5 * 60_000, refetchInterval: 10 * 60_000 });
+  return useMemo(() => {
+    const byName = new Map<string, (SummitSession & { role: string })[]>();
+    for (const s of (q.data ?? []) as SummitSession[])
+      for (const p of s.people) {
+        const k = Core.normName(p.name);
+        byName.set(k, [...(byName.get(k) ?? []), { ...s, role: p.role }]);
+      }
+    for (const l of byName.values()) l.sort((a, b) => `${a.day}${a.start}`.localeCompare(`${b.day}${b.start}`));
+    /** sessions of this person outside the Great Hall */
+    const elsewhere = (name: string) => (byName.get(Core.normName(name)) ?? []).filter((s) => !/Great Hall/i.test(s.venue));
+    return { elsewhere, loading: q.isLoading };
+  }, [q.data, q.isLoading]);
+}
+
+export const t12 = (hhmm: string) => { const [h = 0, m = 0] = hhmm.split(":").map(Number); return `${((h + 11) % 12) + 1}:${String(m).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`; };
+const dayShort = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
+/** "(ALX) Stage 05: Multipurpose Room - Workshops A" → "Stage 05 · Multipurpose Room – Workshops A" */
+export const venueShort = (v: string) => v.replace(/^\([A-Z]+\)\s*/, "").replace(/:\s*/, " · ").replace(/ - /g, " – ");
+
+/** One session elsewhere at the summit: when, where, what kind. */
+export function ElsewhereRow({ s, compact }: { s: SummitSession & { role: string }; compact?: boolean }) {
+  const workshop = /workshop/i.test(s.format) || /workshop/i.test(s.venue);
+  return (
+    <div className={cn("flex items-start gap-3 rounded-lg border p-3", compact && "border-0 p-0")}>
+      <span className="w-24 shrink-0 text-xs font-medium tabular-nums text-primary">{dayShort(s.day)}<br />{t12(s.start)} – {t12(s.end)}</span>
+      <div className="min-w-0 flex-1">
+        <div className="text-sm font-medium leading-snug">{s.title}</div>
+        <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+          <MapPin className="size-3" />{venueShort(s.venue)}
+          {s.format && <Badge variant={workshop ? "default" : "outline"}>{s.format}</Badge>}
+          <span>{s.role}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const OpenCtx = createContext<(name: string) => void>(() => {});
 
 export function SpeakerAvatar({ name, photo, size = "default", className }: { name: string; photo?: string; size?: "sm" | "default" | "lg"; className?: string }) {
@@ -160,6 +202,7 @@ function Timeline({ profiles }: { profiles: ReturnType<typeof useProfiles> }) {
 
 function Directory({ profiles }: { profiles: ReturnType<typeof useProfiles> }) {
   const { state, day } = useApp();
+  const summit = useSummit();
   const openProfile = useContext(OpenCtx);
   const [q, setQ] = useState("");
   if (!state) return null;
@@ -185,6 +228,7 @@ function Directory({ profiles }: { profiles: ReturnType<typeof useProfiles> }) {
                 <div className="min-w-0 flex-1">
                   <div className="truncate font-medium">{p.name}</div>
                   <div className="truncate text-xs text-muted-foreground">{prof ? [prof.position, prof.company].filter(Boolean).join(", ") : p.role}</div>
+                  {summit.elsewhere(p.name).length > 0 && <Badge variant="secondary" className="mt-1">+{summit.elsewhere(p.name).length} more at the summit</Badge>}
                 </div>
                 <span className="flex gap-1">{socials(prof).slice(0, 3).map((x) => <BrandIcon key={x.type} type={x.type} />)}</span>
               </CardContent>
@@ -222,6 +266,7 @@ function EditLinks({ profile }: { profile: Profile }) {
 
 function ProfileSheet({ name, profiles, onClose }: { name: string | null; profiles: ReturnType<typeof useProfiles>; onClose: () => void }) {
   const { state, me } = useApp();
+  const summit = useSummit();
   if (!state || !me || !name) return null;
   const prof = profiles.get(name);
   const entries = state.people.filter((p) => Core.normName(p.name) === Core.normName(name));
@@ -268,6 +313,16 @@ function ProfileSheet({ name, profiles, onClose }: { name: string | null; profil
               })}
             </div>
           </div>
+          {summit.elsewhere(name).length > 0 && (
+            <>
+              <Separator />
+              <div>
+                <h3 className="mb-1 text-sm font-semibold">Also at Techne Summit</h3>
+                <p className="mb-2 text-xs text-muted-foreground">Other stages, workshops and meet &amp; greets – from the official agenda.</p>
+                <div className="space-y-2">{summit.elsewhere(name).map((s) => <ElsewhereRow key={s.id} s={s} />)}</div>
+              </div>
+            </>
+          )}
           {[...new Set(entries.map((p) => p.alert).filter(Boolean))].map((a) => <HeadsUp key={a} text={a} />)}
           {phone && (
             <>
