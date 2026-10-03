@@ -103,6 +103,7 @@ export function PrPicker({ person }: { person: Person }) {
     if (r.ok) {
       const code = r.result as Core.RotaCode;
       if (code && code !== "OK" && code !== "NO_PR") toast.warning(`${Core.ROTA_LABEL[code]} – pick someone else`);
+      else if (pr && state && !Core.availableFor(state, pr, Core.sessionById(state, person.sid)!)) toast.warning(`Assigned to ${pr} – but they're only available from ${Core.availFromOf(Core.memberByName(state, pr), Core.sessionById(state, person.sid)!.day)}`);
       else toast.success(pr ? `Assigned to ${pr}` : "PR removed");
     }
   };

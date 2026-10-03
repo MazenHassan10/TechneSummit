@@ -453,7 +453,7 @@ export function TeamAdminView() {
                 <div key={m.name} className="flex items-center gap-3 py-3">
                   <span className="w-5 shrink-0 text-sm text-muted-foreground tabular-nums">{idx + 1}</span>
                   <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-1.5 font-medium">{m.name}{m.role === "manager" ? <Badge>Manager</Badge> : m.guest && <Badge variant="outline">Guest</Badge>}{clash && <Badge variant="destructive">2 on a panel</Badge>}</div>
+                    <div className="flex flex-wrap items-center gap-1.5 font-medium">{m.name}{m.role === "manager" ? <Badge>Manager</Badge> : m.guest && <Badge variant="outline">Guest</Badge>}{Core.availFromOf(m, day) && <Badge variant="secondary">from {hm(Core.dayStart(day, Core.availFromOf(m, day), state.settings.tz))}</Badge>}{clash && <Badge variant="destructive">2 on a panel</Badge>}</div>
                     <div className="text-xs text-muted-foreground tabular-nums">{m.phone || "No phone"} · {mp.length} speaker{mp.length === 1 ? "" : "s"}{me?.admin && <> · PIN <code className="rounded bg-muted px-1">{m.pin}</code></>}</div>
                   </div>
                   {m.phone && <><CallLink phone={m.phone} title={`Call ${m.name}`} /><WhatsAppLink phone={m.phone} /></>}
@@ -474,7 +474,7 @@ export function TeamAdminView() {
                 return (
                   <TableRow key={m.name}>
                     <TableCell className="text-muted-foreground tabular-nums">{idx + 1}</TableCell>
-                    <TableCell className="font-medium"><div className="flex items-center gap-1.5">{m.name}{m.role === "manager" ? <Badge>Manager</Badge> : m.guest && <Badge variant="outline">Guest</Badge>}{clash && <Badge variant="destructive">2 on a panel</Badge>}</div></TableCell>
+                    <TableCell className="font-medium"><div className="flex items-center gap-1.5">{m.name}{m.role === "manager" ? <Badge>Manager</Badge> : m.guest && <Badge variant="outline">Guest</Badge>}{Core.availFromOf(m, day) && <Badge variant="secondary">from {hm(Core.dayStart(day, Core.availFromOf(m, day), state.settings.tz))}</Badge>}{clash && <Badge variant="destructive">2 on a panel</Badge>}</div></TableCell>
                     <TableCell className="tabular-nums">{m.phone ? <div className="flex items-center gap-1.5">{m.phone}<CallLink phone={m.phone} title={`Call ${m.name}`} /><WhatsAppLink phone={m.phone} /></div> : "–"}</TableCell>
                     <TableCell>{mp.length}</TableCell>
                     <TableCell><code className="rounded bg-muted px-1.5 py-0.5">{m.pin}</code></TableCell>

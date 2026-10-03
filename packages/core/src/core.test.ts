@@ -275,3 +275,22 @@ test('PRs cannot clear PRs', () => {
   const st = clone(SEED);
   assert.strictEqual(Core.apply(st, { type: 'clearPrs', day: null }, { name: 'Karim Hamed', admin: false }, 0).ok, false);
 });
+test('a PR available only from 2 PM gets no earlier speakers (rotation, fill and suggestions)', () => {
+  const st = clone(SEED);
+  const day = st.sessions[0].day;
+  assert.ok(Core.apply(st, { type: 'availability', name: 'Karim Hamed', day, from: '14:00' }, { name: 'TL', admin: true }, 0).ok);
+  const cut = Core.dayStart(day, '14:00', st.settings.tz);
+  const check = () => {
+    const mine = st.people.filter((p) => p.pr === 'Karim Hamed').map((p) => Core.sessionById(st, p.sid)).filter((s) => s.day === day);
+    assert.ok(mine.every((s) => Core.busyWindow(s, st.settings)[0] >= cut), 'no speakers arriving before 2 PM');
+    assert.ok(mine.length > 0, 'still gets afternoon speakers');
+  };
+  Core.autoAssign(st, day, false); check();
+  Core.clearPrs(st, day); Core.autoAssign(st, day, true); check();
+  const early = st.sessions.filter((s) => s.day === day).sort((a, b) => a.start - b.start)[0];
+  Core.clearPrs(st, day);
+  assert.notStrictEqual(Core.suggestPr(st, early)?.name, 'Karim Hamed');
+  // clearing it makes him available all day again
+  Core.apply(st, { type: 'availability', name: 'Karim Hamed', day, from: '' }, { name: 'TL', admin: true }, 0);
+  assert.strictEqual(Core.availFromOf(Core.memberByName(st, 'Karim Hamed'), day), '');
+});

@@ -75,6 +75,8 @@ export type Member = {
   name: string; fullName: string; phone: string; pin: string; lunch1: string; lunch2: string; guest: boolean;
   /** "pr" (default) works speakers; "manager" sees everything like the Team Leader but can't change anything */
   role?: "pr" | "manager";
+  /** JSON { day: "HH:MM" } – not available for speakers arriving before this time that day */
+  availFrom?: string;
 };
 export type Session = { id: string; day: string; start: number; end: number; title: string; type: string; owner: string; notes: string };
 export type Person = {
@@ -149,6 +151,15 @@ export const peopleOf = (state: State, sid: string) => state.people.filter((p) =
 export const sessionById = (state: State, sid: string) => state.sessions.find((s) => s.id === sid) ?? null;
 export const personById = (state: State, pid: string) => state.people.find((p) => p.id === pid) ?? null;
 export const memberByName = (state: State, name: string) => state.team.find((m) => m.name === name) ?? null;
+/** "14:00" if this PR can only take speakers arriving from 2 PM on that day, else "". */
+export function availFromOf(m: Member | null | undefined, day: string): string {
+  try { return (JSON.parse(m?.availFrom || "{}") as Record<string, string>)[day] ?? ""; } catch { return ""; }
+}
+/** Can this PR be with this session's speaker? (they must be there by arrival time) */
+export function availableFor(state: State, name: string, s: Session): boolean {
+  const from = availFromOf(memberByName(state, name), s.day);
+  return !from || busyWindow(s, state.settings)[0] >= dayStart(s.day, from, state.settings.tz);
+}
 /** The PRs who work speakers (managers are not in the rotation). */
 export const prTeam = (state: State) => state.team.filter((m) => (m.role ?? "pr") !== "manager");
 /** Can be picked as a speaker's PR: a PR team member, or the Team Leader (picked by hand only – never by the rotation). */
@@ -279,14 +290,19 @@ export function autoAssign(state: State, day: string | null, onlyUnassigned: boo
     const ppl = peopleOf(state, s.id);
     // people we already know go first, so the rotation can't hand their PR to someone else on this panel
     const reserved = new Map<string, string>();
-    for (const p of ppl) { const same = known.get(normName(p.name)); if (same && !used.has(same)) { reserved.set(p.id, same); used.add(same); } }
+    for (const p of ppl) { const same = known.get(normName(p.name)); if (same && !used.has(same) && availableFor(state, same, s)) { reserved.set(p.id, same); used.add(same); } }
     for (const p of ppl) {
       let pick: string;
       if (reserved.has(p.id)) pick = reserved.get(p.id)!; // keep the PR who already knows them – rotation pointer doesn't move
       else {
         pick = names[next % names.length]!;
-        // skip members already on this panel (only possible to avoid when the panel is smaller than the team)
-        for (let i = 0; i < names.length && used.has(pick); i++) { next++; pick = names[next % names.length]!; }
+        // skip members already on this panel or not available yet (e.g. back from university at 2 PM)
+        const ok = (n: string) => !used.has(n) && availableFor(state, n, s);
+        let i = 0;
+        for (; i < names.length && !ok(pick); i++) { next++; pick = names[next % names.length]!; }
+        if (i === names.length) { // nobody fits – fall back to anyone not on the panel
+          for (let j = 0; j < names.length && used.has(pick); j++) { next++; pick = names[next % names.length]!; }
+        }
         next = (next + 1) % names.length;
       }
       used.add(pick);
@@ -317,7 +333,7 @@ function fillUnassigned(state: State, sessions: Session[], names: string[]) {
     for (const p of ppl) {
       if (p.pr && isAssignable(state, p.pr)) continue;
       const known = knownPrFor(state, p)?.name;
-      if (known && load.has(known) && !used.has(known)) { reserved.set(p.id, known); used.add(known); }
+      if (known && load.has(known) && !used.has(known) && availableFor(state, known, s)) { reserved.set(p.id, known); used.add(known); }
     }
     for (const p of ppl) {
       if (p.pr && isAssignable(state, p.pr)) continue;
@@ -326,7 +342,9 @@ function fillUnassigned(state: State, sessions: Session[], names: string[]) {
       else {
         const busy = busyPrsAt(state, s);
         const order = names.map((_, i) => names[(next + i) % names.length]!);
-        const pool = order.filter((n) => !used.has(n));
+        const open = order.filter((n) => !used.has(n));
+        const avail = open.filter((n) => availableFor(state, n, s));
+        const pool = avail.length ? avail : open;
         const free = pool.filter((n) => !busy.has(n));
         const cands = free.length ? free : pool.length ? pool : order;
         pick = cands.reduce((best, n) => (load.get(n)! < load.get(best)! ? n : best), cands[0]!);
@@ -431,7 +449,7 @@ function addLog(state: State, by: string, text: string, now: number) {
   state._newLog = [...(state._newLog || []), e];
 }
 
-const ADMIN_ONLY = new Set(["assign", "phone", "autoAssign", "clearPrs", "owner", "importPhones", "savePerson", "deletePerson", "saveSession", "deleteSession", "saveMember", "removeMember", "pin", "settings"]);
+const ADMIN_ONLY = new Set(["assign", "phone", "autoAssign", "clearPrs", "availability", "owner", "importPhones", "savePerson", "deletePerson", "saveSession", "deleteSession", "saveMember", "removeMember", "pin", "settings"]);
 const str = (v: unknown) => (v == null ? "" : String(v));
 const isHHMM = (v: unknown) => /^\d{1,2}:\d{2}$/.test(str(v));
 const pad5 = (v: unknown) => ("0" + str(v)).slice(-5);
@@ -678,6 +696,20 @@ export function apply(state: State, a: Action, actor: Actor, now: number): Apply
         addLog(state, by, `${wasNew ? "Added team member " : "Updated team member "}${nm}${mem.role === "manager" ? " (manager)" : mem.guest ? " (guest)" : ""}`, now);
         return { ok: true, dirty, result: { name: nm, pin: pinv } };
       }
+      case "availability": {
+        const am = memberByName(state, str(a.name));
+        if (!am) throw new Error("Member not found");
+        const day = str(a.day), from = str(a.from);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) throw new Error("Bad day");
+        if (from && !/^\d{2}:\d{2}$/.test(from)) throw new Error("Pick a time");
+        let map: Record<string, string> = {};
+        try { map = JSON.parse(am.availFrom || "{}"); } catch {}
+        if (from) map[day] = from; else delete map[day];
+        am.availFrom = JSON.stringify(map);
+        dirty.push("team");
+        addLog(state, by, from ? `${am.name} available for speakers from ${from} on ${day}` : `${am.name} available all day on ${day}`, now);
+        break;
+      }
       case "removeMember": {
         const rm = memberByName(state, str(a.name));
         if (!rm) throw new Error("Member not found");
@@ -730,16 +762,19 @@ export function suggestPr(state: State, s: Session, exclude: string[] = [], pers
   if (personName) {
     const k = normName(personName);
     const kn = knownPrFor(state, { id: "", name: personName } as Person);
-    if (kn && !onPanel.has(kn.name) && !exclude.includes(kn.name) && k)
+    if (kn && !onPanel.has(kn.name) && !exclude.includes(kn.name) && k && availableFor(state, kn.name, s))
       return { name: kn.name, reason: `already looks after ${personName} in “${kn.session.title}” – same face, already in touch` };
   }
   const busy = busyPrsAt(state, s);
   const load = (n: string) => state.people.filter((p) => sessionById(state, p.sid)?.day === s.day && prOf(state, p) === n).length;
-  const cands = prTeam(state).map((m) => m.name).filter((n) => !onPanel.has(n) && !exclude.includes(n));
+  const all = prTeam(state).map((m) => m.name).filter((n) => !onPanel.has(n) && !exclude.includes(n));
+  const cands = all.filter((n) => availableFor(state, n, s)).length ? all.filter((n) => availableFor(state, n, s)) : all;
   const free = cands.filter((n) => !busy.has(n));
   const pool = free.length ? free : cands;
   const pick = [...pool].sort((a, b) => load(a) - load(b))[0];
   if (!pick) return null;
+  const late = availFromOf(memberByName(state, pick), s.day);
+  if (!availableFor(state, pick, s)) return { name: pick, reason: `the only PR left for this panel – but only available from ${late}` };
   const reason = free.length
     ? `not on this panel, free at this time, ${load(pick)} speaker${load(pick) === 1 ? "" : "s"} that day`
     : `not on this panel (everyone is busy at this time – ${pick} also has “${busy.get(pick)}”)`;

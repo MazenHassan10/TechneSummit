@@ -11,7 +11,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { Textarea } from "@great-hall-pr/ui/components/textarea";
 import { cn } from "@great-hall-pr/ui/lib/utils";
 import { Separator } from "@great-hall-pr/ui/components/separator";
-import { Eraser, Flag, Pencil, Repeat, Save, Trash2 } from "lucide-react";
+import { Clock, Eraser, Flag, Pencil, Plus, Repeat, Save, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -267,12 +267,54 @@ function AutoAssign() {
         <li><b>2.</b> Pick the PRs who asked for a specific speaker – open the session and use the PR menu under the speaker.</li>
         <li><b>3.</b> Fill the rest: your picks stay, nobody gets two speakers on one panel, PRs busy with another speaker at that time are skipped, then the PR with the fewest speakers gets the next one (in team order).</li>
       </ol>
+      <Availability />
       <Button variant="destructive" size="lg" className="w-full" disabled={!assigned} onClick={clear}><Eraser />1. Clear all PRs</Button>
       <Button size="lg" className="w-full" disabled={assigned === total} onClick={() => run(false)}><Repeat />3. Fill the rest ({total - assigned})</Button>
       <Separator />
       <Button variant="outline" size="lg" className="w-full" onClick={() => run(true)}>Re-assign the whole day in strict rotation</Button>
       <p className="text-xs text-muted-foreground">Team order: {order}</p>
     </>
+  );
+}
+
+/** "Only from 2 PM" limits for the day – the rotation and Fill the rest respect them. */
+function Availability() {
+  const { state, day, act } = useApp();
+  const [adding, setAdding] = useState(false);
+  const [who, setWho] = useState("");
+  const [from, setFrom] = useState("14:00");
+  if (!state) return null;
+  const team = Core.prTeam(state);
+  const limited = team.map((m) => ({ m, from: Core.availFromOf(m, day) })).filter((x) => x.from);
+  const save = async () => {
+    if (!who || !from) return;
+    const r = await act({ type: "availability", name: who, day, from }, `${who}: speakers from ${hm(Core.dayStart(day, from, state.settings.tz))}`);
+    if (r.ok) { setAdding(false); setWho(""); }
+  };
+  return (
+    <div className="space-y-2 rounded-lg border p-3">
+      <div className="flex items-center justify-between gap-2">
+        <div><div className="text-sm font-semibold">Late arrivals</div><div className="text-xs text-muted-foreground">PRs who can only take speakers from a certain time today (e.g. back from university at 2 PM).</div></div>
+        {!adding && <Button size="icon" variant="outline" onClick={() => setAdding(true)} aria-label="Add a late arrival"><Plus /></Button>}
+      </div>
+      {limited.map(({ m, from: f }) => (
+        <div key={m.name} className="flex items-center gap-2 rounded-md bg-muted/60 px-2.5 py-1.5 text-sm">
+          <Clock className="size-4 text-primary" /><span className="flex-1"><b>{m.name}</b> · from {hm(Core.dayStart(day, f, state.settings.tz))}</span>
+          <Button size="icon-sm" variant="ghost" aria-label={`Remove limit for ${m.name}`} onClick={() => void act({ type: "availability", name: m.name, day, from: "" }, `${m.name} available all day`)}><X /></Button>
+        </div>
+      ))}
+      {adding && (
+        <div className="space-y-2">
+          <Pick value={who || "__none__"} onChange={(v) => setWho(v === "__none__" ? "" : v)} options={[{ value: "__none__", label: "Choose a PR…" }, ...team.map((m) => ({ value: m.name, label: m.name }))]} />
+          <div className="flex gap-2">
+            <Input type="time" value={from} onChange={(e) => setFrom(e.target.value)} className="flex-1" />
+            <Button disabled={!who || !from} onClick={save}>Save</Button>
+            <Button variant="ghost" onClick={() => setAdding(false)}>Cancel</Button>
+          </div>
+          <p className="text-xs text-muted-foreground">They only get speakers who arrive at or after this time (arrival is {state.settings.arriveMin} min before the session). Then press “Fill the rest” or “Re-assign”.</p>
+        </div>
+      )}
+    </div>
   );
 }
 

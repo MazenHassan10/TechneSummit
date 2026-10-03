@@ -13,6 +13,8 @@ export const members = pgTable("members", {
   guest: boolean("guest").notNull().default(false),
   /** "pr" = works speakers in the rotation; "manager" = sees everything like the Team Leader but can't change anything */
   role: text("role").notNull().default("pr"),
+  /** JSON { "2026-10-04": "14:00" } – the rotation gives no speakers who arrive before this time that day */
+  availFrom: text("avail_from").notNull().default("{}"),
   sort: integer("sort").notNull().default(0),
 });
 
