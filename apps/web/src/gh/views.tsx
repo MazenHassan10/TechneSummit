@@ -344,7 +344,7 @@ export function LiveView() {
         <Stat n={c.LATE + c.TAKE_BACKSTAGE} label="Late" hot /><Stat n={c.CALLNOW} label="Call now" hot /><Stat n={openInc.length} label="Issues" hot /><Stat n={clashes + noPr} label="PR problems" hot />
         <Stat n={c.NOTCALLED} label="Not called" /><Stat n={c.CONFIRMED} label="En route" /><Stat n={c.ARRIVED + c.BACKSTAGE} label="Arrived" /><Stat n={c.DONE} label="Done" />
       </div>
-      <div className="grid gap-x-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-x-4 lg:grid-cols-2">
         <div>
           <SectionTitle count={att.length}>Needs attention</SectionTitle>
           {att.length ? (
@@ -359,7 +359,7 @@ export function LiveView() {
                     <div className="min-w-0 flex-1">
                       <div className="font-medium">{p.name}</div>
                       <div className={cn("text-xs font-medium", TONE_TEXT[S.tone])}>{S.label}{p.eta ? ` · ETA ${p.eta}` : ""}</div>
-                      <div className="truncate text-xs text-muted-foreground">{s.title} · PR {prName || "–"}</div>
+                      <div className="line-clamp-2 text-xs text-muted-foreground">{s.title} · PR {prName || "–"}</div>
                     </div>
                     {p.phone && <CallLink phone={p.phone} title="Call speaker" />}
                     {owner?.phone && <CallLink phone={owner.phone} label="PR" title={`Call ${owner.name}`} />}
