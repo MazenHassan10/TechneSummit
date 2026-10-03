@@ -15,7 +15,8 @@ import { dayOf, dur, hm, shortName } from "./format";
 import { ask } from "./confirm";
 import { useApp } from "./store";
 import { SpeakerAvatar, t12, useProfiles, useSummit, venueShort } from "./agenda";
-import { CallLink, Dot, HeadsUp, PrPicker, RotaBadge, TONE_TEXT, useModal, WhatsAppLink } from "./ui";
+import { CallLink, Dot, HeadsUp, PrPicker, RotaBadge, TONE_TEXT, useModal } from "./ui";
+import { SpeakerWhatsApp } from "./wa-reminder";
 
 const FLAG: Record<Core.Readiness["flag"], { text: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   READY: { text: "Ready", variant: "secondary" },
@@ -165,7 +166,7 @@ export function PersonRow({ p, s, manage, hidePr }: { p: Person; s: Session; man
           {hint && <div className="text-xs text-muted-foreground">{hint}</div>}
         </div>
         <div className="flex shrink-0 gap-1.5">
-          {p.phone ? (<><CallLink phone={p.phone} /><WhatsAppLink phone={p.phone} /></>) : me.admin ? (
+          {p.phone ? (<><CallLink phone={p.phone} /><SpeakerWhatsApp p={p} /></>) : me.admin ? (
             <Button variant="outline" size="sm" onClick={() => modal.open({ kind: "person", pid: p.id })}><Plus /> Phone</Button>
           ) : <span className="self-center text-xs text-muted-foreground">No phone yet</span>}
           <Button variant="ghost" size="icon" onClick={() => modal.open({ kind: "person", pid: p.id })} aria-label="More"><Ellipsis /></Button>
@@ -192,12 +193,14 @@ export function PersonRow({ p, s, manage, hidePr }: { p: Person; s: Session; man
           const isNext = !done && k === next;
           return (
             <Button key={k} type="button" variant="outline" disabled={p.noshow && !done} onClick={() => void tap(k, done)}
-              className={cn("h-auto min-h-12 flex-col items-center justify-center gap-0 px-0.5 py-1.5 text-center text-[11px] leading-tight whitespace-normal",
+              title={Core.STEP_LABEL[k]}
+              className={cn("h-auto min-h-12 min-w-0 flex-col items-center justify-center gap-0.5 overflow-hidden px-0.5 py-1.5 text-center text-[10.5px] leading-tight whitespace-normal sm:text-[11px]",
                 done ? "border-st-done/40 bg-st-done/10 font-semibold text-st-done hover:bg-st-done/15 hover:text-st-done"
                   : isNext ? "border-2 border-primary bg-primary/10 font-semibold text-primary hover:bg-primary/15 hover:text-primary"
                     : "text-muted-foreground")}>
-              <span className="flex items-center justify-center gap-0.5">{done && <Check className="size-3" />}{Core.STEP_LABEL[k]}</span>
-              {done ? <span className="text-[10px] font-normal opacity-80">{hm(p[k])}</span> : isNext && <span className="text-[9px] font-medium tracking-wide uppercase opacity-80">tap next</span>}
+              <span className="block w-full truncate tracking-tight">{Core.STEP_LABEL[k]}</span>
+              {done ? <span className="flex items-center justify-center gap-0.5 text-[10px] font-normal whitespace-nowrap opacity-90"><Check className="size-3 shrink-0" />{hm(p[k]).replace(" ", "\u00a0")}</span>
+                : isNext && <span className="text-[9px] font-medium tracking-wide whitespace-nowrap uppercase opacity-80">tap next</span>}
             </Button>
           );
         })}

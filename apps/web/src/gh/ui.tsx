@@ -128,6 +128,7 @@ export type ModalSpec =
   | { kind: "member"; name?: string }
   | { kind: "incident"; sid?: string; pid?: string; note?: string }
   | { kind: "autoAssign" }
+  | { kind: "waReminder"; pid: string }
   | { kind: "agendaChanges" }
   | { kind: "menu" };
 

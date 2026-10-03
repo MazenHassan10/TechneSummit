@@ -17,10 +17,11 @@ import { toast } from "sonner";
 
 import { dayOf, hm, hm24 } from "./format";
 import { useApp } from "./store";
-import { CallLink, TONE_TEXT, useModal, type ModalSpec, WhatsAppLink } from "./ui";
+import { CallLink, TONE_TEXT, useModal, type ModalSpec } from "./ui";
 import { ask } from "./confirm";
 import { dayLabel, LeaderCard, SessionSelect } from "./views";
 import { AgendaChangesDialog, NotificationToggle } from "./agenda-watch";
+import { SpeakerWhatsApp, WaReminder } from "./wa-reminder";
 
 const F = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <div className="space-y-2"><Label>{label}</Label>{children}</div>
@@ -54,6 +55,7 @@ export function Modals({ spec }: { spec: ModalSpec | null }) {
         {spec.kind === "member" && <MemberEdit name={spec.name} />}
         {spec.kind === "incident" && <IncidentForm sid={spec.sid} pid={spec.pid} note={spec.note} />}
         {spec.kind === "autoAssign" && <AutoAssign />}
+        {spec.kind === "waReminder" && <WaReminder pid={spec.pid} />}
         {spec.kind === "agendaChanges" && <AgendaChangesDialog />}
         {spec.kind === "menu" && <Menu />}
       </DialogContent>
@@ -83,7 +85,7 @@ function PersonSheet({ pid }: { pid: string }) {
       {me.admin && <F label="Phone">
         <div className="flex gap-2"><Input type="tel"  value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="01…" /><Button onClick={() => void act({ type: "phone", pid, phone }, "Phone saved")}>Save</Button></div>
       </F>}
-      {p.phone && <div className="flex gap-2"><CallLink phone={p.phone} label={`Call ${p.phone}`} /><WhatsAppLink phone={p.phone} label="WhatsApp" /></div>}
+      {p.phone && <div className="flex gap-2"><CallLink phone={p.phone} label={`Call ${p.phone}`} /><SpeakerWhatsApp p={p} label="WhatsApp" /></div>}
       <F label="ETA they gave you">
         <div className="flex gap-2"><Input  value={eta} onChange={(e) => setEta(e.target.value)} placeholder="e.g. 12:20 / 10 min away" /><Button onClick={() => void act({ type: "eta", pid, text: eta }, "ETA saved")}>Save</Button></div>
       </F>
