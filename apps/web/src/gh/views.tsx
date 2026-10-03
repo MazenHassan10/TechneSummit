@@ -354,17 +354,23 @@ export function LiveView() {
                 const prName = Core.prOf(state, p);
                 const owner = Core.memberByName(state, prName);
                 return (
-                  <Fragment key={p.id}>
-                    <Dot tone={S.tone} /><Time t={s.start} />
-                    <div className="min-w-0 flex-1">
-                      <div className="font-medium">{p.name}</div>
-                      <div className={cn("text-xs font-medium", TONE_TEXT[S.tone])}>{S.label}{p.eta ? ` · ETA ${p.eta}` : ""}</div>
-                      <div className="line-clamp-2 text-xs text-muted-foreground">{s.title} · PR {prName || "–"}</div>
+                  <div key={p.id} className="flex w-full flex-col gap-2">
+                    <div className="flex items-start gap-2">
+                      <span className="mt-1.5"><Dot tone={S.tone} /></span>
+                      <div className="min-w-0 flex-1">
+                        <div className="font-medium leading-snug">{p.name}</div>
+                        <div className={cn("text-xs font-medium", TONE_TEXT[S.tone])}><span className="tabular-nums text-primary">{hm(s.start)}</span> · {S.label}{p.eta ? ` · ETA ${p.eta}` : ""}</div>
+                        <div className="line-clamp-2 text-xs text-muted-foreground">{s.title}</div>
+                      </div>
+                      <Button variant="ghost" size="icon" className="-mr-2 shrink-0" onClick={() => modal.open({ kind: "person", pid: p.id })} aria-label="More"><Ellipsis /></Button>
                     </div>
-                    {p.phone && <CallLink phone={p.phone} title="Call speaker" />}
-                    {owner?.phone && <CallLink phone={owner.phone} label="PR" title={`Call ${owner.name}`} />}
-                    <Button variant="ghost" size="icon" onClick={() => modal.open({ kind: "person", pid: p.id })}><Ellipsis /></Button>
-                  </Fragment>
+                    <div className="flex flex-wrap items-center gap-2 pl-4">
+                      <Badge variant="secondary">PR · {prName || "none"}</Badge>
+                      <span className="flex-1" />
+                      {p.phone && <CallLink phone={p.phone} label="Speaker" title="Call speaker" />}
+                      {owner?.phone && <CallLink phone={owner.phone} label="PR" title={`Call ${owner.name}`} />}
+                    </div>
+                  </div>
                 );
               })}
             </ListCard>
