@@ -58,23 +58,26 @@ function DialogContent({
         )}
         {...props}
       >
-        {children}
+        {/* pinned close button: stays visible when the content scrolls on small phones */}
         {showCloseButton && (
-          <DialogPrimitive.Close
-            data-slot="dialog-close"
-            render={
-              <Button
-                variant="ghost"
-                className="absolute top-2 right-2"
-                size="icon-sm"
+          <div data-slot="dialog-close-pin" className="pointer-events-none sticky top-2 z-20 col-span-full -mb-4 h-0 self-stretch">
+            <DialogPrimitive.Close
+              data-slot="dialog-close"
+              render={
+                <Button
+                  variant="secondary"
+                  className="pointer-events-auto absolute -top-1 -right-2 shadow-sm"
+                  size="icon-sm"
+                />
+              }
+            >
+              <XIcon
               />
-            }
-          >
-            <XIcon
-            />
-            <span className="sr-only">Close</span>
-          </DialogPrimitive.Close>
+              <span className="sr-only">Close</span>
+            </DialogPrimitive.Close>
+          </div>
         )}
+        {children}
       </DialogPrimitive.Popup>
     </DialogPortal>
   )

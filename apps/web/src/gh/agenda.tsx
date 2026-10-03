@@ -22,7 +22,7 @@ import { queryClient, trpc, trpcClient } from "@/utils/trpc";
 
 import { hm, shortName } from "./format";
 import { useApp } from "./store";
-import { CallLink, HeadsUp, WhatsAppLink } from "./ui";
+import { CallLink, HeadsUp, useModal, WhatsAppLink } from "./ui";
 import { DaySwitch } from "./views";
 
 type Profile = {
@@ -58,6 +58,13 @@ function BrandIcon({ type, className }: { type: string; className?: string }) {
 }
 
 const initials = (n: string) => n.replace(/^(Eng\.|Dr\.|H\.E\.?|Mr\.|Ms\.)\s*/i, "").split(/\s+/).map((x) => x[0]).slice(0, 2).join("").toUpperCase();
+
+/** Profile sheet opened from anywhere (Sessions, Live, Great Hall, My speakers, Agenda). */
+export function ProfileModal({ name }: { name: string }) {
+  const profiles = useProfiles();
+  const modal = useModal();
+  return <ProfileSheet name={name} profiles={profiles} onClose={modal.close} />;
+}
 
 export function useProfiles() {
   const q = useQuery({ ...trpc.speakers.list.queryOptions(), staleTime: 2 * 60_000, refetchInterval: 5 * 60_000 });
@@ -124,17 +131,16 @@ export function SpeakerAvatar({ name, photo, size = "default", className }: { na
 export function AgendaView() {
   const { state } = useApp();
   const profiles = useProfiles();
+  const modal = useModal();
   const [mode, setMode] = useState("timeline");
-  const [open, setOpen] = useState<string | null>(null);
   if (!state) return null;
   return (
-    <OpenCtx.Provider value={setOpen}>
+    <OpenCtx.Provider value={(name) => modal.open({ kind: "profile", name })}>
       <DaySwitch />
       <Tabs value={mode} onValueChange={(v) => setMode(String(v))} className="mb-3">
         <TabsList variant="line"><TabsTrigger value="timeline">Timeline</TabsTrigger><TabsTrigger value="speakers">Speakers</TabsTrigger></TabsList>
       </Tabs>
       {mode === "timeline" ? <Timeline profiles={profiles} /> : <Directory profiles={profiles} />}
-      <ProfileSheet name={open} profiles={profiles} onClose={() => setOpen(null)} />
     </OpenCtx.Provider>
   );
 }
@@ -264,7 +270,7 @@ function EditLinks({ profile }: { profile: Profile }) {
   );
 }
 
-function ProfileSheet({ name, profiles, onClose }: { name: string | null; profiles: ReturnType<typeof useProfiles>; onClose: () => void }) {
+export function ProfileSheet({ name, profiles, onClose }: { name: string | null; profiles: ReturnType<typeof useProfiles>; onClose: () => void }) {
   const { state, me } = useApp();
   const summit = useSummit();
   if (!state || !me || !name) return null;
@@ -274,7 +280,7 @@ function ProfileSheet({ name, profiles, onClose }: { name: string | null; profil
   const phone = entries.find((p) => p.phone)?.phone;
   return (
     <Sheet open onOpenChange={(o) => { if (!o) onClose(); }}>
-      <SheetContent side="bottom" className="max-h-[92vh] overflow-y-auto sm:mx-auto sm:max-w-xl">
+      <SheetContent side="bottom" className="max-h-[85vh] overscroll-contain supports-[height:1dvh]:max-h-[88dvh] overflow-y-auto sm:mx-auto sm:max-w-xl">
         <SheetHeader className="items-center text-center">
           <Avatar className="size-40">{prof?.photo && <AvatarImage src={prof.photo} alt={name} />}<AvatarFallback className="text-4xl">{initials(name)}</AvatarFallback></Avatar>
           <SheetTitle className="text-lg">{name}</SheetTitle>

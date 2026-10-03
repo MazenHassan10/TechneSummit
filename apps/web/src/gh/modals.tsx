@@ -22,6 +22,7 @@ import { ask } from "./confirm";
 import { dayLabel, LeaderCard, SessionSelect } from "./views";
 import { AgendaChangesDialog, NotificationToggle } from "./agenda-watch";
 import { SpeakerWhatsApp, WaReminder } from "./wa-reminder";
+import { ProfileModal } from "./agenda";
 
 const F = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <div className="space-y-2"><Label>{label}</Label>{children}</div>
@@ -40,22 +41,24 @@ export function Modals({ spec }: { spec: ModalSpec | null }) {
   const modal = useModal();
   if (!spec) return null;
   const onOpenChange = (o: boolean) => { if (!o) modal.close(); };
+  if (spec.kind === "profile") return <ProfileModal name={spec.name} />;
   if (spec.kind === "person") {
     return (
       <Sheet open onOpenChange={onOpenChange}>
-        <SheetContent side="bottom" className="max-h-[92vh] overflow-y-auto sm:mx-auto sm:max-w-xl"><PersonSheet pid={spec.pid} /></SheetContent>
+        <SheetContent side="bottom" className="max-h-[85vh] overscroll-contain supports-[height:1dvh]:max-h-[88dvh] overflow-y-auto sm:mx-auto sm:max-w-xl"><PersonSheet pid={spec.pid} /></SheetContent>
       </Sheet>
     );
   }
   return (
     <Dialog open onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="max-h-[85vh] overscroll-contain supports-[height:1dvh]:max-h-[88dvh] overflow-y-auto sm:max-w-lg">
         {spec.kind === "personEdit" && <PersonEdit pid={spec.pid} sid={spec.sid} />}
         {spec.kind === "sessionEdit" && <SessionEdit sid={spec.sid} />}
         {spec.kind === "member" && <MemberEdit name={spec.name} />}
         {spec.kind === "incident" && <IncidentForm sid={spec.sid} pid={spec.pid} note={spec.note} />}
         {spec.kind === "autoAssign" && <AutoAssign />}
         {spec.kind === "waReminder" && <WaReminder pid={spec.pid} />}
+        {spec.kind === "adminEdit" && <AdminEdit />}
         {spec.kind === "agendaChanges" && <AgendaChangesDialog />}
         {spec.kind === "menu" && <Menu />}
       </DialogContent>
@@ -90,7 +93,7 @@ function PersonSheet({ pid }: { pid: string }) {
         <div className="flex gap-2"><Input  value={eta} onChange={(e) => setEta(e.target.value)} placeholder="e.g. 12:20 / 10 min away" /><Button onClick={() => void act({ type: "eta", pid, text: eta }, "ETA saved")}>Save</Button></div>
       </F>
       <F label="Notes">
-        <Textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Needs clicker, coming with assistant…" />
+        <Textarea dir="auto" rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Needs clicker, coming with assistant…" />
         <Button variant="outline" size="sm" onClick={() => void act({ type: "note", pid, text: note }, "Note saved")}>Save note</Button>
       </F>
       <div className="flex flex-wrap gap-2">
@@ -187,9 +190,9 @@ function MemberEdit({ name }: { name?: string }) {
   const [phone, setPhone] = useState(m?.phone ?? "");
   const [pin, setPin] = useState(m?.pin ?? "");
   const [guest, setGuest] = useState(m ? m.guest : true);
-  const [role, setRole] = useState<string>(m?.role ?? "pr");
+  const [role, setRole] = useState<string>(m ? Core.roleOf(m) : "pr");
   const save = async () => {
-    const r = await act({ type: "saveMember", origName: name || "", name: nm, phone, pin, guest: role === "manager" ? false : guest, role });
+    const r = await act({ type: "saveMember", origName: name || "", name: nm, phone, pin, guest: role === "guest", role });
     if (r.ok) { const res = r.result as { name: string; pin: string }; toast.success(`${name ? "Saved" : "Added"} ${res.name} – PIN ${res.pin}`); modal.close(); }
   };
   return (
@@ -201,10 +204,8 @@ function MemberEdit({ name }: { name?: string }) {
       <F label="Name (shown on login screen)"><Input  value={nm} onChange={(e) => setNm(e.target.value)} placeholder="e.g. Omar Adel" /></F>
       <F label="Phone"><Input type="tel"  value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="01…" /></F>
       <F label="PIN (4–8 digits – leave empty to auto-create)"><Input inputMode="numeric" maxLength={8}  value={pin} onChange={(e) => setPin(e.target.value)} /></F>
-      <F label="Role"><Pick value={role} onChange={setRole} options={[{ value: "pr", label: "PR (in the rotation)" }, { value: "manager", label: "Manager (view only)" }]} /></F>
-      {role === "manager"
-        ? <p className="text-xs text-muted-foreground">Managers see the dashboard, sessions, agenda, team and issues like you, but every button that changes something is off. They are never given speakers.</p>
-        : <label className="flex items-center gap-2 text-sm"><Checkbox checked={guest} onCheckedChange={(v) => setGuest(!!v)} /> Guest (helping for a few sessions)</label>}
+      <F label="Role"><Pick value={role} onChange={setRole} options={[{ value: "pr", label: "PR (in the rotation)" }, { value: "guest", label: "Guest (assigned by hand only)" }, { value: "manager", label: "Manager (view only)" }]} /></F>
+      <p className="text-xs text-muted-foreground">{role === "manager" ? "Sees the dashboard, sessions, agenda, team and issues like you, but every button that changes something is off. Never given speakers." : role === "guest" ? "Never given speakers automatically – only when you pick them in a speaker's PR menu." : "Gets speakers from “Assign PRs” / “Fill the rest” in team order."}</p>
       <Button className="w-full" size="lg" onClick={save}>{name ? "Save" : "Add to team"}</Button>
       {name && (
         <Button variant="destructive" size="lg" className="w-full" onClick={async () => {
@@ -278,6 +279,28 @@ function AutoAssign() {
 }
 
 /** "Only from 2 PM" limits for the day – the rotation and Fill the rest respect them. */
+/** The Team Leader's own name, phone (shown to every PR) and PIN. */
+function AdminEdit() {
+  const { state, act } = useApp();
+  const modal = useModal();
+  const [nm, setNm] = useState(state?.settings.adminName ?? "");
+  const [phone, setPhone] = useState(state?.settings.adminPhone ?? "");
+  const [pin, setPin] = useState(state?.settings.adminPin ?? "");
+  const save = async () => { const r = await act({ type: "saveAdmin", name: nm, phone, pin }, "Your details are saved"); if (r.ok) modal.close(); };
+  return (
+    <>
+      <DialogHeader>
+        <DialogTitle>My details (Team Leader)</DialogTitle>
+        <DialogDescription>Your phone is shown to every PR on “Contacts” and “Call Team Leader”. You log in with “Team Leader (admin)” + this PIN.</DialogDescription>
+      </DialogHeader>
+      <F label="Name"><Input value={nm} onChange={(e) => setNm(e.target.value)} /></F>
+      <F label="Phone"><Input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="01…" /></F>
+      <F label="Admin PIN (4–8 digits)"><Input inputMode="numeric" maxLength={8} value={pin} onChange={(e) => setPin(e.target.value)} /></F>
+      <Button className="w-full" size="lg" onClick={save}>Save</Button>
+    </>
+  );
+}
+
 function Availability() {
   const { state, day, act } = useApp();
   const [adding, setAdding] = useState(false);

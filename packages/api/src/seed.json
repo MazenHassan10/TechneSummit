@@ -4,7 +4,7 @@
   "day2": "2026-10-04",
   "tz": "+03:00",
   "tzName": "Africa/Cairo",
-  "call1Hours": 24,
+  "call1Hours": 3,
   "call2Hours": 2,
   "arriveMin": 45,
   "backstageMin": 15,

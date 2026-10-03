@@ -125,7 +125,7 @@ export function RotaBadge({ code }: { code: Core.RotaCode }) {
 export function prOptions(state: Core.State, none: string, noneValue = NONE) {
   return [
     { value: noneValue, label: none },
-    ...Core.prTeam(state).map((m) => ({ value: m.name, label: m.name })),
+    ...Core.assignableTeam(state).map((m) => ({ value: m.name, label: Core.roleOf(m) === "guest" ? `${m.name} (guest)` : m.name })),
     ...(state.settings.adminName ? [{ value: state.settings.adminName, label: `${state.settings.adminName} (Team Leader)` }] : []),
   ];
 }
@@ -139,6 +139,8 @@ export type ModalSpec =
   | { kind: "incident"; sid?: string; pid?: string; note?: string }
   | { kind: "autoAssign" }
   | { kind: "waReminder"; pid: string }
+  | { kind: "profile"; name: string }
+  | { kind: "adminEdit" }
   | { kind: "agendaChanges" }
   | { kind: "menu" };
 

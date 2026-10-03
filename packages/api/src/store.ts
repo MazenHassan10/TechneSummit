@@ -79,6 +79,16 @@ export async function persist(db: Database, before: State, after: State, dirty: 
   // biome-ignore lint/suspicious/noExplicitAny: heterogeneous drizzle queries in one batch
   const queries: any[] = [];
   for (const name of new Set(dirty)) {
+    if (name === "settings") {
+      // key/value rows: write only the keys that changed
+      const b = before.settings as unknown as Row, a = after.settings as unknown as Row;
+      for (const k of Object.keys(a)) {
+        if (JSON.stringify(a[k]) === JSON.stringify(b[k]) || a[k] === undefined) continue;
+        const value = String(a[k]);
+        queries.push(db.insert(settings).values({ key: k, value }).onConflictDoUpdate({ target: settings.key, set: { value } }));
+      }
+      continue;
+    }
     const { table, key } = TABLES[name];
     const hasSort = name === "team" || name === "people";
     const prev = new Map((before[name] as unknown as Row[]).map((r, i) => [r[key] as string, { row: r, json: JSON.stringify(r), idx: i }]));

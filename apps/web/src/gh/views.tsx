@@ -262,7 +262,7 @@ export function RotaBoard() {
   for (let x = from; x < to; x += 900000) slots.push(x);
   const nowIdx = slots.findIndex((s) => t >= s && t < s + 900000);
   const free = slots.map(() => 0);
-  const rows = Core.prTeam(state).map((m) => ({ m, cells: slots.map((s, i) => { const v = Core.prStateAt(state, m.name, s + 1000, day); if (!v) free[i]!++; return v; }) }));
+  const rows = Core.assignableTeam(state).map((m) => ({ m, cells: slots.map((s, i) => { const v = Core.prStateAt(state, m.name, s + 1000, day); if (!v) free[i]!++; return v; }) }));
   const cellCls = (v: string) => (v === "S" ? "bg-primary" : "");
   const nowCls = "shadow-[inset_2px_0_0_var(--color-orange),inset_-2px_0_0_var(--color-orange)]";
   return (
@@ -358,9 +358,10 @@ export function LiveView() {
                     <div className="flex items-start gap-2">
                       <span className="mt-1.5"><Dot tone={S.tone} /></span>
                       <div className="min-w-0 flex-1">
-                        <div className="font-medium leading-snug">{p.name}</div>
+                        <button type="button" onClick={() => modal.open({ kind: "profile", name: p.name })} className="text-left font-medium leading-snug hover:underline">{p.name}</button>
                         <div className={cn("text-xs font-medium", TONE_TEXT[S.tone])}><span className="tabular-nums text-primary">{hm(s.start)}</span> · {S.label}{p.eta ? ` · ETA ${p.eta}` : ""}</div>
                         <div className="line-clamp-2 text-xs text-muted-foreground">{s.title}</div>
+                        {p.notes && <p dir="auto" className="mt-1 rounded bg-muted/70 px-2 py-1 text-xs"><b className="font-semibold">Note:</b> {p.notes}{p.noteAt ? ` (${hm(p.noteAt)})` : ""}</p>}
                       </div>
                       {me?.admin && <Button variant="ghost" size="icon" className="-mr-2 shrink-0" onClick={() => modal.open({ kind: "person", pid: p.id })} aria-label="More"><Ellipsis /></Button>}
                     </div>
@@ -383,7 +384,7 @@ export function LiveView() {
           {upcoming.length ? upcoming.map((s) => <SessionCard key={s.id} s={s} manage />) : <Empty>No more sessions today.</Empty>}
           <SectionTitle>Team {today ? "right now" : ""}</SectionTitle>
           <ListCard>
-            {Core.prTeam(state).map((m) => {
+            {Core.assignableTeam(state).map((m) => {
               const cur = today ? Core.prCurrentSession(state, m.name, t) : null;
               const n = state.people.filter((p) => Core.sessionById(state, p.sid)?.day === day && Core.prOf(state, p) === m.name).length;
               const label = cur ? `On duty · ${cur.title}` : today ? `Free · ${n} speakers today` : `${n} speakers`;
@@ -430,6 +431,12 @@ export function SessionsView() {
   );
 }
 
+function RoleBadge({ role }: { role: Core.MemberRole | "admin" }) {
+  const map = { admin: ["Admin", "default"], pr: ["PR", "secondary"], guest: ["Guest", "outline"], manager: ["Manager", "outline"] } as const;
+  const [label, variant] = map[role];
+  return <Badge variant={variant}>{label}</Badge>;
+}
+
 export function TeamAdminView() {
   const { state, day, me } = useApp();
   const modal = useModal();
@@ -441,11 +448,19 @@ export function TeamAdminView() {
       <Card className="mt-4">
         <CardHeader>
           <CardTitle>Team · {dayLabel(state, day)}</CardTitle>
-          <CardDescription>{Core.prTeam(state).length} PRs · rotation goes in this order{state.team.length > Core.prTeam(state).length ? ` · ${state.team.length - Core.prTeam(state).length} manager(s), not in the rotation` : ""}.{me?.admin && <> Admin PIN: <code className="rounded bg-muted px-1.5 py-0.5">{state.settings.adminPin}</code></>}</CardDescription>
+          <CardDescription>{Core.prTeam(state).length} PRs · rotation goes in this order{state.team.length > Core.prTeam(state).length ? ` · ${state.team.length - Core.prTeam(state).length} manager(s), not in the rotation` : ""}. Guests are only given speakers by hand; managers can view only.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           {me?.admin && <Button onClick={() => modal.open({ kind: "member" })}><UserPlus /> Add member</Button>}
           <div className="divide-y md:hidden">
+            <div className="flex items-center gap-3 py-3">
+              <span className="w-5 shrink-0" />
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-1.5 font-medium">{state.settings.adminName}<RoleBadge role="admin" /></div>
+                <div className="text-xs text-muted-foreground tabular-nums">{state.settings.adminPhone || "No phone"}{me?.admin && <> · PIN <code className="rounded bg-muted px-1">{state.settings.adminPin}</code></>}</div>
+              </div>
+              {me?.admin && <Button variant="ghost" size="icon" onClick={() => modal.open({ kind: "adminEdit" })} aria-label="Edit my details"><Pencil /></Button>}
+            </div>
             {state.team.map((m, idx) => {
               const mp = state.people.filter((p) => Core.sessionById(state, p.sid)?.day === day && Core.prOf(state, p) === m.name);
               const clash = mp.some((p) => Core.personRota(state, p) === "SAME_PANEL");
@@ -453,7 +468,7 @@ export function TeamAdminView() {
                 <div key={m.name} className="flex items-center gap-3 py-3">
                   <span className="w-5 shrink-0 text-sm text-muted-foreground tabular-nums">{idx + 1}</span>
                   <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-1.5 font-medium">{m.name}{m.role === "manager" ? <Badge>Manager</Badge> : m.guest && <Badge variant="outline">Guest</Badge>}{Core.availFromOf(m, day) && <Badge variant="secondary">from {hm(Core.dayStart(day, Core.availFromOf(m, day), state.settings.tz))}</Badge>}{clash && <Badge variant="destructive">2 on a panel</Badge>}</div>
+                    <div className="flex flex-wrap items-center gap-1.5 font-medium">{m.name}<RoleBadge role={Core.roleOf(m)} />{Core.availFromOf(m, day) && <Badge variant="secondary">from {hm(Core.dayStart(day, Core.availFromOf(m, day), state.settings.tz))}</Badge>}{clash && <Badge variant="destructive">2 on a panel</Badge>}</div>
                     <div className="text-xs text-muted-foreground tabular-nums">{m.phone || "No phone"} · {mp.length} speaker{mp.length === 1 ? "" : "s"}{me?.admin && <> · PIN <code className="rounded bg-muted px-1">{m.pin}</code></>}</div>
                   </div>
                   {m.phone && <><CallLink phone={m.phone} title={`Call ${m.name}`} /><WhatsAppLink phone={m.phone} /></>}
@@ -465,16 +480,26 @@ export function TeamAdminView() {
           <div className="hidden md:block">
           <Table>
             <TableHeader>
-              <TableRow><TableHead>Order</TableHead><TableHead>Name</TableHead><TableHead>Phone</TableHead><TableHead>Speakers</TableHead><TableHead>PIN</TableHead><TableHead /></TableRow>
+              <TableRow><TableHead>Order</TableHead><TableHead>Name</TableHead><TableHead>Role</TableHead><TableHead>Phone</TableHead><TableHead>Speakers</TableHead><TableHead>PIN</TableHead><TableHead /></TableRow>
             </TableHeader>
             <TableBody>
+              <TableRow>
+                <TableCell />
+                <TableCell className="font-medium">{state.settings.adminName}</TableCell>
+                <TableCell><RoleBadge role="admin" /></TableCell>
+                <TableCell className="tabular-nums">{state.settings.adminPhone || "–"}</TableCell>
+                <TableCell>–</TableCell>
+                <TableCell>{me?.admin && <code className="rounded bg-muted px-1.5 py-0.5">{state.settings.adminPin}</code>}</TableCell>
+                <TableCell className="text-right">{me?.admin && <Button variant="outline" size="sm" onClick={() => modal.open({ kind: "adminEdit" })}><Pencil /> Edit</Button>}</TableCell>
+              </TableRow>
               {state.team.map((m, idx) => {
                 const mp = state.people.filter((p) => Core.sessionById(state, p.sid)?.day === day && Core.prOf(state, p) === m.name);
                 const clash = mp.some((p) => Core.personRota(state, p) === "SAME_PANEL");
                 return (
                   <TableRow key={m.name}>
                     <TableCell className="text-muted-foreground tabular-nums">{idx + 1}</TableCell>
-                    <TableCell className="font-medium"><div className="flex items-center gap-1.5">{m.name}{m.role === "manager" ? <Badge>Manager</Badge> : m.guest && <Badge variant="outline">Guest</Badge>}{Core.availFromOf(m, day) && <Badge variant="secondary">from {hm(Core.dayStart(day, Core.availFromOf(m, day), state.settings.tz))}</Badge>}{clash && <Badge variant="destructive">2 on a panel</Badge>}</div></TableCell>
+                    <TableCell className="font-medium"><div className="flex items-center gap-1.5">{m.name}{Core.availFromOf(m, day) && <Badge variant="secondary">from {hm(Core.dayStart(day, Core.availFromOf(m, day), state.settings.tz))}</Badge>}{clash && <Badge variant="destructive">2 on a panel</Badge>}</div></TableCell>
+                    <TableCell><RoleBadge role={Core.roleOf(m)} /></TableCell>
                     <TableCell className="tabular-nums">{m.phone ? <div className="flex items-center gap-1.5">{m.phone}<CallLink phone={m.phone} title={`Call ${m.name}`} /><WhatsAppLink phone={m.phone} /></div> : "–"}</TableCell>
                     <TableCell>{mp.length}</TableCell>
                     <TableCell><code className="rounded bg-muted px-1.5 py-0.5">{m.pin}</code></TableCell>

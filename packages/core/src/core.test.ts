@@ -294,3 +294,25 @@ test('a PR available only from 2 PM gets no earlier speakers (rotation, fill and
   Core.apply(st, { type: 'availability', name: 'Karim Hamed', day, from: '' }, { name: 'TL', admin: true }, 0);
   assert.strictEqual(Core.availFromOf(Core.memberByName(st, 'Karim Hamed'), day), '');
 });
+test('guests are only assigned by hand', () => {
+  const st = clone(SEED);
+  st.team.push({ name: 'Guest Gigi', fullName: '', phone: '', pin: '1111', lunch1: '', lunch2: '', guest: true, role: 'guest' });
+  Core.autoAssign(st, null, false);
+  assert.ok(st.people.every((p) => p.pr !== 'Guest Gigi'));
+  const p = st.people[0];
+  assert.ok(Core.apply(st, { type: 'assign', pid: p.id, pr: 'Guest Gigi' }, { name: 'TL', admin: true }, 0).ok);
+  Core.autoAssign(st, Core.sessionById(st, p.sid).day, true);
+  assert.strictEqual(p.pr, 'Guest Gigi'); // hand pick kept by Fill the rest
+});
+test('Team Leader can edit their own name, phone and PIN; hand-picked speakers follow a rename', () => {
+  const st = clone(SEED); st.settings.adminName = 'Mazen Hassan';
+  const p = st.people[0];
+  Core.apply(st, { type: 'assign', pid: p.id, pr: 'Mazen Hassan' }, { name: 'Mazen Hassan', admin: true }, 0);
+  const r = Core.apply(st, { type: 'saveAdmin', name: 'Mazen H.', phone: '+20 100 000 0000', pin: '4455' }, { name: 'Mazen Hassan', admin: true }, 0);
+  assert.ok(r.ok); assert.ok(r.dirty.includes('settings'));
+  assert.strictEqual(st.settings.adminName, 'Mazen H.'); assert.strictEqual(st.settings.adminPin, '4455'); assert.strictEqual(st.settings.adminPhone, '01000000000');
+  assert.strictEqual(p.pr, 'Mazen H.');
+  assert.strictEqual(Core.apply(st, { type: 'saveAdmin', name: 'Karim Hamed', phone: '', pin: '4455' }, { name: 'x', admin: true }, 0).ok, false);
+  assert.strictEqual(Core.apply(st, { type: 'saveAdmin', name: 'X', phone: '', pin: '12' }, { name: 'x', admin: true }, 0).ok, false);
+  assert.strictEqual(Core.apply(st, { type: 'saveAdmin', name: 'X', phone: '', pin: '1234' }, { name: 'Karim Hamed', admin: false }, 0).ok, false);
+});

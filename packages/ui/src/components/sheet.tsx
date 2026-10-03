@@ -58,23 +58,26 @@ function SheetContent({
         )}
         {...props}
       >
-        {children}
+        {/* pinned close button: stays visible when the content scrolls on small phones */}
         {showCloseButton && (
-          <SheetPrimitive.Close
-            data-slot="sheet-close"
-            render={
-              <Button
-                variant="ghost"
-                className="absolute top-3 right-3"
-                size="icon-sm"
+          <div data-slot="sheet-close-pin" className="pointer-events-none sticky top-0 z-20 col-span-full -mb-4 h-0 self-stretch">
+            <SheetPrimitive.Close
+              data-slot="sheet-close"
+              render={
+                <Button
+                  variant="secondary"
+                  className="pointer-events-auto absolute top-3 right-3 shadow-sm"
+                  size="icon-sm"
+                />
+              }
+            >
+              <XIcon
               />
-            }
-          >
-            <XIcon
-            />
-            <span className="sr-only">Close</span>
-          </SheetPrimitive.Close>
+              <span className="sr-only">Close</span>
+            </SheetPrimitive.Close>
+          </div>
         )}
+        {children}
       </SheetPrimitive.Popup>
     </SheetPortal>
   )

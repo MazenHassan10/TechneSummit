@@ -73,8 +73,8 @@ export type AgendaChange = {
 };
 export type Member = {
   name: string; fullName: string; phone: string; pin: string; lunch1: string; lunch2: string; guest: boolean;
-  /** "pr" (default) works speakers; "manager" sees everything like the Team Leader but can't change anything */
-  role?: "pr" | "manager";
+  /** "pr" (default) is in the rotation; "guest" gets speakers by hand only; "manager" sees everything but can't change anything */
+  role?: "pr" | "guest" | "manager";
   /** JSON { day: "HH:MM" } – not available for speakers arriving before this time that day */
   availFrom?: string;
 };
@@ -85,6 +85,8 @@ export type Person = {
   noshow: boolean; notes: string; updatedBy: string; updatedAt: number | null;
   /** heads-up from the Team Leader about reaching this speaker */
   alert?: string;
+  /** when the PR's note was last saved */
+  noteAt?: number | null;
 };
 export type Incident = {
   id: string; ts: number; by: string; sid: string; pid: string; kind: string; note: string;
@@ -103,7 +105,7 @@ export type State = {
   _newLog?: LogEntry[];
 };
 export type Actor = { name: string; admin: boolean; manager?: boolean };
-export type Table = "team" | "sessions" | "people" | "incidents";
+export type Table = "team" | "sessions" | "people" | "incidents" | "settings";
 export type RotaCode = "OK" | "NO_PR" | "UNKNOWN_PR" | "SAME_PANEL";
 
 // Actions are validated here (not by the transport), so every field is optional/loose.
@@ -160,10 +162,15 @@ export function availableFor(state: State, name: string, s: Session): boolean {
   const from = availFromOf(memberByName(state, name), s.day);
   return !from || busyWindow(s, state.settings)[0] >= dayStart(s.day, from, state.settings.tz);
 }
-/** The PRs who work speakers (managers are not in the rotation). */
-export const prTeam = (state: State) => state.team.filter((m) => (m.role ?? "pr") !== "manager");
-/** Can be picked as a speaker's PR: a PR team member, or the Team Leader (picked by hand only – never by the rotation). */
-export const isAssignable = (state: State, name: string) => !!name && (prTeam(state).some((m) => m.name === name) || name === state.settings.adminName);
+export type MemberRole = "pr" | "guest" | "manager";
+/** Older rows only had the guest tick-box. */
+export const roleOf = (m: Member): MemberRole => (m.role === "manager" ? "manager" : m.role === "guest" || m.guest ? "guest" : "pr");
+/** The PRs in the rotation – guests and managers are never given speakers automatically. */
+export const prTeam = (state: State) => state.team.filter((m) => roleOf(m) === "pr");
+/** Everyone who can look after speakers when picked by hand (PRs + guests). */
+export const assignableTeam = (state: State) => state.team.filter((m) => roleOf(m) !== "manager");
+/** Can be picked as a speaker's PR: a PR or guest, or the Team Leader (picked by hand only – never by the rotation). */
+export const isAssignable = (state: State, name: string) => !!name && (assignableTeam(state).some((m) => m.name === name) || name === state.settings.adminName);
 /**
  * The PR already looking after this same person in another session (they've called them and know their face).
  * Team Leader picks are not carried over – the Team Leader is never assigned automatically.
@@ -449,7 +456,7 @@ function addLog(state: State, by: string, text: string, now: number) {
   state._newLog = [...(state._newLog || []), e];
 }
 
-const ADMIN_ONLY = new Set(["assign", "phone", "autoAssign", "clearPrs", "availability", "owner", "importPhones", "savePerson", "deletePerson", "saveSession", "deleteSession", "saveMember", "removeMember", "pin", "settings"]);
+const ADMIN_ONLY = new Set(["assign", "phone", "autoAssign", "clearPrs", "availability", "saveAdmin", "owner", "importPhones", "savePerson", "deletePerson", "saveSession", "deleteSession", "saveMember", "removeMember", "pin", "settings"]);
 const str = (v: unknown) => (v == null ? "" : String(v));
 const isHHMM = (v: unknown) => /^\d{1,2}:\d{2}$/.test(str(v));
 const pad5 = (v: unknown) => ("0" + str(v)).slice(-5);
@@ -499,9 +506,10 @@ export function apply(state: State, a: Action, actor: Actor, now: number): Apply
       }
       case "note": {
         const { p } = needP();
-        p.notes = str(a.text).slice(0, 500);
+        p.notes = str(a.text).trim().slice(0, 500);
+        p.noteAt = p.notes ? now : null;
         touch(p); dirty.push("people");
-        addLog(state, by, `Note on ${p.name}: ${p.notes}`, now);
+        addLog(state, by, p.notes ? `Note on ${p.name}: ${p.notes}` : `Note cleared – ${p.name}`, now);
         break;
       }
       case "phone": {
@@ -687,13 +695,14 @@ export function apply(state: State, a: Action, actor: Actor, now: number): Apply
         const wasNew = !a.origName;
         mem.name = nm; mem.phone = normPhone(a.phone); mem.pin = pinv; mem.guest = !!a.guest;
         if (a.role !== undefined) {
-          mem.role = a.role === "manager" ? "manager" : "pr";
+          mem.role = a.role === "manager" ? "manager" : a.role === "guest" ? "guest" : "pr";
+          mem.guest = mem.role === "guest";
           // a manager isn't in the rotation – free up any speakers they had
           if (mem.role === "manager") for (const x of state.people) if (x.pr === nm) { x.pr = ""; if (!dirty.includes("people")) dirty.push("people"); }
         }
         if (a.fullName !== undefined) mem.fullName = str(a.fullName);
         dirty.push("team");
-        addLog(state, by, `${wasNew ? "Added team member " : "Updated team member "}${nm}${mem.role === "manager" ? " (manager)" : mem.guest ? " (guest)" : ""}`, now);
+        addLog(state, by, `${wasNew ? "Added team member " : "Updated team member "}${nm}${roleOf(mem) === "pr" ? "" : ` (${roleOf(mem)})`}`, now);
         return { ok: true, dirty, result: { name: nm, pin: pinv } };
       }
       case "availability": {
@@ -708,6 +717,25 @@ export function apply(state: State, a: Action, actor: Actor, now: number): Apply
         am.availFrom = JSON.stringify(map);
         dirty.push("team");
         addLog(state, by, from ? `${am.name} available for speakers from ${from} on ${day}` : `${am.name} available all day on ${day}`, now);
+        break;
+      }
+      case "saveAdmin": {
+        const nm = str(a.name).trim().replace(/\s+/g, " ");
+        if (!nm) throw new Error("Name is required");
+        if (memberByName(state, nm)) throw new Error(`"${nm}" is already a team member's name`);
+        const pinv = str(a.pin).trim();
+        if (!/^\d{4,8}$/.test(pinv)) throw new Error("PIN must be 4–8 digits");
+        const old = state.settings.adminName;
+        if (old && old !== nm) {
+          // speakers hand-picked for the Team Leader follow the new name
+          for (const x of state.people) if (x.pr === old) { x.pr = nm; if (!dirty.includes("people")) dirty.push("people"); }
+          for (const x of state.sessions) if (x.owner === old) { x.owner = nm; if (!dirty.includes("sessions")) dirty.push("sessions"); }
+        }
+        state.settings.adminName = nm;
+        state.settings.adminPhone = normPhone(a.phone);
+        state.settings.adminPin = pinv;
+        dirty.push("settings");
+        addLog(state, by, `Team Leader details updated`, now);
         break;
       }
       case "removeMember": {

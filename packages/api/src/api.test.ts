@@ -164,6 +164,18 @@ t("Team Leader can be picked as a speaker's PR by hand", async () => {
   expect(res.result).toBe("OK");
 });
 
+t("Team Leader details are saved to the database", async () => {
+  const r0 = await caller(admin).state.get({});
+  if (r0.unchanged) throw new Error();
+  const keep = { name: r0.state.settings.adminName, phone: r0.state.settings.adminPhone ?? "", pin: r0.state.settings.adminPin };
+  const res = await caller(admin).state.act({ action: { type: "saveAdmin", name: keep.name, phone: "01000000099", pin: keep.pin } });
+  expect(res.ok).toBe(true);
+  const fresh = await caller(admin).state.get({});
+  if (fresh.unchanged) throw new Error();
+  expect(fresh.state.settings.adminPhone).toBe("01000000099");
+  await caller(admin).state.act({ action: { type: "saveAdmin", ...keep } });
+});
+
 t("PR cannot do admin actions", async () => {
   const r = await caller(karim).state.act({ action: { type: "autoAssign", day: "2026-10-03" } });
   expect(r.ok).toBe(false);

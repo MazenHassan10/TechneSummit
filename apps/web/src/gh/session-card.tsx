@@ -16,6 +16,7 @@ import { ask } from "./confirm";
 import { useApp } from "./store";
 import { SpeakerAvatar, t12, useProfiles, useSummit, venueShort } from "./agenda";
 import { CallLink, Dot, HeadsUp, PrPicker, RotaBadge, TONE_TEXT, useModal, WhatsAppLink } from "./ui";
+import { PrNote } from "./pr-note";
 import { SpeakerWhatsApp } from "./wa-reminder";
 
 const FLAG: Record<Core.Readiness["flag"], { text: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -100,15 +101,16 @@ export function SessionCard({ s, manage, onlyPr, openDefault }: { s: Session; ma
 /** Someone else's speaker on the same panel – picture, name and their PR only. */
 function PanelMate({ p }: { p: Person }) {
   const { state } = useApp();
+  const modal = useModal();
   const profiles = useProfiles();
   if (!state) return null;
   const pr = Core.prOf(state, p);
   return (
-    <div className="flex flex-col items-center gap-1.5 text-center">
+    <button type="button" onClick={() => modal.open({ kind: "profile", name: p.name })} className="flex flex-col items-center gap-1.5 rounded-lg p-1 text-center transition-colors hover:bg-muted/60">
       <SpeakerAvatar name={p.name} photo={profiles.get(p.name)?.photo} className="size-20" />
       <div className="text-sm leading-tight font-medium">{p.name}</div>
       <div className="text-xs leading-tight text-muted-foreground">{p.role !== "Speaker" ? `${p.role} · ` : ""}PR {pr ? shortName(pr) : "–"}</div>
-    </div>
+    </button>
   );
 }
 
@@ -133,7 +135,6 @@ export function PersonRow({ p, s, manage, hidePr }: { p: Person; s: Session; man
   else if (code === "TAKE_BACKSTAGE") hint = `Backstage was due ${hm(d.backstageBy)}`;
   else if (code === "BACKSTAGE") hint = `Backstage since ${hm(p.backstage)}`;
   else if (code === "DONE") hint = `On stage ${hm(p.onstage)}`;
-  if (p.notes) hint += ` · ${p.notes}`;
 
   const tap = async (k: Core.Step, done: boolean) => {
     if (done && !(await ask({ title: `Undo “${Core.STEP_LABEL[k]}” for ${p.name}?`, description: `This clears the time it was ticked (${hm(p[k])}).`, confirmLabel: "Undo", destructive: true }))) return;
@@ -148,9 +149,10 @@ export function PersonRow({ p, s, manage, hidePr }: { p: Person; s: Session; man
   if (!me.admin && !me.manager && prName !== me.name) {
     return (
       <div className="flex items-center gap-3 px-(--card-spacing) py-3">
-        <SpeakerAvatar name={p.name} photo={profiles.get(p.name)?.photo} className="size-16" />
+        <button type="button" onClick={() => modal.open({ kind: "profile", name: p.name })} className="shrink-0 rounded-full" aria-label={`Open ${p.name}'s profile`}><SpeakerAvatar name={p.name} photo={profiles.get(p.name)?.photo} className="size-16" /></button>
         <div className="min-w-0 flex-1">
-          <div className="font-medium">{p.name}{p.role && p.role !== "Speaker" && <span className="text-muted-foreground"> · {p.role}</span>}</div>
+          <button type="button" onClick={() => modal.open({ kind: "profile", name: p.name })} className="text-left font-medium hover:underline">{p.name}</button>
+          {p.role && p.role !== "Speaker" && <span className="text-sm text-muted-foreground"> · {p.role}</span>}
           {!hidePr && <Badge variant="secondary" className="mt-1">PR · {prName || "none yet"}</Badge>}
         </div>
       </div>
@@ -160,12 +162,12 @@ export function PersonRow({ p, s, manage, hidePr }: { p: Person; s: Session; man
   return (
     <div className="space-y-2.5 px-(--card-spacing) py-3">
       <div className="flex items-start gap-2.5">
-        <div className="relative shrink-0">
+        <button type="button" onClick={() => modal.open({ kind: "profile", name: p.name })} className="relative shrink-0 rounded-full" aria-label={`Open ${p.name}'s profile`}>
           <SpeakerAvatar name={p.name} photo={profiles.get(p.name)?.photo} className="size-16" />
           <span className="absolute -right-0.5 -bottom-0.5 rounded-full ring-2 ring-card"><Dot tone={S.tone} /></span>
-        </div>
+        </button>
         <div className="min-w-0 flex-1">
-          <div className="font-medium">{p.name}{p.role && p.role !== "Speaker" && <span className="text-muted-foreground"> · {p.role}</span>}</div>
+          <div><button type="button" onClick={() => modal.open({ kind: "profile", name: p.name })} className="text-left font-medium hover:underline">{p.name}</button>{p.role && p.role !== "Speaker" && <span className="text-muted-foreground"> · {p.role}</span>}</div>
           <div className={cn("text-xs font-medium", TONE_TEXT[S.tone])}>{S.label}</div>
           {hint && <div className="text-xs text-muted-foreground">{hint}</div>}
         </div>
@@ -177,6 +179,7 @@ export function PersonRow({ p, s, manage, hidePr }: { p: Person; s: Session; man
         </div>
       </div>
       <HeadsUp text={p.alert} />
+      <PrNote p={p} canEdit={!viewOnly} />
       {(() => {
         const other = summit.elsewhere(p.name).filter((x) => x.day === s.day);
         return other.length > 0 && (

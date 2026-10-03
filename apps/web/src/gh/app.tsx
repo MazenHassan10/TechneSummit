@@ -8,7 +8,7 @@ import { cn } from "@great-hall-pr/ui/lib/utils";
 import { Badge } from "@great-hall-pr/ui/components/badge";
 import { useQuery } from "@tanstack/react-query";
 import { BookUser, CalendarClock, CalendarDays, ClipboardList, Contact, Landmark, MoreHorizontal, Radio, Star, TriangleAlert, Users } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { trpc } from "@/utils/trpc";
 
@@ -137,6 +137,17 @@ function Shell() {
   useTick(1000);
   const tabs = me?.admin ? ADMIN_TABS : me?.manager ? MANAGER_TABS() : PR_TABS;
   const [tab, setTab] = useState(tabs[0]!.key);
+  // the side menu (laptop) sits right under the header – measure its real height so nothing hides behind it
+  const headerRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const set = () => document.documentElement.style.setProperty("--toph", `${el.getBoundingClientRect().height}px`);
+    set();
+    const ro = new ResizeObserver(set);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   useEffect(() => { if (!tabs.some((x) => x.key === tab)) setTab(tabs[0]!.key); }, [tabs, tab]);
   if (!me || !state) return null;
   const View = (tabs.find((x) => x.key === tab) ?? tabs[0]!).view;
@@ -146,7 +157,7 @@ function Shell() {
     <ModalCtx.Consumer>
       {(modal) => (
         <div className="min-h-svh">
-          <header className="sticky top-0 z-30 flex items-center gap-2 bg-primary px-3 py-2 text-primary-foreground shadow-sm sm:gap-3 sm:px-4 sm:py-2.5">
+          <header ref={headerRef} className="sticky top-0 z-30 flex items-center gap-2 bg-primary px-3 py-2 text-primary-foreground shadow-sm sm:gap-3 sm:px-4 sm:py-2.5">
             <div className="flex shrink-0 items-center gap-2"><Logo className="size-9 sm:size-10" /><div><Wordmark /><div className="mt-0.5 text-[10px] font-medium opacity-85 sm:text-[10.5px]">Great Hall PR</div></div></div>
             <div className="min-w-0 flex-1" />
             <div className="flex shrink-0 items-center gap-1.5">
