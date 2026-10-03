@@ -120,6 +120,7 @@ const PR_TABS: Tab[] = [
   { key: "report", label: "Report", icon: TriangleAlert, view: ReportView },
   { key: "contacts", label: "Contacts", icon: BookUser, view: ContactsView },
 ];
+const MANAGER_TABS = (): Tab[] => ADMIN_TABS.filter((t) => t.key !== "phones");
 const ADMIN_TABS: Tab[] = [
   { key: "live", label: "Live", icon: Radio, view: LiveView },
   { key: "agenda", label: "Agenda", icon: CalendarDays, view: AgendaView },
@@ -134,13 +135,13 @@ const ADMIN_TABS: Tab[] = [
 function Shell() {
   const { me, state, online, busy, now } = useApp();
   useTick(1000);
-  const tabs = me?.admin ? ADMIN_TABS : PR_TABS;
+  const tabs = me?.admin ? ADMIN_TABS : me?.manager ? MANAGER_TABS() : PR_TABS;
   const [tab, setTab] = useState(tabs[0]!.key);
   useEffect(() => { if (!tabs.some((x) => x.key === tab)) setTab(tabs[0]!.key); }, [tabs, tab]);
   if (!me || !state) return null;
   const View = (tabs.find((x) => x.key === tab) ?? tabs[0]!).view;
   const openIssues = state.incidents.filter((i) => i.status === "open").length;
-  const mineAlerts = me.admin ? 0 : myAlertCount(state, me.name, now());
+  const mineAlerts = me.admin || me.manager ? 0 : myAlertCount(state, me.name, now());
   return (
     <ModalCtx.Consumer>
       {(modal) => (
@@ -154,7 +155,7 @@ function Shell() {
             </div>
             <div className="min-w-0 max-w-24 text-right text-[11px] leading-tight sm:max-w-none sm:text-xs">
               <b className="block truncate text-xs sm:text-[13px]"><span className="sm:hidden">{me.name.split(" ")[0]}</span><span className="hidden sm:inline">{me.name}</span></b>
-              <span className="opacity-80">{me.admin ? "Admin" : "PR"}</span>
+              <span className="opacity-80">{me.admin ? "Admin" : me.manager ? "Manager" : "PR"}</span>
             </div>
             <Button variant="secondary" size="icon" className="shrink-0" onClick={() => modal.open({ kind: "menu" })} aria-label="Menu"><MoreHorizontal /></Button>
           </header>

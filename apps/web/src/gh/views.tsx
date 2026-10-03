@@ -219,7 +219,7 @@ export function SessionSelect({ value, onChange, sessions, allowNone = true }: {
   );
 }
 
-function IncidentList({ admin }: { admin: boolean }) {
+function IncidentList({ admin, manage = admin }: { admin: boolean; manage?: boolean }) {
   const { state, act } = useApp();
   if (!state) return null;
   let list = [...state.incidents].sort((a, b) => (a.status === "open" ? 0 : 1) - (b.status === "open" ? 0 : 1) || b.ts - a.ts);
@@ -240,7 +240,7 @@ function IncidentList({ admin }: { admin: boolean }) {
               <div className="text-xs text-muted-foreground">by {i.by}{s ? ` · ${hm(s.start)} ${s.title}` : ""}{p ? ` · ${p.name}` : ""}{i.status !== "open" ? ` · resolved by ${i.resolvedBy} ${hm(i.resolvedAt)}` : ""}</div>
             </div>
             {admin && owner?.phone && <CallLink phone={owner.phone} title={`Call ${owner.name}`} />}
-            {admin && <Button size="sm" variant={i.status === "open" ? "default" : "outline"} onClick={() => void act({ type: "resolveIncident", id: i.id, reopen: i.status !== "open" })}>{i.status === "open" ? "Resolve" : "Reopen"}</Button>}
+            {manage && <Button size="sm" variant={i.status === "open" ? "default" : "outline"} onClick={() => void act({ type: "resolveIncident", id: i.id, reopen: i.status !== "open" })}>{i.status === "open" ? "Resolve" : "Reopen"}</Button>}
           </Fragment>
         );
       })}
@@ -262,7 +262,7 @@ export function RotaBoard() {
   for (let x = from; x < to; x += 900000) slots.push(x);
   const nowIdx = slots.findIndex((s) => t >= s && t < s + 900000);
   const free = slots.map(() => 0);
-  const rows = state.team.map((m) => ({ m, cells: slots.map((s, i) => { const v = Core.prStateAt(state, m.name, s + 1000, day); if (!v) free[i]!++; return v; }) }));
+  const rows = Core.prTeam(state).map((m) => ({ m, cells: slots.map((s, i) => { const v = Core.prStateAt(state, m.name, s + 1000, day); if (!v) free[i]!++; return v; }) }));
   const cellCls = (v: string) => (v === "S" ? "bg-primary" : "");
   const nowCls = "shadow-[inset_2px_0_0_var(--color-orange),inset_-2px_0_0_var(--color-orange)]";
   return (
@@ -318,7 +318,7 @@ function Stat({ n, label, hot }: { n: number; label: string; hot?: boolean }) {
 }
 
 export function LiveView() {
-  const { state, day, now } = useApp();
+  const { state, day, now, me } = useApp();
   const modal = useModal();
   if (!state) return null;
   const t = now();
@@ -362,7 +362,7 @@ export function LiveView() {
                         <div className={cn("text-xs font-medium", TONE_TEXT[S.tone])}><span className="tabular-nums text-primary">{hm(s.start)}</span> · {S.label}{p.eta ? ` · ETA ${p.eta}` : ""}</div>
                         <div className="line-clamp-2 text-xs text-muted-foreground">{s.title}</div>
                       </div>
-                      <Button variant="ghost" size="icon" className="-mr-2 shrink-0" onClick={() => modal.open({ kind: "person", pid: p.id })} aria-label="More"><Ellipsis /></Button>
+                      {me?.admin && <Button variant="ghost" size="icon" className="-mr-2 shrink-0" onClick={() => modal.open({ kind: "person", pid: p.id })} aria-label="More"><Ellipsis /></Button>}
                     </div>
                     <div className="flex flex-wrap items-center gap-2 pl-4">
                       <Badge variant="secondary">PR · {prName || "none"}</Badge>
@@ -383,7 +383,7 @@ export function LiveView() {
           {upcoming.length ? upcoming.map((s) => <SessionCard key={s.id} s={s} manage />) : <Empty>No more sessions today.</Empty>}
           <SectionTitle>Team {today ? "right now" : ""}</SectionTitle>
           <ListCard>
-            {state.team.map((m) => {
+            {Core.prTeam(state).map((m) => {
               const cur = today ? Core.prCurrentSession(state, m.name, t) : null;
               const n = state.people.filter((p) => Core.sessionById(state, p.sid)?.day === day && Core.prOf(state, p) === m.name).length;
               const label = cur ? `On duty · ${cur.title}` : today ? `Free · ${n} speakers today` : `${n} speakers`;
@@ -405,7 +405,7 @@ export function LiveView() {
 }
 
 export function SessionsView() {
-  const { state, day } = useApp();
+  const { state, day, me } = useApp();
   const modal = useModal();
   if (!state) return null;
   return (
@@ -417,11 +417,11 @@ export function SessionsView() {
           <CardDescription>Each speaker has their own PR. Open a session to change a PR with the menu under the speaker. “Clear PRs” → pick requests by hand → “Fill the rest”.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="flex flex-wrap gap-2">
+          {me?.admin && <div className="flex flex-wrap gap-2">
             <Button onClick={() => modal.open({ kind: "sessionEdit" })}><Plus /> New session</Button>
             <Button variant="outline" onClick={() => modal.open({ kind: "autoAssign" })}><Repeat /> Assign PRs</Button>
             <Button variant="outline" className="text-destructive" onClick={() => modal.open({ kind: "autoAssign" })}><Eraser /> Clear PRs</Button>
-          </div>
+          </div>}
           <CheckStatus />
         </CardContent>
       </Card>
@@ -431,7 +431,7 @@ export function SessionsView() {
 }
 
 export function TeamAdminView() {
-  const { state, day } = useApp();
+  const { state, day, me } = useApp();
   const modal = useModal();
   if (!state) return null;
   return (
@@ -441,10 +441,10 @@ export function TeamAdminView() {
       <Card className="mt-4">
         <CardHeader>
           <CardTitle>Team · {dayLabel(state, day)}</CardTitle>
-          <CardDescription>{state.team.length} people · rotation goes in this order. Admin PIN: <code className="rounded bg-muted px-1.5 py-0.5">{state.settings.adminPin}</code></CardDescription>
+          <CardDescription>{Core.prTeam(state).length} PRs · rotation goes in this order{state.team.length > Core.prTeam(state).length ? ` · ${state.team.length - Core.prTeam(state).length} manager(s), not in the rotation` : ""}.{me?.admin && <> Admin PIN: <code className="rounded bg-muted px-1.5 py-0.5">{state.settings.adminPin}</code></>}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          <Button onClick={() => modal.open({ kind: "member" })}><UserPlus /> Add member</Button>
+          {me?.admin && <Button onClick={() => modal.open({ kind: "member" })}><UserPlus /> Add member</Button>}
           <div className="divide-y md:hidden">
             {state.team.map((m, idx) => {
               const mp = state.people.filter((p) => Core.sessionById(state, p.sid)?.day === day && Core.prOf(state, p) === m.name);
@@ -453,11 +453,11 @@ export function TeamAdminView() {
                 <div key={m.name} className="flex items-center gap-3 py-3">
                   <span className="w-5 shrink-0 text-sm text-muted-foreground tabular-nums">{idx + 1}</span>
                   <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-1.5 font-medium">{m.name}{m.guest && <Badge variant="outline">Guest</Badge>}{clash && <Badge variant="destructive">2 on a panel</Badge>}</div>
-                    <div className="text-xs text-muted-foreground tabular-nums">{m.phone || "No phone"} · {mp.length} speaker{mp.length === 1 ? "" : "s"} · PIN <code className="rounded bg-muted px-1">{m.pin}</code></div>
+                    <div className="flex flex-wrap items-center gap-1.5 font-medium">{m.name}{m.role === "manager" ? <Badge>Manager</Badge> : m.guest && <Badge variant="outline">Guest</Badge>}{clash && <Badge variant="destructive">2 on a panel</Badge>}</div>
+                    <div className="text-xs text-muted-foreground tabular-nums">{m.phone || "No phone"} · {mp.length} speaker{mp.length === 1 ? "" : "s"}{me?.admin && <> · PIN <code className="rounded bg-muted px-1">{m.pin}</code></>}</div>
                   </div>
                   {m.phone && <><CallLink phone={m.phone} title={`Call ${m.name}`} /><WhatsAppLink phone={m.phone} /></>}
-                  <Button variant="ghost" size="icon" onClick={() => modal.open({ kind: "member", name: m.name })} aria-label={`Edit ${m.name}`}><Pencil /></Button>
+                  {me?.admin && <Button variant="ghost" size="icon" onClick={() => modal.open({ kind: "member", name: m.name })} aria-label={`Edit ${m.name}`}><Pencil /></Button>}
                 </div>
               );
             })}
@@ -474,11 +474,11 @@ export function TeamAdminView() {
                 return (
                   <TableRow key={m.name}>
                     <TableCell className="text-muted-foreground tabular-nums">{idx + 1}</TableCell>
-                    <TableCell className="font-medium"><div className="flex items-center gap-1.5">{m.name}{m.guest && <Badge variant="outline">Guest</Badge>}{clash && <Badge variant="destructive">2 on a panel</Badge>}</div></TableCell>
+                    <TableCell className="font-medium"><div className="flex items-center gap-1.5">{m.name}{m.role === "manager" ? <Badge>Manager</Badge> : m.guest && <Badge variant="outline">Guest</Badge>}{clash && <Badge variant="destructive">2 on a panel</Badge>}</div></TableCell>
                     <TableCell className="tabular-nums">{m.phone ? <div className="flex items-center gap-1.5">{m.phone}<CallLink phone={m.phone} title={`Call ${m.name}`} /><WhatsAppLink phone={m.phone} /></div> : "–"}</TableCell>
                     <TableCell>{mp.length}</TableCell>
                     <TableCell><code className="rounded bg-muted px-1.5 py-0.5">{m.pin}</code></TableCell>
-                    <TableCell className="text-right"><Button variant="outline" size="sm" onClick={() => modal.open({ kind: "member", name: m.name })}><Pencil /> Edit</Button></TableCell>
+                    <TableCell className="text-right">{me?.admin && <Button variant="outline" size="sm" onClick={() => modal.open({ kind: "member", name: m.name })}><Pencil /> Edit</Button>}</TableCell>
                   </TableRow>
                 );
               })}
@@ -576,10 +576,11 @@ export function PhonesView() {
 
 export function IssuesView() {
   const modal = useModal();
+  const { me } = useApp();
   return (
     <>
-      <SectionTitle action={<Button variant="destructive" onClick={() => modal.open({ kind: "incident" })}><Plus /> Log issue</Button>}>Issues</SectionTitle>
-      <IncidentList admin />
+      <SectionTitle action={me?.admin && <Button variant="destructive" onClick={() => modal.open({ kind: "incident" })}><Plus /> Log issue</Button>}>Issues</SectionTitle>
+      <IncidentList admin manage={!!me?.admin} />
     </>
   );
 }

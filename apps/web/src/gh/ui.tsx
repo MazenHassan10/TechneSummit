@@ -106,7 +106,7 @@ export function PrPicker({ person }: { person: Person }) {
       else toast.success(pr ? `Assigned to ${pr}` : "PR removed");
     }
   };
-  const items = [{ value: NONE, label: "No PR" }, ...state.team.map((m) => ({ value: m.name, label: m.name }))];
+  const items = prOptions(state, "No PR");
   return (
     <Select value={cur || NONE} onValueChange={(v) => void onChange(v as string)} items={items}>
       <SelectTrigger className="min-w-48"><SelectValue /></SelectTrigger>
@@ -118,6 +118,15 @@ export function PrPicker({ person }: { person: Person }) {
 export function RotaBadge({ code }: { code: Core.RotaCode }) {
   if (code === "OK") return null;
   return <Badge variant="destructive">{Core.ROTA_LABEL[code]}</Badge>;
+}
+
+/** PR choices for pickers: the PR team, then the Team Leader (only ever picked by hand). */
+export function prOptions(state: Core.State, none: string, noneValue = NONE) {
+  return [
+    { value: noneValue, label: none },
+    ...Core.prTeam(state).map((m) => ({ value: m.name, label: m.name })),
+    ...(state.settings.adminName ? [{ value: state.settings.adminName, label: `${state.settings.adminName} (Team Leader)` }] : []),
+  ];
 }
 
 // ---------- modal registry ----------

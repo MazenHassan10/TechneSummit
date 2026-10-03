@@ -132,6 +132,38 @@ t("Team Leader edit and a PR tap on the same speaker at the same moment both sur
   expect(saved.phone).toBe(p.phone); // phone not sent → kept
 });
 
+t("manager: logs in, sees every speaker's phone, cannot change anything, never gets speakers", async () => {
+  const add = await caller(admin).state.act({ action: { type: "saveMember", name: "Test Manager", phone: "", pin: "4321", role: "manager" } });
+  expect(add.ok).toBe(true);
+  const mgr = (await caller(null).auth.login({ name: "Test Manager", pin: "4321" })).token;
+  const r = await caller(mgr).state.get({});
+  if (r.unchanged) throw new Error();
+  expect(r.me.manager).toBe(true);
+  expect(r.me.admin).toBe(false);
+  const full = await caller(admin).state.get({});
+  if (full.unchanged) throw new Error();
+  const withPhone = full.state.people.filter((p) => p.phone).length;
+  expect(r.state.people.filter((p) => p.phone).length).toBe(withPhone); // nothing hidden from a manager
+  expect(r.state.team.every((m) => !m.pin)).toBe(true); // but no PINs
+  const p = r.state.people[0]!;
+  for (const action of [{ type: "step", pid: p.id, step: "called", value: true }, { type: "incident", kind: "Other", note: "x" }, { type: "assign", pid: p.id, pr: "Karim Hamed" }])
+    expect((await caller(mgr).state.act({ action })).ok).toBe(false);
+  await caller(admin).state.act({ action: { type: "autoAssign", day: "2026-10-03" } });
+  const after = await caller(admin).state.get({});
+  if (after.unchanged) throw new Error();
+  expect(after.state.people.some((x) => x.pr === "Test Manager")).toBe(false);
+  await caller(admin).state.act({ action: { type: "removeMember", name: "Test Manager" } });
+});
+
+t("Team Leader can be picked as a speaker's PR by hand", async () => {
+  const r = await caller(admin).state.get({});
+  if (r.unchanged) throw new Error();
+  const p = r.state.people[0]!;
+  const res = await caller(admin).state.act({ action: { type: "assign", pid: p.id, pr: r.state.settings.adminName } });
+  expect(res.ok).toBe(true);
+  expect(res.result).toBe("OK");
+});
+
 t("PR cannot do admin actions", async () => {
   const r = await caller(karim).state.act({ action: { type: "autoAssign", day: "2026-10-03" } });
   expect(r.ok).toBe(false);

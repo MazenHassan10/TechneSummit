@@ -52,16 +52,59 @@ test('same PR on two different (even overlapping) panels is allowed – no break
   Core.apply(st, { type: 'assign', pid: Core.peopleOf(st, a.id)[0].id, pr: 'Karim Hamed' }, { name: 'TL', admin: true }, 0);
   assert.strictEqual(Core.apply(st, { type: 'assign', pid: Core.peopleOf(st, b.id)[0].id, pr: 'Karim Hamed' }, { name: 'TL', admin: true }, 0).result, 'OK');
 });
-test('rotation: in order, wraps around, continues across sessions, never 2 on one panel, even load', () => {
+test('rotation: in order, wraps around, continues across sessions, never 2 on one panel, same person keeps their PR, fair load', () => {
   const st = clone(SEED);
   Core.autoAssign(st, null, false);
   const names = st.team.map((m) => m.name);
   const order = st.sessions.slice().sort((a, b) => a.start - b.start || a.title.localeCompare(b.title)).flatMap((s) => Core.peopleOf(st, s.id));
-  // strict rotation: speaker i gets member i mod 7 (no panel has more than 7 speakers, so no skips needed)
-  order.forEach((p, i) => assert.strictEqual(p.pr, names[i % names.length], p.name));
+  // a person in several sessions keeps the PR from their first session
+  const first = new Map();
+  for (const p of order) {
+    const k = Core.normName(p.name);
+    if (first.has(k)) assert.strictEqual(p.pr, first.get(k), `${p.name} should keep ${first.get(k)}`);
+    else first.set(k, p.pr);
+  }
+  // with nobody repeating, it is a plain rotation
+  const solo = clone(SEED); solo.people.forEach((p, i) => { p.name = `Person ${String.fromCharCode(97 + Math.floor(i / 26), 97 + (i % 26))}`; });
+  Core.autoAssign(solo, null, false);
+  solo.sessions.slice().sort((a, b) => a.start - b.start || a.title.localeCompare(b.title)).flatMap((s) => Core.peopleOf(solo, s.id)).forEach((p, i) => assert.strictEqual(p.pr, names[i % names.length]));
   assert.ok(st.people.every((p) => Core.personRota(st, p) === 'OK'));
   const load = {}; st.people.forEach((p) => { load[p.pr] = (load[p.pr] || 0) + 1; });
-  const v = Object.values(load); assert.ok(Math.max(...v) - Math.min(...v) <= 1, JSON.stringify(load));
+  const v = Object.values(load); assert.ok(Math.max(...v) - Math.min(...v) <= 3, JSON.stringify(load));
+});
+test('fill keeps a repeat speaker with the PR who already has them', () => {
+  const st = clone(SEED); Core.autoAssign(st, null, false);
+  const byName = new Map(); for (const p of st.people) { const k = Core.normName(p.name); byName.set(k, [...(byName.get(k) || []), p]); }
+  const twice = [...byName.values()].find((l) => l.length > 1 && l.every((x) => Core.sessionById(st, x.sid).day === Core.sessionById(st, l[0].sid).day));
+  assert.ok(twice, 'seed has a speaker in two sessions on one day');
+  const [a, b] = twice; a.pr = 'Fayrouz Yassin'; b.pr = '';
+  // make sure Fayrouz isn't already on b's panel
+  for (const q of Core.peopleOf(st, b.sid)) if (q.id !== b.id && q.pr === 'Fayrouz Yassin') q.pr = 'Iten Khalil';
+  assert.strictEqual(Core.suggestPr(st, Core.sessionById(st, b.sid), [], a.name)?.name, 'Fayrouz Yassin');
+  Core.autoAssign(st, Core.sessionById(st, b.sid).day, true);
+  assert.strictEqual(b.pr, 'Fayrouz Yassin');
+});
+test('Team Leader can be picked by hand but is never in the rotation', () => {
+  const st = clone(SEED); st.settings.adminName = 'Mazen Hassan';
+  const p = st.people[0];
+  assert.ok(Core.apply(st, { type: 'assign', pid: p.id, pr: 'Mazen Hassan' }, { name: 'TL', admin: true }, 0).ok);
+  assert.strictEqual(Core.personRota(st, p), 'OK');
+  Core.autoAssign(st, Core.sessionById(st, p.sid).day, true); // fill keeps the hand pick
+  assert.strictEqual(p.pr, 'Mazen Hassan');
+  Core.autoAssign(st, null, false); // strict re-assign never gives the Team Leader anyone
+  assert.ok(st.people.every((x) => x.pr !== 'Mazen Hassan'));
+  assert.notStrictEqual(Core.suggestPr(st, st.sessions[0])?.name, 'Mazen Hassan');
+});
+test('managers see everything but cannot change anything, and are not in the rotation', () => {
+  const st = clone(SEED);
+  st.team.push({ name: 'Boss', fullName: '', phone: '', pin: '1234', lunch1: '', lunch2: '', guest: false, role: 'manager' });
+  const p = st.people[0];
+  for (const a of [{ type: 'step', pid: p.id, step: 'called', value: true }, { type: 'incident', kind: 'Other', note: 'x' }, { type: 'note', pid: p.id, text: 'x' }])
+    assert.strictEqual(Core.apply(st, a, { name: 'Boss', admin: false, manager: true }, 1).ok, false);
+  Core.autoAssign(st, null, false);
+  assert.ok(st.people.every((x) => x.pr !== 'Boss'));
+  assert.ok(!Core.prTeam(st).some((m) => m.name === 'Boss'));
+  assert.strictEqual(Core.apply(st, { type: 'assign', pid: p.id, pr: 'Boss' }, { name: 'TL', admin: true }, 0).ok, false);
 });
 test('rotation skips a member already on the panel', () => {
   const st = clone(SEED);

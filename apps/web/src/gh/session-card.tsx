@@ -15,7 +15,7 @@ import { dayOf, dur, hm, shortName } from "./format";
 import { ask } from "./confirm";
 import { useApp } from "./store";
 import { SpeakerAvatar, t12, useProfiles, useSummit, venueShort } from "./agenda";
-import { CallLink, Dot, HeadsUp, PrPicker, RotaBadge, TONE_TEXT, useModal } from "./ui";
+import { CallLink, Dot, HeadsUp, PrPicker, RotaBadge, TONE_TEXT, useModal, WhatsAppLink } from "./ui";
 import { SpeakerWhatsApp } from "./wa-reminder";
 
 const FLAG: Record<Core.Readiness["flag"], { text: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -67,7 +67,7 @@ export function SessionCard({ s, manage, onlyPr, openDefault }: { s: Session; ma
             <Badge key={n} variant={n === me.name ? "default" : "secondary"}>{n === me.name ? "You" : shortName(n)}{c > 1 ? ` ×${c}` : ""}</Badge>
           ))}
           {unassigned > 0 && <Badge variant="destructive">{unassigned} without PR</Badge>}
-          {me.admin && <RotaBadge code={Core.rotaCheck(state, s) === "NO_PR" ? "OK" : Core.rotaCheck(state, s)} />}
+          {(me.admin || me.manager) && <RotaBadge code={Core.rotaCheck(state, s) === "NO_PR" ? "OK" : Core.rotaCheck(state, s)} />}
         </div>
         <Progress value={r.total ? (100 * r.backstage) / r.total : 0} />
       </CardContent>
@@ -141,7 +141,11 @@ export function PersonRow({ p, s, manage, hidePr }: { p: Person; s: Session; man
   };
   const prName = Core.prOf(state, p);
 
-  if (!me.admin && prName !== me.name) {
+  const viewOnly = !!me.manager && !me.admin;
+  const prMember = Core.memberByName(state, prName);
+  /** call / WhatsApp the speaker's PR straight from the session (Team Leader + managers) */
+  const prContact = (me.admin || me.manager) && prMember?.phone ? <><CallLink phone={prMember.phone} title={`Call ${prMember.name}`} /><WhatsAppLink phone={prMember.phone} /></> : null;
+  if (!me.admin && !me.manager && prName !== me.name) {
     return (
       <div className="flex items-center gap-3 px-(--card-spacing) py-3">
         <SpeakerAvatar name={p.name} photo={profiles.get(p.name)?.photo} className="size-16" />
@@ -169,7 +173,7 @@ export function PersonRow({ p, s, manage, hidePr }: { p: Person; s: Session; man
           {p.phone ? (<><CallLink phone={p.phone} /><SpeakerWhatsApp p={p} /></>) : me.admin ? (
             <Button variant="outline" size="sm" onClick={() => modal.open({ kind: "person", pid: p.id })}><Plus /> Phone</Button>
           ) : <span className="self-center text-xs text-muted-foreground">No phone yet</span>}
-          <Button variant="ghost" size="icon" onClick={() => modal.open({ kind: "person", pid: p.id })} aria-label="More"><Ellipsis /></Button>
+          {!viewOnly && <Button variant="ghost" size="icon" onClick={() => modal.open({ kind: "person", pid: p.id })} aria-label="More"><Ellipsis /></Button>}
         </div>
       </div>
       <HeadsUp text={p.alert} />
@@ -183,16 +187,16 @@ export function PersonRow({ p, s, manage, hidePr }: { p: Person; s: Session; man
         );
       })()}
       {manage ? (
-        <div className="flex flex-wrap items-center gap-2"><span className="text-xs text-muted-foreground">PR</span><PrPicker person={p} /><RotaBadge code={Core.personRota(state, p)} /></div>
+        <div className="flex flex-wrap items-center gap-2"><span className="text-xs text-muted-foreground">PR</span><PrPicker person={p} />{prContact}<RotaBadge code={Core.personRota(state, p)} /></div>
       ) : !hidePr ? (
-        <div className="flex items-center gap-2"><Badge variant="secondary">PR · {prName || "none yet"}</Badge>{me.admin && <RotaBadge code={Core.personRota(state, p)} />}</div>
+        <div className="flex flex-wrap items-center gap-2"><Badge variant="secondary">PR · {prName || "none yet"}</Badge>{prContact}{(me.admin || me.manager) && <RotaBadge code={Core.personRota(state, p)} />}</div>
       ) : null}
       <div className="grid grid-cols-5 gap-1.5">
         {Core.STEPS.map((k) => {
           const done = !!p[k];
           const isNext = !done && k === next;
           return (
-            <Button key={k} type="button" variant="outline" disabled={p.noshow && !done} onClick={() => void tap(k, done)}
+            <Button key={k} type="button" variant="outline" disabled={viewOnly || (p.noshow && !done)} onClick={() => void tap(k, done)}
               title={Core.STEP_LABEL[k]}
               className={cn("h-auto min-h-12 min-w-0 flex-col items-center justify-center gap-0.5 overflow-hidden px-0.5 py-1.5 text-center text-[10.5px] leading-tight whitespace-normal sm:text-[11px]",
                 done ? "border-st-done/40 bg-st-done/10 font-semibold text-st-done hover:bg-st-done/15 hover:text-st-done"

@@ -71,7 +71,11 @@ export type AgendaChange = {
   person?: { name: string; role: string; photo?: string; position?: string; company?: string };
   pid?: string;
 };
-export type Member = { name: string; fullName: string; phone: string; pin: string; lunch1: string; lunch2: string; guest: boolean };
+export type Member = {
+  name: string; fullName: string; phone: string; pin: string; lunch1: string; lunch2: string; guest: boolean;
+  /** "pr" (default) works speakers; "manager" sees everything like the Team Leader but can't change anything */
+  role?: "pr" | "manager";
+};
 export type Session = { id: string; day: string; start: number; end: number; title: string; type: string; owner: string; notes: string };
 export type Person = {
   id: string; sid: string; pr: string; name: string; role: string; phone: string;
@@ -96,7 +100,7 @@ export type State = {
   agendaChanges?: AgendaChange[];
   _newLog?: LogEntry[];
 };
-export type Actor = { name: string; admin: boolean };
+export type Actor = { name: string; admin: boolean; manager?: boolean };
 export type Table = "team" | "sessions" | "people" | "incidents";
 export type RotaCode = "OK" | "NO_PR" | "UNKNOWN_PR" | "SAME_PANEL";
 
@@ -145,6 +149,24 @@ export const peopleOf = (state: State, sid: string) => state.people.filter((p) =
 export const sessionById = (state: State, sid: string) => state.sessions.find((s) => s.id === sid) ?? null;
 export const personById = (state: State, pid: string) => state.people.find((p) => p.id === pid) ?? null;
 export const memberByName = (state: State, name: string) => state.team.find((m) => m.name === name) ?? null;
+/** The PRs who work speakers (managers are not in the rotation). */
+export const prTeam = (state: State) => state.team.filter((m) => (m.role ?? "pr") !== "manager");
+/** Can be picked as a speaker's PR: a PR team member, or the Team Leader (picked by hand only – never by the rotation). */
+export const isAssignable = (state: State, name: string) => !!name && (prTeam(state).some((m) => m.name === name) || name === state.settings.adminName);
+/**
+ * The PR already looking after this same person in another session (they've called them and know their face).
+ * Team Leader picks are not carried over – the Team Leader is never assigned automatically.
+ */
+export function knownPrFor(state: State, p: Person) {
+  const k = normName(p.name);
+  const team = new Set(prTeam(state).map((m) => m.name));
+  const other = state.people
+    .filter((q) => q.id !== p.id && normName(q.name) === k && team.has(prOf(state, q)))
+    .map((q) => ({ q, s: sessionById(state, q.sid) }))
+    .filter((x): x is { q: Person; s: Session } => !!x.s)
+    .sort((a, b) => a.s.start - b.s.start)[0];
+  return other ? { name: prOf(state, other.q), session: other.s } : null;
+}
 
 export type Readiness = { total: number; arrived: number; backstage: number; onstage: number; late: number; noshow: number; flag: "PENDING" | "NOPEOPLE" | "DONE" | "LIVE" | "AT_RISK" | "READY" };
 export function sessionReadiness(state: State, s: Session, now: number): Readiness {
@@ -199,7 +221,7 @@ export function sessionsOfPr(state: State, name: string, day?: string) {
 export function personRota(state: State, p: Person): RotaCode {
   const name = prOf(state, p);
   if (!name) return "NO_PR";
-  if (!memberByName(state, name)) return "UNKNOWN_PR";
+  if (!isAssignable(state, name)) return "UNKNOWN_PR";
   return peopleOf(state, p.sid).filter((q) => prOf(state, q) === name).length > 1 ? "SAME_PANEL" : "OK";
 }
 
@@ -242,20 +264,33 @@ export function prCurrentSession(state: State, name: string, t: number) {
  * `onlyUnassigned` keeps existing choices and continues the rotation for the empty ones.
  */
 export function autoAssign(state: State, day: string | null, onlyUnassigned: boolean) {
-  const names = state.team.map((m) => m.name);
+  const names = prTeam(state).map((m) => m.name);
   if (!names.length) return 0;
   const sessions = state.sessions.filter((s) => !day || s.day === day).sort((a, b) => a.start - b.start || a.title.localeCompare(b.title));
   if (onlyUnassigned) return fillUnassigned(state, sessions, names);
+  const inRun = new Set(sessions.flatMap((s) => peopleOf(state, s.id).map((p) => p.id)));
+  // same person in several sessions keeps one PR: earlier in this run, or from a session we're not re-assigning
+  const known = new Map<string, string>();
+  for (const p of state.people) if (!inRun.has(p.id) && names.includes(prOf(state, p)) && !known.has(normName(p.name))) known.set(normName(p.name), prOf(state, p));
   let next = 0;
   let changed = 0;
   for (const s of sessions) {
     const used = new Set<string>();
-    for (const p of peopleOf(state, s.id)) {
-      let pick = names[next % names.length]!;
-      // skip members already on this panel (only possible to avoid when the panel is smaller than the team)
-      for (let i = 0; i < names.length && used.has(pick); i++) { next++; pick = names[next % names.length]!; }
-      next = (next + 1) % names.length;
+    const ppl = peopleOf(state, s.id);
+    // people we already know go first, so the rotation can't hand their PR to someone else on this panel
+    const reserved = new Map<string, string>();
+    for (const p of ppl) { const same = known.get(normName(p.name)); if (same && !used.has(same)) { reserved.set(p.id, same); used.add(same); } }
+    for (const p of ppl) {
+      let pick: string;
+      if (reserved.has(p.id)) pick = reserved.get(p.id)!; // keep the PR who already knows them – rotation pointer doesn't move
+      else {
+        pick = names[next % names.length]!;
+        // skip members already on this panel (only possible to avoid when the panel is smaller than the team)
+        for (let i = 0; i < names.length && used.has(pick); i++) { next++; pick = names[next % names.length]!; }
+        next = (next + 1) % names.length;
+      }
       used.add(pick);
+      if (!known.has(normName(p.name))) known.set(normName(p.name), pick);
       if (p.pr !== pick) changed++;
       p.pr = pick;
     }
@@ -264,9 +299,10 @@ export function autoAssign(state: State, day: string | null, onlyUnassigned: boo
 }
 
 /**
- * Keeps every PR already chosen (e.g. picked by hand) and gives the rest out fairly:
- * never twice on one panel, avoid PRs busy with another speaker at that time, then the PR with
- * the fewest speakers so far; ties go round in team order (so an empty day is a plain rotation).
+ * Keeps every PR already chosen (by hand, including the Team Leader) and gives the rest out fairly:
+ * the same person keeps the PR who already has them elsewhere; otherwise never twice on one panel,
+ * avoid PRs busy with another speaker at that time, then the PR with the fewest speakers so far;
+ * ties go round in team order (so an empty day is a plain rotation).
  */
 function fillUnassigned(state: State, sessions: Session[], names: string[]) {
   const load = new Map(names.map((n) => [n, 0]));
@@ -276,15 +312,26 @@ function fillUnassigned(state: State, sessions: Session[], names: string[]) {
   for (const s of sessions) {
     const ppl = peopleOf(state, s.id);
     const used = new Set(ppl.map((p) => p.pr).filter((n) => load.has(n)));
+    // people already looked after elsewhere go first, so nobody else on this panel takes their PR
+    const reserved = new Map<string, string>();
     for (const p of ppl) {
-      if (p.pr && load.has(p.pr)) continue;
-      const busy = busyPrsAt(state, s);
-      const order = names.map((_, i) => names[(next + i) % names.length]!);
-      const pool = order.filter((n) => !used.has(n));
-      const free = pool.filter((n) => !busy.has(n));
-      const cands = free.length ? free : pool.length ? pool : order;
-      const pick = cands.reduce((best, n) => (load.get(n)! < load.get(best)! ? n : best), cands[0]!);
-      next = (names.indexOf(pick) + 1) % names.length;
+      if (p.pr && isAssignable(state, p.pr)) continue;
+      const known = knownPrFor(state, p)?.name;
+      if (known && load.has(known) && !used.has(known)) { reserved.set(p.id, known); used.add(known); }
+    }
+    for (const p of ppl) {
+      if (p.pr && isAssignable(state, p.pr)) continue;
+      let pick: string;
+      if (reserved.has(p.id)) pick = reserved.get(p.id)!;
+      else {
+        const busy = busyPrsAt(state, s);
+        const order = names.map((_, i) => names[(next + i) % names.length]!);
+        const pool = order.filter((n) => !used.has(n));
+        const free = pool.filter((n) => !busy.has(n));
+        const cands = free.length ? free : pool.length ? pool : order;
+        pick = cands.reduce((best, n) => (load.get(n)! < load.get(best)! ? n : best), cands[0]!);
+        next = (names.indexOf(pick) + 1) % names.length;
+      }
       used.add(pick); load.set(pick, load.get(pick)! + 1);
       p.pr = pick; changed++;
     }
@@ -392,6 +439,7 @@ const pad5 = (v: unknown) => ("0" + str(v)).slice(-5);
 /** Mutates state. Returns {ok, error?, dirty:[tables], result?} */
 export function apply(state: State, a: Action, actor: Actor, now: number): ApplyResult {
   const by = actor.name;
+  if (actor.manager && actor.admin !== true) return { ok: false, error: "Managers can view only – ask the Team Leader to make changes." };
   if (ADMIN_ONLY.has(a.type) && actor.admin !== true) return { ok: false, error: "Only the Team Leader can do that." };
   const dirty: Table[] = [];
   const needP = () => {
@@ -484,7 +532,7 @@ export function apply(state: State, a: Action, actor: Actor, now: number): Apply
       }
       case "assign": {
         const { p, s } = needP();
-        if (a.pr && !memberByName(state, str(a.pr))) throw new Error("PR not found");
+        if (a.pr && !isAssignable(state, str(a.pr))) throw new Error("PR not found");
         const was = prOf(state, p);
         p.pr = str(a.pr);
         touch(p); dirty.push("people");
@@ -529,7 +577,7 @@ export function apply(state: State, a: Action, actor: Actor, now: number): Apply
         if (!name || !sid) throw new Error("Name and session are required");
         const target = sessionById(state, sid);
         if (!target) throw new Error("Session not found");
-        if (a.pr && !memberByName(state, str(a.pr))) throw new Error("PR not found");
+        if (a.pr && !isAssignable(state, str(a.pr))) throw new Error("PR not found");
         if (a.pid) {
           const { p } = needP();
           p.name = name; p.role = str(a.role) || "Speaker"; p.sid = sid;
@@ -575,7 +623,7 @@ export function apply(state: State, a: Action, actor: Actor, now: number): Apply
         const st0 = dayStart(sday, pad5(startHHMM), state.settings.tz);
         const en0 = dayStart(sday, pad5(endHHMM), state.settings.tz);
         if (en0 <= st0) throw new Error("End must be after start");
-        if (a.owner && !memberByName(state, str(a.owner))) throw new Error("PR not found");
+        if (a.owner && !isAssignable(state, str(a.owner))) throw new Error("PR not found");
         let ns: Session;
         if (cur) {
           ns = cur;
@@ -620,9 +668,14 @@ export function apply(state: State, a: Action, actor: Actor, now: number): Apply
         }
         const wasNew = !a.origName;
         mem.name = nm; mem.phone = normPhone(a.phone); mem.pin = pinv; mem.guest = !!a.guest;
+        if (a.role !== undefined) {
+          mem.role = a.role === "manager" ? "manager" : "pr";
+          // a manager isn't in the rotation – free up any speakers they had
+          if (mem.role === "manager") for (const x of state.people) if (x.pr === nm) { x.pr = ""; if (!dirty.includes("people")) dirty.push("people"); }
+        }
         if (a.fullName !== undefined) mem.fullName = str(a.fullName);
         dirty.push("team");
-        addLog(state, by, `${wasNew ? "Added team member " : "Updated team member "}${nm}${mem.guest ? " (guest)" : ""}`, now);
+        addLog(state, by, `${wasNew ? "Added team member " : "Updated team member "}${nm}${mem.role === "manager" ? " (manager)" : mem.guest ? " (guest)" : ""}`, now);
         return { ok: true, dirty, result: { name: nm, pin: pinv } };
       }
       case "removeMember": {
@@ -672,11 +725,17 @@ export function busyPrsAt(state: State, s: Session) {
 }
 
 /** Best PR for a new speaker on this panel: not already on the panel, free at that time, lightest load that day. */
-export function suggestPr(state: State, s: Session, exclude: string[] = []): PrSuggestion | null {
+export function suggestPr(state: State, s: Session, exclude: string[] = [], personName?: string): PrSuggestion | null {
   const onPanel = new Set(peopleOf(state, s.id).map((p) => prOf(state, p)).filter(Boolean));
+  if (personName) {
+    const k = normName(personName);
+    const kn = knownPrFor(state, { id: "", name: personName } as Person);
+    if (kn && !onPanel.has(kn.name) && !exclude.includes(kn.name) && k)
+      return { name: kn.name, reason: `already looks after ${personName} in “${kn.session.title}” – same face, already in touch` };
+  }
   const busy = busyPrsAt(state, s);
   const load = (n: string) => state.people.filter((p) => sessionById(state, p.sid)?.day === s.day && prOf(state, p) === n).length;
-  const cands = state.team.map((m) => m.name).filter((n) => !onPanel.has(n) && !exclude.includes(n));
+  const cands = prTeam(state).map((m) => m.name).filter((n) => !onPanel.has(n) && !exclude.includes(n));
   const free = cands.filter((n) => !busy.has(n));
   const pool = free.length ? free : cands;
   const pick = [...pool].sort((a, b) => load(a) - load(b))[0];

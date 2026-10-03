@@ -17,7 +17,7 @@ import { toast } from "sonner";
 
 import { dayOf, hm, hm24 } from "./format";
 import { useApp } from "./store";
-import { CallLink, TONE_TEXT, useModal, type ModalSpec } from "./ui";
+import { CallLink, prOptions, TONE_TEXT, useModal, type ModalSpec } from "./ui";
 import { ask } from "./confirm";
 import { dayLabel, LeaderCard, SessionSelect } from "./views";
 import { AgendaChangesDialog, NotificationToggle } from "./agenda-watch";
@@ -30,7 +30,7 @@ const F = ({ label, children }: { label: string; children: React.ReactNode }) =>
 function Pick({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: { value: string; label: string }[] }) {
   return (
     <Select value={value} onValueChange={(v) => onChange(String(v ?? ""))} items={options}>
-      <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+      <SelectTrigger className="w-full min-w-0"><SelectValue /></SelectTrigger>
       <SelectContent>{options.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
     </Select>
   );
@@ -128,7 +128,7 @@ function PersonEdit({ pid, sid }: { pid?: string; sid?: string }) {
       <F label="Role"><Pick value={role} onChange={setRole} options={Core.ROLES.map((r) => ({ value: r, label: r }))} /></F>
       <F label="Phone"><Input type="tel"  value={phone} onChange={(e) => setPhone(e.target.value)} /></F>
       <F label="Heads-up for the PR (optional)"><Input value={alert} onChange={(e) => setAlert(e.target.value)} placeholder="e.g. WhatsApp only – UK number" /></F>
-      <F label="PR for this speaker"><Pick value={pr || "__none__"} onChange={(v) => setPr(v === "__none__" ? "" : v)} options={[{ value: "__none__", label: "– no PR yet –" }, ...state.team.map((m) => ({ value: m.name, label: m.name }))]} /></F>
+      <F label="PR for this speaker"><Pick value={pr || "__none__"} onChange={(v) => setPr(v === "__none__" ? "" : v)} options={prOptions(state, "– no PR yet –", "__none__")} /></F>
       <F label="Session"><SessionSelect value={session} onChange={setSession} sessions={[...state.sessions].sort((a, b) => a.start - b.start)} allowNone={false} /></F>
       <div className="flex gap-2">
         <Button className="flex-1" onClick={save}>Save</Button>
@@ -186,9 +186,10 @@ function MemberEdit({ name }: { name?: string }) {
   const [nm, setNm] = useState(m?.name ?? "");
   const [phone, setPhone] = useState(m?.phone ?? "");
   const [pin, setPin] = useState(m?.pin ?? "");
-    const [guest, setGuest] = useState(m ? m.guest : true);
+  const [guest, setGuest] = useState(m ? m.guest : true);
+  const [role, setRole] = useState<string>(m?.role ?? "pr");
   const save = async () => {
-    const r = await act({ type: "saveMember", origName: name || "", name: nm, phone, pin, guest });
+    const r = await act({ type: "saveMember", origName: name || "", name: nm, phone, pin, guest: role === "manager" ? false : guest, role });
     if (r.ok) { const res = r.result as { name: string; pin: string }; toast.success(`${name ? "Saved" : "Added"} ${res.name} – PIN ${res.pin}`); modal.close(); }
   };
   return (
@@ -200,7 +201,10 @@ function MemberEdit({ name }: { name?: string }) {
       <F label="Name (shown on login screen)"><Input  value={nm} onChange={(e) => setNm(e.target.value)} placeholder="e.g. Omar Adel" /></F>
       <F label="Phone"><Input type="tel"  value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="01…" /></F>
       <F label="PIN (4–8 digits – leave empty to auto-create)"><Input inputMode="numeric" maxLength={8}  value={pin} onChange={(e) => setPin(e.target.value)} /></F>
-      <label className="flex items-center gap-2 text-sm"><Checkbox checked={guest} onCheckedChange={(v) => setGuest(!!v)} /> Guest (helping for a few sessions)</label>
+      <F label="Role"><Pick value={role} onChange={setRole} options={[{ value: "pr", label: "PR (in the rotation)" }, { value: "manager", label: "Manager (view only)" }]} /></F>
+      {role === "manager"
+        ? <p className="text-xs text-muted-foreground">Managers see the dashboard, sessions, agenda, team and issues like you, but every button that changes something is off. They are never given speakers.</p>
+        : <label className="flex items-center gap-2 text-sm"><Checkbox checked={guest} onCheckedChange={(v) => setGuest(!!v)} /> Guest (helping for a few sessions)</label>}
       <Button className="w-full" size="lg" onClick={save}>{name ? "Save" : "Add to team"}</Button>
       {name && (
         <Button variant="destructive" size="lg" className="w-full" onClick={async () => {
@@ -251,7 +255,7 @@ function AutoAssign() {
     const r = await act({ type: "autoAssign", day, onlyUnassigned: !all });
     if (r.ok) { toast.success(`${r.result} speaker(s) assigned`); modal.close(); }
   };
-  const order = state.team.map((m, i) => `${i + 1}. ${m.name}`).join("  ");
+  const order = Core.prTeam(state).map((m, i) => `${i + 1}. ${m.name}`).join("  ");
   return (
     <>
       <DialogHeader>
@@ -279,7 +283,7 @@ function Menu() {
     <>
       <DialogHeader>
         <DialogTitle>{me?.name}</DialogTitle>
-        <DialogDescription>{me?.admin ? "Team Leader · admin" : "Great Hall PR"}</DialogDescription>
+        <DialogDescription>{me?.admin ? "Team Leader · admin" : me?.manager ? "Manager · view only" : "Great Hall PR"}</DialogDescription>
       </DialogHeader>
       <div className="flex gap-2">
         <Button variant="outline" onClick={() => { refresh(); modal.close(); }}>↻ Refresh now</Button>

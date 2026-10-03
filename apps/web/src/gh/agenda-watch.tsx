@@ -18,7 +18,7 @@ import { hm } from "./format";
 import { useApp } from "./store";
 import { SpeakerAvatar, useProfiles } from "./agenda";
 import { ask } from "./confirm";
-import { CallLink, useModal } from "./ui";
+import { CallLink, prOptions, useModal } from "./ui";
 
 const KIND_LABEL: Record<string, string> = {
   time: "Time change", rename: "Name spelling", role: "Role change", add_person: "New speaker",
@@ -90,7 +90,7 @@ function prAdvice(state: State, c: AgendaChange, pending: AgendaChange[]): Advic
     if (gone && goneTo) {
       return { lines: [`Replaces ${gone.name} on this panel – suggested to keep their PR.`], picks: [{ key: c.id, label: c.person?.name ?? "New speaker", suggestion: { name: goneTo, reason: `was ${gone.name}'s PR on this panel` } }] };
     }
-    return { lines: ["Brand-new addition to this panel."], picks: [{ key: c.id, label: c.person?.name ?? "New speaker", suggestion: Core.suggestPr(state, s) }] };
+    return { lines: ["Brand-new addition to this panel."], picks: [{ key: c.id, label: c.person?.name ?? "New speaker", suggestion: Core.suggestPr(state, s, [], c.person?.name) }] };
   }
   if (c.kind === "remove_person") {
     const p = c.pid ? Core.personById(state, c.pid) : null;
@@ -104,7 +104,7 @@ function prAdvice(state: State, c: AgendaChange, pending: AgendaChange[]): Advic
     const fake: Core.Session = { id: `new:${c.id}`, day: ns.day, start: Core.dayStart(ns.day, ns.start, state.settings.tz), end: Core.dayStart(ns.day, ns.end, state.settings.tz), title: ns.title, type: "Panel", owner: "", notes: "" };
     const used: string[] = [];
     const picks = (ns.people ?? []).map((p) => {
-      const sug = Core.suggestPr(state, fake, used);
+      const sug = Core.suggestPr(state, fake, used, p.name);
       if (sug) used.push(sug.name);
       return { key: `${c.id}|${Core.normName(p.name)}`, label: `${p.name} (${p.role})`, suggestion: sug };
     });
@@ -153,7 +153,7 @@ export function AgendaChangesDialog() {
     if (!(await ask({ title: `Apply all ${pending.length} changes?`, description: "Each new speaker gets the PR shown on their card.", confirmLabel: "Apply all" }))) return;
     await decide(pending.map((c) => c.id), true);
   };
-  const items = [{ value: NONE, label: "No PR yet" }, ...state.team.map((m) => ({ value: m.name, label: m.name }))];
+  const items = prOptions(state, "No PR yet", NONE);
   return (
     <>
       <DialogHeader>

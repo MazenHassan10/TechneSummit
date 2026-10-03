@@ -14,8 +14,9 @@ const ADMIN = "__admin__";
 function actorFor(state: State, who: string): Actor {
   if (who === ADMIN) return { name: state.settings.adminName || "Team Leader", admin: true };
   // removed from the team → logged out
-  if (!memberByName(state, who)) throw new TRPCError({ code: "UNAUTHORIZED", message: "SESSION_EXPIRED" });
-  return { name: who, admin: false };
+  const m = memberByName(state, who);
+  if (!m) throw new TRPCError({ code: "UNAUTHORIZED", message: "SESSION_EXPIRED" });
+  return m.role === "manager" ? { name: who, admin: false, manager: true } : { name: who, admin: false };
 }
 
 /** PINs are only visible to the Team Leader */
@@ -25,8 +26,8 @@ function publicState(state: StoredState, actor: Actor) {
   if (!actor.admin) {
     out.settings.adminPin = "";
     for (const m of out.team) m.pin = "";
-    // phone numbers only for the PR's own speakers
-    for (const p of out.people) if (prOf(out, p) !== actor.name) { p.phone = ""; p.alert = ""; }
+    // phone numbers only for the PR's own speakers (managers see everyone's, read-only)
+    if (!actor.manager) for (const p of out.people) if (prOf(out, p) !== actor.name) { p.phone = ""; p.alert = ""; }
   }
   return out;
 }

@@ -118,7 +118,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const checkAlerts = useCallback((st: State, who: Actor) => {
     const t = Date.now() + skew.current;
     const open = st.incidents.filter((i) => i.status === "open").map((i) => i.id);
-    if (seenIncidents.current && who.admin) {
+    if (seenIncidents.current && (who.admin || who.manager)) {
       const fresh = open.filter((id) => !seenIncidents.current!.includes(id));
       const inc = st.incidents.find((i) => i.id === fresh[0]);
       if (inc) { toast.error(`${inc.kind} – reported by ${inc.by}`); buzz(); }
@@ -128,7 +128,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     for (const s of st.sessions)
       for (const p of Core.peopleOf(st, s.id)) {
         if (s.end <= t) continue; // finished sessions never need action
-        if (!who.admin && Core.prOf(st, p) !== who.name) continue;
+        if (!who.admin && !who.manager && Core.prOf(st, p) !== who.name) continue;
         const c = Core.personStatus(p, s, st.settings, t);
         if (c === "LATE" || c === "CALLNOW" || c === "TAKE_BACKSTAGE") late.push(p.id + c);
       }
@@ -172,12 +172,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!me) return;
     poll();
-    const id = setInterval(poll, me.admin ? 5000 : 8000);
+    const id = setInterval(poll, me.admin || me.manager ? 5000 : 8000);
     const vis = () => { if (!document.hidden) poll(); };
     document.addEventListener("visibilitychange", vis);
     return () => { clearInterval(id); document.removeEventListener("visibilitychange", vis); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [me?.name, me?.admin, poll]);
+  }, [me?.name, me?.admin, me?.manager, poll]);
 
   const login = useCallback(async (name: string, pin: string) => {
     const r = await trpcClient.auth.login.mutate({ name, pin });

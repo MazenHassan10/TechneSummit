@@ -11,6 +11,8 @@ export const members = pgTable("members", {
   lunch1: text("lunch1").notNull().default(""),
   lunch2: text("lunch2").notNull().default(""),
   guest: boolean("guest").notNull().default(false),
+  /** "pr" = works speakers in the rotation; "manager" = sees everything like the Team Leader but can't change anything */
+  role: text("role").notNull().default("pr"),
   sort: integer("sort").notNull().default(0),
 });
 
