@@ -12,7 +12,8 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { Tabs, TabsList, TabsTrigger } from "@great-hall-pr/ui/components/tabs";
 import { cn } from "@great-hall-pr/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { ExternalLink, MapPin, Pencil, Search } from "lucide-react";
+import { CircleCheck, ExternalLink, MapPin, Pencil, Search } from "lucide-react";
+import { useSlots } from "./schedule-alerts";
 import { Button } from "@great-hall-pr/ui/components/button";
 import { Textarea } from "@great-hall-pr/ui/components/textarea";
 import { toast } from "sonner";
@@ -60,6 +61,22 @@ function BrandIcon({ type, className }: { type: string; className?: string }) {
 const initials = (n: string) => n.replace(/^(Eng\.|Dr\.|H\.E\.?|Mr\.|Ms\.)\s*/i, "").split(/\s+/).map((x) => x[0]).slice(0, 2).join("").toUpperCase();
 
 /** Profile sheet opened from anywhere (Sessions, Live, Great Hall, My speakers, Agenda). */
+/** Green line when this person already had a session at the summit (any stage) – reassuring for the team. */
+function AlreadyHere({ name }: { name: string }) {
+  const { now } = useApp();
+  const slots = useSlots(name);
+  const t = now();
+  const done = slots.filter((x) => x.end <= t);
+  if (!done.length) return null;
+  const last = done.at(-1)!;
+  return (
+    <div className="flex items-start gap-2 rounded-lg border border-st-done/30 bg-st-done/10 px-3 py-2 text-sm">
+      <CircleCheck className="mt-0.5 size-4 shrink-0 text-st-done" />
+      <span><b>Already at the summit</b> – {done.length} session{done.length === 1 ? "" : "s"} so far, latest “{last.title}” ({last.where}{last.ours && last.arrived ? ", checked in with us" : ""})</span>
+    </div>
+  );
+}
+
 export function ProfileModal({ name }: { name: string }) {
   const profiles = useProfiles();
   const modal = useModal();
@@ -319,6 +336,7 @@ export function ProfileSheet({ name, profiles, onClose }: { name: string | null;
               })}
             </div>
           </div>
+          <AlreadyHere name={name} />
           {summit.elsewhere(name).length > 0 && (
             <>
               <Separator />

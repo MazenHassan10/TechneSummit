@@ -14,9 +14,10 @@ import { useState } from "react";
 import { dayOf, dur, hm, shortName } from "./format";
 import { ask } from "./confirm";
 import { useApp } from "./store";
-import { SpeakerAvatar, t12, useProfiles, useSummit, venueShort } from "./agenda";
+import { SpeakerAvatar, useProfiles } from "./agenda";
 import { CallLink, Dot, HeadsUp, PrPicker, RotaBadge, TONE_TEXT, useModal, WhatsAppLink } from "./ui";
 import { PrNote } from "./pr-note";
+import { ScheduleAlerts } from "./schedule-alerts";
 import { SpeakerWhatsApp } from "./wa-reminder";
 
 const FLAG: Record<Core.Readiness["flag"], { text: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -118,7 +119,6 @@ export function PersonRow({ p, s, manage, hidePr }: { p: Person; s: Session; man
   const { state, me, now, act } = useApp();
   const modal = useModal();
   const profiles = useProfiles();
-  const summit = useSummit();
   if (!state || !me) return null;
   const t = now();
   const code = Core.personStatus(p, s, state.settings, t);
@@ -154,6 +154,7 @@ export function PersonRow({ p, s, manage, hidePr }: { p: Person; s: Session; man
           <button type="button" onClick={() => modal.open({ kind: "profile", name: p.name })} className="text-left font-medium hover:underline">{p.name}</button>
           {p.role && p.role !== "Speaker" && <span className="text-sm text-muted-foreground"> · {p.role}</span>}
           {!hidePr && <Badge variant="secondary" className="mt-1">PR · {prName || "none yet"}</Badge>}
+          <div className="mt-2"><ScheduleAlerts p={p} s={s} /></div>
         </div>
       </div>
     );
@@ -180,15 +181,7 @@ export function PersonRow({ p, s, manage, hidePr }: { p: Person; s: Session; man
       </div>
       <HeadsUp text={p.alert} />
       <PrNote p={p} canEdit={!viewOnly} />
-      {(() => {
-        const other = summit.elsewhere(p.name).filter((x) => x.day === s.day);
-        return other.length > 0 && (
-          <div className="rounded-md bg-muted/70 px-2.5 py-2 text-xs">
-            <b className="font-semibold">Also today:</b>{" "}
-            {other.map((x, i) => <span key={x.id}>{i > 0 && " · "}{x.format || "Session"} {t12(x.start)}–{t12(x.end)}, {venueShort(x.venue)}</span>)}
-          </div>
-        );
-      })()}
+      <ScheduleAlerts p={p} s={s} />
       {manage ? (
         <div className="flex flex-wrap items-center gap-2"><span className="text-xs text-muted-foreground">PR</span><PrPicker person={p} />{prContact}<RotaBadge code={Core.personRota(state, p)} /></div>
       ) : !hidePr ? (
