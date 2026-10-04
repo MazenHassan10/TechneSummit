@@ -23,12 +23,6 @@ const titleKey = (name: string) => `gh_title:${Core.normName(name)}`;
 /** "2 PM" or "2:15 PM" – a rounder time reads more naturally in a message */
 const around = (t: number) => hm(t).replace(":00 ", " ");
 
-function dayWords(day: string, today: string) {
-  const d = new Date(`${day}T12:00:00Z`);
-  const label = d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" });
-  const tomorrow = new Date(Date.parse(`${today}T12:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
-  return day === today ? "today" : day === tomorrow ? `tomorrow, ${label}` : `on ${label}`;
-}
 
 /** Speaker WhatsApp button: open the chat, or start it with a ready reminder message. */
 export function SpeakerWhatsApp({ p, label }: { p: Core.Person; label?: string }) {
@@ -64,20 +58,13 @@ export function WaReminder({ pid }: { pid: string }) {
   const fromWho = me.admin ? state.settings.adminName : member?.fullName || me.name;
   const d = Core.deadlines(s, state.settings);
   const greeting = title === NAME_ONLY ? cleanName : `${title} ${cleanName}`;
+  // short and natural, like a normal WhatsApp message (no date, no session title, no dashes)
+  const when = s.day === dayOf(now()) ? "today " : "";
   const what = p.role === "Moderator" ? "you're moderating a session" : "you have a session";
   const built = [
     `Hi ${greeting},`,
-    "",
-    `I'm ${fromWho} from the Techne Summit PR team at the Great Hall. I'm reminding you that ${what} ${dayWords(s.day, dayOf(now()))} around ${around(s.start)}:`,
-    `"${s.title}"`,
-    "Stage 01 – The Great Hall, Bibliotheca Alexandrina",
-    "",
-    `It would be great if you could arrive by around ${around(d.arriveBy)} so we can get you ready backstage – timings can shift a little on the day, and I'll keep you updated.`,
-    "",
-    "I'm just confirming with you – could you reply to let me know you'll be there?",
-    "",
-    "Thank you!",
-    fromWho.split(" ")[0],
+    `I'm ${fromWho}, a PR from the Techne team at the Great Hall. I'm reminding you that ${what} ${when}around ${around(s.start)}. It would be great if you could arrive by around ${around(d.arriveBy)} so we can get you ready.`,
+    "Could you reply to let me know your availability? Thank you!",
   ].join("\n");
   const text = edited ?? built;
 
@@ -100,7 +87,7 @@ export function WaReminder({ pid }: { pid: string }) {
       </div>
       <div className="space-y-2">
         <Label>Message</Label>
-        <Textarea rows={13} value={text} onChange={(e) => setEdited(e.target.value)} className="text-sm leading-relaxed" />
+        <Textarea rows={7} value={text} onChange={(e) => setEdited(e.target.value)} className="text-sm leading-relaxed" />
         {edited !== null && <button type="button" className="text-xs text-primary underline" onClick={() => setEdited(null)}>Reset to the standard message</button>}
       </div>
       <div className="flex flex-wrap gap-2">
