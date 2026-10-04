@@ -362,6 +362,7 @@ export function LiveView() {
                         <div className={cn("text-xs font-medium", TONE_TEXT[S.tone])}><span className="tabular-nums text-primary">{hm(s.start)}</span> · {S.label}{p.eta ? ` · ETA ${p.eta}` : ""}</div>
                         <div className="line-clamp-2 text-xs text-muted-foreground">{s.title}</div>
                         {p.notes && <p dir="auto" className="mt-1 rounded bg-muted/70 px-2 py-1 text-xs"><b className="font-semibold">Note:</b> {p.notes}{p.noteAt ? ` (${hm(p.noteAt)})` : ""}</p>}
+                        {p.noteReply && <p dir="auto" className="mt-1 rounded bg-primary/10 px-2 py-1 text-xs"><b className="font-semibold">You replied:</b> {p.noteReply}</p>}
                       </div>
                       {me?.admin && <Button variant="ghost" size="icon" className="-mr-2 shrink-0" onClick={() => modal.open({ kind: "person", pid: p.id })} aria-label="More"><Ellipsis /></Button>}
                     </div>

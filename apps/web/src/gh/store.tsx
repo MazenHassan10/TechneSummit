@@ -65,6 +65,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const seenIncidents = useRef<string[] | null>(null);
   const seenLate = useRef<string[] | null>(null);
   const seenChanges = useRef<string[] | null>(null);
+  const seenReplies = useRef<Map<string, number> | null>(null);
   const stateRef = useRef<State | null>(null);
   const meRef = useRef<Actor | null>(null);
   stateRef.current = state;
@@ -94,6 +95,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     seenIncidents.current = null;
     seenLate.current = null;
     seenChanges.current = null;
+    seenReplies.current = null;
     setMe(null);
     setState(null);
   }, []);
@@ -149,6 +151,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     }
     seenChanges.current = ch;
+    // Team Leader replied to one of my notes
+    if (!who.admin && !who.manager) {
+      const mine = st.people.filter((p) => p.noteReply && p.noteReplyAt && Core.prOf(st, p) === who.name);
+      if (seenReplies.current) {
+        const fresh = mine.filter((p) => (seenReplies.current!.get(p.id) ?? 0) < (p.noteReplyAt ?? 0));
+        if (fresh.length) {
+          const p = fresh[0]!;
+          const msg = fresh.length === 1 ? `${p.name}: ${p.noteReply}` : `${fresh.length} replies to your notes`;
+          toast.info(`Team Leader replied – ${msg}`, { duration: 15000 });
+          notify("Team Leader replied", msg);
+          buzz();
+        }
+      }
+      seenReplies.current = new Map(mine.map((p) => [p.id, p.noteReplyAt ?? 0]));
+    }
   }, []);
 
   const poll = useCallback(async () => {

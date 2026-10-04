@@ -27,7 +27,7 @@ function publicState(state: StoredState, actor: Actor) {
     out.settings.adminPin = "";
     for (const m of out.team) m.pin = "";
     // phone numbers only for the PR's own speakers (managers see everyone's, read-only)
-    if (!actor.manager) for (const p of out.people) if (prOf(out, p) !== actor.name) { p.phone = ""; p.alert = ""; }
+    if (!actor.manager) for (const p of out.people) if (prOf(out, p) !== actor.name) { p.phone = ""; p.alert = ""; p.noteReply = ""; }
   }
   return out;
 }

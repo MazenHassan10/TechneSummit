@@ -87,6 +87,9 @@ export type Person = {
   alert?: string;
   /** when the PR's note was last saved */
   noteAt?: number | null;
+  /** Team Leader's reply to the note */
+  noteReply?: string;
+  noteReplyAt?: number | null;
 };
 export type Incident = {
   id: string; ts: number; by: string; sid: string; pid: string; kind: string; note: string;
@@ -456,7 +459,7 @@ function addLog(state: State, by: string, text: string, now: number) {
   state._newLog = [...(state._newLog || []), e];
 }
 
-const ADMIN_ONLY = new Set(["assign", "phone", "autoAssign", "clearPrs", "availability", "saveAdmin", "owner", "importPhones", "savePerson", "deletePerson", "saveSession", "deleteSession", "saveMember", "removeMember", "pin", "settings"]);
+const ADMIN_ONLY = new Set(["noteReply", "assign", "phone", "autoAssign", "clearPrs", "availability", "saveAdmin", "owner", "importPhones", "savePerson", "deletePerson", "saveSession", "deleteSession", "saveMember", "removeMember", "pin", "settings"]);
 const str = (v: unknown) => (v == null ? "" : String(v));
 const isHHMM = (v: unknown) => /^\d{1,2}:\d{2}$/.test(str(v));
 const pad5 = (v: unknown) => ("0" + str(v)).slice(-5);
@@ -510,6 +513,15 @@ export function apply(state: State, a: Action, actor: Actor, now: number): Apply
         p.noteAt = p.notes ? now : null;
         touch(p); dirty.push("people");
         addLog(state, by, p.notes ? `Note on ${p.name}: ${p.notes}` : `Note cleared – ${p.name}`, now);
+        break;
+      }
+      case "noteReply": {
+        const p = personById(state, str(a.pid));
+        if (!p) throw new Error("Speaker not found – refresh.");
+        p.noteReply = str(a.text).trim().slice(0, 500);
+        p.noteReplyAt = p.noteReply ? now : null;
+        dirty.push("people");
+        addLog(state, by, p.noteReply ? `Reply on ${p.name}: ${p.noteReply}` : `Reply cleared – ${p.name}`, now);
         break;
       }
       case "phone": {

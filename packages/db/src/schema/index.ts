@@ -46,6 +46,9 @@ export const people = pgTable("people", {
   notes: text("notes").notNull().default(""),
   /** when the PR last wrote the note */
   noteAt: ms("note_at"),
+  /** Team Leader's reply to the PR's note */
+  noteReply: text("note_reply").notNull().default(""),
+  noteReplyAt: ms("note_reply_at"),
   /** heads-up from the Team Leader shown to the speaker's PR (e.g. "WhatsApp only", "reach via Sara") */
   alert: text("alert").notNull().default(""),
   updatedBy: text("updated_by").notNull().default(""),

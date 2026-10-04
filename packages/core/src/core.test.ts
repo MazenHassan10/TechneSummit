@@ -316,3 +316,11 @@ test('Team Leader can edit their own name, phone and PIN; hand-picked speakers f
   assert.strictEqual(Core.apply(st, { type: 'saveAdmin', name: 'X', phone: '', pin: '12' }, { name: 'x', admin: true }, 0).ok, false);
   assert.strictEqual(Core.apply(st, { type: 'saveAdmin', name: 'X', phone: '', pin: '1234' }, { name: 'Karim Hamed', admin: false }, 0).ok, false);
 });
+test('only the Team Leader can reply to a PR note', () => {
+  const st = clone(SEED), p = st.people[0]; p.pr = 'Karim Hamed';
+  assert.strictEqual(Core.apply(st, { type: 'noteReply', pid: p.id, text: 'x' }, { name: 'Karim Hamed', admin: false }, 1).ok, false);
+  assert.ok(Core.apply(st, { type: 'noteReply', pid: p.id, text: 'Call me now' }, { name: 'TL', admin: true }, 5).ok);
+  assert.strictEqual(p.noteReply, 'Call me now'); assert.strictEqual(p.noteReplyAt, 5);
+  Core.apply(st, { type: 'noteReply', pid: p.id, text: '' }, { name: 'TL', admin: true }, 6);
+  assert.strictEqual(p.noteReply, ''); assert.strictEqual(p.noteReplyAt, null);
+});

@@ -6,7 +6,10 @@ import { Badge } from "@great-hall-pr/ui/components/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@great-hall-pr/ui/components/card";
 import { Tabs, TabsList, TabsTrigger } from "@great-hall-pr/ui/components/tabs";
 import { cn } from "@great-hall-pr/ui/lib/utils";
-import { NotebookPen } from "lucide-react";
+import { NotebookPen, Reply, Send } from "lucide-react";
+import { Button } from "@great-hall-pr/ui/components/button";
+import { Textarea } from "@great-hall-pr/ui/components/textarea";
+import { NoteReply } from "./pr-note";
 import { useState } from "react";
 
 import { SpeakerAvatar, useProfiles } from "./agenda";
@@ -55,6 +58,49 @@ export function NotesView() {
   );
 }
 
+const QUICK_REPLIES = ["OK, thanks", "Keep trying", "Call me now", "Tell the stage manager", "Bring them backstage now", "I'll handle it"];
+
+/** Team Leader answers a note; the PR sees it on the speaker card and gets an alert. */
+function ReplyBox({ p }: { p: Person }) {
+  const { me, act } = useApp();
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState(p.noteReply ?? "");
+  const [busy, setBusy] = useState(false);
+  const stale = !!(p.noteReply && p.noteReplyAt && p.noteAt && p.noteAt > p.noteReplyAt);
+  const save = async (v: string) => {
+    setBusy(true);
+    const r = await act({ type: "noteReply", pid: p.id, text: v }, v.trim() ? "Reply sent" : "Reply removed");
+    setBusy(false);
+    if (r.ok) setOpen(false);
+  };
+  if (open) {
+    return (
+      <div className="space-y-2 rounded-md border border-primary/30 bg-primary/5 p-2.5">
+        <Textarea dir="auto" autoFocus rows={2} maxLength={500} value={text} onChange={(e) => setText(e.target.value)} placeholder="Reply to the PR (English or Arabic)" className="bg-background text-sm" />
+        <div className="flex flex-wrap gap-1.5">
+          {QUICK_REPLIES.map((q) => <button key={q} type="button" onClick={() => setText(q)} className="rounded-full border bg-background px-2.5 py-1 text-xs hover:bg-muted">{q}</button>)}
+        </div>
+        <div className="flex gap-2">
+          <Button size="sm" disabled={busy || !text.trim()} onClick={() => void save(text)}><Send />Send reply</Button>
+          <Button size="sm" variant="ghost" disabled={busy} onClick={() => setOpen(false)}>Cancel</Button>
+          {p.noteReply && <Button size="sm" variant="ghost" className="ml-auto text-destructive" disabled={busy} onClick={() => void save("")}>Remove</Button>}
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-1.5">
+      {p.noteReply && <NoteReply p={p} />}
+      {stale && <p className="ml-4 text-[11px] text-amber">The PR updated the note after your reply.</p>}
+      {me?.admin && (
+        <Button size="sm" variant="outline" className="h-8" onClick={() => { setText(p.noteReply ?? ""); setOpen(true); }}>
+          <Reply />{p.noteReply ? "Edit reply" : "Reply"}
+        </Button>
+      )}
+    </div>
+  );
+}
+
 function NoteRow({ p, s, showPanel }: Row & { showPanel?: boolean }) {
   const { state, now } = useApp();
   const modal = useModal();
@@ -83,6 +129,7 @@ function NoteRow({ p, s, showPanel }: Row & { showPanel?: boolean }) {
           {p.noteAt && <span>{hm(p.noteAt)}{p.updatedBy ? ` · ${p.updatedBy}` : ""}</span>}
           <Badge variant="secondary">PR · {pr || "none"}</Badge>
         </div>
+        <ReplyBox p={p} />
       </div>
       <div className="flex shrink-0 flex-col gap-1.5">
         {p.phone && <CallLink phone={p.phone} title={`Call ${p.name}`} />}

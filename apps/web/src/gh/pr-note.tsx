@@ -4,7 +4,7 @@ import type { Person } from "@great-hall-pr/core";
 import { Button } from "@great-hall-pr/ui/components/button";
 import { Textarea } from "@great-hall-pr/ui/components/textarea";
 import { cn } from "@great-hall-pr/ui/lib/utils";
-import { NotebookPen, Pencil } from "lucide-react";
+import { NotebookPen, Pencil, Reply } from "lucide-react";
 import { useState } from "react";
 
 import { hm } from "./format";
@@ -52,6 +52,7 @@ export function PrNote({ p, canEdit, compact }: { p: Person; canEdit: boolean; c
     ) : null;
   }
   return (
+    <div className="space-y-1.5">
     <div className={cn("flex items-start gap-2 rounded-md border bg-muted/50 px-2.5 py-2", compact && "py-1.5")}>
       <NotebookPen className="mt-0.5 size-3.5 shrink-0 text-primary" />
       <div className="min-w-0 flex-1">
@@ -59,6 +60,23 @@ export function PrNote({ p, canEdit, compact }: { p: Person; canEdit: boolean; c
         <p className="text-[11px] text-muted-foreground">PR note{p.noteAt ? ` · ${hm(p.noteAt)}` : ""}{p.updatedBy && p.noteAt ? ` · ${p.updatedBy}` : ""}</p>
       </div>
       {canEdit && <Button size="icon-sm" variant="ghost" onClick={open} aria-label="Edit note"><Pencil /></Button>}
+    </div>
+    <NoteReply p={p} />
+    </div>
+  );
+}
+
+/** The Team Leader's answer to this note (blue, so it stands out from the PR's own text). */
+export function NoteReply({ p }: { p: Person }) {
+  const { state } = useApp();
+  if (!p.noteReply) return null;
+  return (
+    <div className="ml-4 flex items-start gap-2 rounded-md border border-primary/30 bg-primary/10 px-2.5 py-2">
+      <Reply className="mt-0.5 size-3.5 shrink-0 text-primary" />
+      <div className="min-w-0 flex-1">
+        <p dir="auto" className="text-sm font-medium whitespace-pre-wrap break-words">{p.noteReply}</p>
+        <p className="text-[11px] text-muted-foreground">{state?.settings.adminName || "Team Leader"} (Team Leader){p.noteReplyAt ? ` · ${hm(p.noteReplyAt)}` : ""}</p>
+      </div>
     </div>
   );
 }
