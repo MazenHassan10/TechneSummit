@@ -151,6 +151,11 @@ export function nextStep(p: Person, session?: Session, st?: Settings, now = 0): 
   return null;
 }
 
+/** A status change (step ticked / no-show) makes the PR's note and the Team Leader's reply out of date. */
+function clearNote(p: Person) {
+  p.notes = ""; p.noteAt = null; p.noteReply = ""; p.noteReplyAt = null;
+}
+
 // ---------- lookups ----------
 export const peopleOf = (state: State, sid: string) => state.people.filter((p) => p.sid === sid);
 export const sessionById = (state: State, sid: string) => state.sessions.find((s) => s.id === sid) ?? null;
@@ -494,6 +499,7 @@ export function apply(state: State, a: Action, actor: Actor, now: number): Apply
             if (!p[k] && k !== "called" && k !== "etaCall") p[k] = now;
           }
           p.noshow = false;
+          clearNote(p); // the note described the previous situation (kept in the log)
         }
         touch(p); dirty.push("people");
         addLog(state, by, `${a.value ? "" : "Undo: "}${STEP_LABEL[step]} – ${p.name} (${s.title})`, now);
@@ -534,6 +540,7 @@ export function apply(state: State, a: Action, actor: Actor, now: number): Apply
       case "noshow": {
         const { p, s } = needP();
         p.noshow = !!a.value;
+        if (a.value) clearNote(p);
         touch(p); dirty.push("people");
         addLog(state, by, `${a.value ? "NO-SHOW marked – " : "No-show cleared – "}${p.name} (${s.title})`, now);
         if (a.value) {

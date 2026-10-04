@@ -324,3 +324,17 @@ test('only the Team Leader can reply to a PR note', () => {
   Core.apply(st, { type: 'noteReply', pid: p.id, text: '' }, { name: 'TL', admin: true }, 6);
   assert.strictEqual(p.noteReply, ''); assert.strictEqual(p.noteReplyAt, null);
 });
+test('ticking a step or marking no-show clears the note and its reply; undo keeps them', () => {
+  const st = clone(SEED), p = st.people[0]; p.pr = 'Karim Hamed';
+  const pr = { name: 'Karim Hamed', admin: false }, tl = { name: 'TL', admin: true };
+  Core.apply(st, { type: 'note', pid: p.id, text: 'Not answering' }, pr, 1);
+  Core.apply(st, { type: 'noteReply', pid: p.id, text: 'Keep trying' }, tl, 2);
+  Core.apply(st, { type: 'step', pid: p.id, step: 'called', value: true }, pr, 3);
+  assert.strictEqual(p.notes, ''); assert.strictEqual(p.noteReply, '');
+  assert.ok(st.log.some((l) => l.text.includes('Not answering')), 'history kept in the log');
+  Core.apply(st, { type: 'note', pid: p.id, text: 'On the way' }, pr, 4);
+  Core.apply(st, { type: 'step', pid: p.id, step: 'called', value: false }, pr, 5);
+  assert.strictEqual(p.notes, 'On the way');
+  Core.apply(st, { type: 'noshow', pid: p.id, value: true }, pr, 6);
+  assert.strictEqual(p.notes, '');
+});
