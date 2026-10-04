@@ -1,5 +1,7 @@
 "use client";
 
+import * as Core from "@great-hall-pr/core";
+
 import { Button } from "@great-hall-pr/ui/components/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@great-hall-pr/ui/components/card";
 import { Input } from "@great-hall-pr/ui/components/input";
@@ -7,17 +9,18 @@ import { Label } from "@great-hall-pr/ui/components/label";
 import { cn } from "@great-hall-pr/ui/lib/utils";
 import { Badge } from "@great-hall-pr/ui/components/badge";
 import { useQuery } from "@tanstack/react-query";
-import { BookUser, CalendarClock, CalendarDays, ClipboardList, Contact, Landmark, MoreHorizontal, Radio, Star, TriangleAlert, Users } from "lucide-react";
+import { BookUser, CalendarClock, NotebookPen, CalendarDays, ClipboardList, Contact, Landmark, MoreHorizontal, Radio, Star, TriangleAlert, Users } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { trpc } from "@/utils/trpc";
 
-import { hm } from "./format";
+import { dayOf, hm } from "./format";
 import { AgendaView } from "./agenda";
 import { AgendaWatchBanner } from "./agenda-watch";
 import { ScreenBoundary } from "./boundary";
 import { ConfirmHost } from "./confirm";
 import { ContactsView } from "./contacts";
+import { NotesView } from "./notes-view";
 import { Modals } from "./modals";
 import { AppProvider, useApp, useTick } from "./store";
 import { ModalCtx, type ModalSpec } from "./ui";
@@ -128,6 +131,7 @@ const ADMIN_TABS: Tab[] = [
   { key: "team", label: "Team", icon: Users, view: TeamAdminView },
   { key: "phones", label: "Phones", icon: Contact, view: PhonesView },
   { key: "contacts", label: "Contacts", icon: BookUser, view: ContactsView },
+  { key: "notes", label: "Notes", icon: NotebookPen, view: NotesView },
   { key: "issues", label: "Issues", icon: TriangleAlert, view: IssuesView },
   { key: "log", label: "Log", icon: ClipboardList, view: LogView },
 ];
@@ -152,6 +156,7 @@ function Shell() {
   if (!me || !state) return null;
   const View = (tabs.find((x) => x.key === tab) ?? tabs[0]!).view;
   const openIssues = state.incidents.filter((i) => i.status === "open").length;
+  const notesToday = state.people.filter((p) => p.notes && Core.sessionById(state, p.sid)?.day === dayOf(now())).length;
   const mineAlerts = me.admin || me.manager ? 0 : myAlertCount(state, me.name, now());
   return (
     <ModalCtx.Consumer>
@@ -172,15 +177,15 @@ function Shell() {
           </header>
           <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t bg-background pb-[env(safe-area-inset-bottom)] md:top-[var(--toph,66px)] md:right-auto md:bottom-0 md:w-24 md:flex-col md:border-t-0 md:border-r">
             {tabs.map((x) => {
-              const badge = (x.key === "issues" || x.key === "report") && openIssues ? openIssues : x.key === "mine" && mineAlerts ? mineAlerts : 0;
+              const badge = (x.key === "issues" || x.key === "report") && openIssues ? openIssues : x.key === "mine" && mineAlerts ? mineAlerts : x.key === "notes" ? notesToday : 0;
               const on = tab === x.key;
               const Icon = x.icon;
               return (
                 <Button type="button" variant="ghost" key={x.key} onClick={() => { setTab(x.key); window.scrollTo(0, 0); }}
-                  className={cn("relative h-auto flex-1 flex-col gap-1 rounded-none px-1 pt-2 pb-2.5 text-[11px] md:flex-none md:py-4", on ? "text-primary" : "text-muted-foreground")}>
+                  className={cn("relative h-auto min-w-0 flex-1 flex-col gap-1 rounded-none px-0.5 pt-2 pb-2.5 md:flex-none md:py-4", tabs.length > 8 ? "text-[10px] sm:text-[11px]" : "text-[11px]", on ? "text-primary" : "text-muted-foreground")}>
                   {on && <span className="absolute top-0 left-[22%] h-0.5 w-[56%] rounded-b bg-primary md:top-[20%] md:left-0 md:h-[60%] md:w-0.5 md:rounded-r" />}
                   <Icon className="size-5" />{x.label}
-                  {badge > 0 && <Badge variant="destructive" className="absolute top-1 left-1/2 ml-2 h-4 min-w-4 px-1 text-[10px]">{badge}</Badge>}
+                  {badge > 0 && <Badge variant={x.key === "notes" ? "default" : "destructive"} className="absolute top-1 left-1/2 ml-2 h-4 min-w-4 px-1 text-[10px]">{badge}</Badge>}
                 </Button>
               );
             })}
