@@ -91,14 +91,19 @@ export async function decideChanges(db: Database, ids: string[], approve: boolea
       r.dirty.forEach((d) => localDirty.add(d));
       return r.result;
     };
+    // someone already in our agenda keeps their phone number and heads-up in the new session
+    const known = (name: string) => {
+      const q = scratch.people.find((x) => normName(x.name) === normName(name) && x.phone);
+      return q ? { phone: q.phone, alert: q.alert ?? "" } : {};
+    };
     try {
       const payload = JSON.parse(row.payload) as { actions: ({ type: string } & Record<string, unknown>)[]; newSession: { day: string; start: string; end: string; title: string; people: { name: string; role: string }[] } | null };
       if (payload.newSession) {
         const ns = payload.newSession;
         const res = run({ type: "saveSession", title: ns.title, day: ns.day, startHHMM: ns.start, endHHMM: ns.end, stype: "Panel" }) as { sid: string };
-        for (const p of ns.people) run({ type: "savePerson", sid: res.sid, name: p.name, role: p.role, pr: prs[`${row.id}|${normName(p.name)}`] ?? "" });
+        for (const p of ns.people) run({ type: "savePerson", sid: res.sid, name: p.name, role: p.role, pr: prs[`${row.id}|${normName(p.name)}`] ?? "", ...known(p.name) });
       }
-      for (const a of payload.actions) run(row.kind === "add_person" && a.type === "savePerson" ? { ...a, pr: prs[row.id] ?? "" } : a);
+      for (const a of payload.actions) run(row.kind === "add_person" && a.type === "savePerson" ? { ...known(String(a.name ?? "")), ...a, pr: prs[row.id] ?? "" } : a);
       Object.assign(state, scratch);
       localDirty.forEach((d) => dirty.add(d));
       done.push(row.id);
