@@ -63,7 +63,7 @@ export function WaReminder({ pid }: { pid: string }) {
   const what = p.role === "Moderator" ? "you're moderating a session" : "you have a session";
   const built = [
     `Hi ${greeting},`,
-    `I'm ${fromWho}, a PR from the Techne team at the Great Hall. I'm reminding you that ${what} ${when}around ${around(s.start)}. It would be great if you could arrive by around ${around(d.arriveBy)} so we can get you ready.`,
+    `I'm ${fromWho}, a PR from Techne team. I'm just reminding you that ${what} ${when}around ${around(s.start)}. It would be great if you could arrive by around ${around(d.arriveBy)} so we can get you ready.`,
     "Could you reply to let me know your availability? Thank you!",
   ].join("\n");
   const text = edited ?? built;
