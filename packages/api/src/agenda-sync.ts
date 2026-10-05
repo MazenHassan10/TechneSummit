@@ -9,9 +9,14 @@ export type SchedPerson = {
   /** photo + "title, company" as shown on the agenda page – used to spot profile changes cheaply */
   photo?: string; headline?: string;
 };
-export type SchedSession = { day: string; start: string; end: string; title: string; people: SchedPerson[] };
+export type SchedSession = { day: string; start: string; end: string; title: string; people: SchedPerson[]; venue?: string };
 
 export type ChangeKind = "time" | "rename" | "role" | "add_person" | "remove_person" | "new_session" | "removed_session";
+/** Which official stage we follow on each day (Great Hall by default). */
+export type StageFor = (day: string) => string;
+const greatHall: StageFor = () => "Great Hall";
+const atStage = (venue: string, stage: string) => venue.toLowerCase().includes(stage.toLowerCase());
+
 export type Proposal = {
   /** stable id – the same difference always gets the same id, so it is only alerted once */
   id: string;
@@ -19,7 +24,7 @@ export type Proposal = {
   summary: string;
   /** actions applied on approval; for new_session the session is created first and `{sid}` is filled in */
   actions: Action[];
-  newSession?: { day: string; start: string; end: string; title: string; people: SchedPerson[] };
+  newSession?: { day: string; start: string; end: string; title: string; people: SchedPerson[]; venue?: string };
   /** add_person: who is being added (with their official profile link) */
   person?: SchedPerson;
   warning?: string;
@@ -74,9 +79,10 @@ export function parseSchedDayAll(html: string, day: string): SummitSession[] {
   return out;
 }
 
-/** Parses one day of `/<day>/list/descriptions/` and keeps only Great Hall sessions. */
-export function parseSchedDay(html: string, day: string): SchedSession[] {
-  return parseSchedDayAll(html, day).filter((s) => /Great Hall/i.test(s.venue)).map(({ day: d, start, end, title, people }) => ({ day: d, start, end, title, people }));
+/** Parses one day of `/<day>/list/descriptions/` and keeps only the stage we follow that day (Great Hall by default). */
+export function parseSchedDay(html: string, day: string, stage = "Great Hall"): SchedSession[] {
+  return parseSchedDayAll(html, day).filter((s) => atStage(s.venue, stage))
+    .map(({ day: d, start, end, title, people, venue }) => ({ day: d, start, end, title, people, ...(/Great Hall/i.test(venue) ? {} : { venue }) }));
 }
 
 /** Every session of the given summit days (all venues) – Mac only (the site blocks cloud servers). Days that fail are left out. */
@@ -98,13 +104,13 @@ export async function fetchSchedSummit(days: string[], fetchFn: typeof fetch = f
  * The calendar feed (all.ics) is not behind the site's bot check, so cloud servers can read it.
  * It has titles, times and rooms but NO speakers – good enough to catch time changes, new and cancelled sessions.
  */
-export function parseSchedIcs(ics: string, days: string[], tzOffsetHours = 3): SchedSession[] {
+export function parseSchedIcs(ics: string, days: string[], tzOffsetHours = 3, stageFor: StageFor = greatHall): SchedSession[] {
   const text = ics.replace(/\r?\n[ \t]/g, "");
   const out: SchedSession[] = [];
   const unescape = (v: string) => v.replace(/\\,/g, ",").replace(/\\;/g, ";").replace(/\\n/gi, " ").replace(/\\\\/g, "\\").trim();
   for (const ev of text.split("BEGIN:VEVENT").slice(1)) {
     const field = (k: string) => new RegExp(`^${k}(?:;[^:\\r\\n]*)?:(.*)$`, "m").exec(ev)?.[1]?.trim() ?? "";
-    if (!/Great Hall/i.test(unescape(field("LOCATION")))) continue;
+    const loc = unescape(field("LOCATION"));
     const toLocal = (v: string) => {
       const m = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})/.exec(v);
       if (!m) return null;
@@ -114,8 +120,8 @@ export function parseSchedIcs(ics: string, days: string[], tzOffsetHours = 3): S
     };
     const a = toLocal(field("DTSTART")), b = toLocal(field("DTEND"));
     const title = decode(unescape(field("SUMMARY")));
-    if (!a || !b || !title || !days.includes(a.day)) continue;
-    out.push({ day: a.day, start: a.hm, end: b.hm, title, people: [] });
+    if (!a || !b || !title || !days.includes(a.day) || !atStage(loc, stageFor(a.day))) continue;
+    out.push({ day: a.day, start: a.hm, end: b.hm, title, people: [], ...(/Great Hall/i.test(loc) ? {} : { venue: loc.replace(/,\s*Egypt$/i, "") }) });
   }
   return out;
 }
@@ -123,7 +129,7 @@ export function parseSchedIcs(ics: string, days: string[], tzOffsetHours = 3): S
 export type SchedFetch = { sessions: SchedSession[]; mode: "full" | "times" };
 
 /** Full pages when reachable (speakers included); otherwise the calendar feed (times only). */
-export async function fetchSchedGreatHall(days: string[], fetchFn: typeof fetch = fetch): Promise<SchedFetch> {
+export async function fetchSchedGreatHall(days: string[], fetchFn: typeof fetch = fetch, stageFor: StageFor = greatHall): Promise<SchedFetch> {
   const headers = { "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Safari/537.36", Accept: "text/html" };
   try {
     const all: SchedSession[] = [];
@@ -131,7 +137,7 @@ export async function fetchSchedGreatHall(days: string[], fetchFn: typeof fetch 
       const res = await fetchFn(`${SCHED_BASE}${day}/list/descriptions/`, { headers, cache: "no-store" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const html = await res.text();
-      const parsed = parseSchedDay(html, day);
+      const parsed = parseSchedDay(html, day, stageFor(day));
       // the site's bot check returns a tiny "Just a moment…" page – never treat that as an empty agenda
       if (!parsed.length) throw new Error(`no sessions on page (${html.length} bytes)`);
       all.push(...parsed);
@@ -140,7 +146,7 @@ export async function fetchSchedGreatHall(days: string[], fetchFn: typeof fetch 
   } catch {
     const res = await fetchFn(`${SCHED_BASE}all.ics`, { headers: { ...headers, Accept: "text/calendar" }, cache: "no-store" });
     if (!res.ok) throw new Error(`official calendar feed: HTTP ${res.status}`);
-    const sessions = parseSchedIcs(await res.text(), days);
+    const sessions = parseSchedIcs(await res.text(), days, 3, stageFor);
     if (!sessions.length) throw new Error("official calendar feed had no Great Hall sessions");
     return { sessions, mode: "times" };
   }
@@ -167,7 +173,7 @@ export const TIME_ONLY_KINDS: ChangeKind[] = ["time", "new_session", "removed_se
 
 /** Differences between the official agenda and ours, as approvable proposals.
  *  `timesOnly`: the source has no speaker data, so speaker-level differences are not computed. */
-export function diffAgenda(state: State, sched: SchedSession[], opts: { timesOnly?: boolean } = {}): Proposal[] {
+export function diffAgenda(state: State, sched: SchedSession[], opts: { timesOnly?: boolean; days?: string[] } = {}): Proposal[] {
   const out: Proposal[] = [];
   const matched = new Set<string>();
   for (const s of sched) {
@@ -178,7 +184,7 @@ export function diffAgenda(state: State, sched: SchedSession[], opts: { timesOnl
       out.push({
         id: `new_session|${s.day}|${nt(s.title)}`, kind: "new_session",
         summary: `New session ${dayName(state, s.day)} ${to12(s.start)}–${to12(s.end)}: “${s.title}”${s.people.length ? ` with ${s.people.map((p) => p.name).join(", ")}` : ""}`,
-        actions: [], newSession: { day: s.day, start: s.start, end: s.end, title: s.title, people: s.people },
+        actions: [], newSession: { day: s.day, start: s.start, end: s.end, title: s.title, people: s.people, ...(s.venue ? { venue: s.venue } : {}) },
       });
       continue;
     }
@@ -213,7 +219,9 @@ export function diffAgenda(state: State, sched: SchedSession[], opts: { timesOnl
         actions: [{ type: "deletePerson", pid: p.id }], warning: started(p) ? "Their PR already started tracking them." : undefined });
     }
   }
-  for (const o of state.sessions) if (!matched.has(o.id)) {
+  // only sessions on the days we actually compared can be "removed"
+  const days = new Set(opts.days ?? sched.map((s) => s.day));
+  for (const o of state.sessions) if (!matched.has(o.id) && days.has(o.day)) {
     const ppl = peopleOf(state, o.id);
     out.push({ id: `removed_session|${o.id}`, kind: "removed_session", summary: `“${o.title}” (${dayName(state, o.day)} ${to12(fmt24(o.start))}) is no longer in the official agenda`,
       actions: [{ type: "deleteSession", sid: o.id }], warning: ppl.some(started) ? "Tracking already started for this session." : undefined });

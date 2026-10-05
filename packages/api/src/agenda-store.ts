@@ -1,4 +1,4 @@
-import { apply, normName, type Actor, type State, type Table } from "@great-hall-pr/core";
+import { apply, eventDays, normName, trackedStage, type Actor, type State, type Table } from "@great-hall-pr/core";
 import type { Database } from "@great-hall-pr/db";
 import { agendaChanges, appMeta, settings, speakerProfiles } from "@great-hall-pr/db/schema/index";
 import { and, eq, inArray, sql } from "drizzle-orm";
@@ -26,8 +26,9 @@ export async function runAgendaCheck(db: Database, opts: { fetchFn?: typeof fetc
   try {
     if (opts.error) throw new Error(opts.error);
     let sched = opts.sched;
-    if (!sched) { const got = await fetchSchedGreatHall([state.settings.day1, state.settings.day2], opts.fetchFn); sched = got.sessions; mode = got.mode; }
-    proposals = diffAgenda(state, sched, { timesOnly: mode === "times" });
+    const days = eventDays(state.settings);
+    if (!sched) { const got = await fetchSchedGreatHall(days, opts.fetchFn, (d) => trackedStage(state.settings, d)); sched = got.sessions; mode = got.mode; }
+    proposals = diffAgenda(state, sched, { timesOnly: mode === "times", days: [...new Set(sched.map((s) => s.day))] });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     await setSetting(db, "agendaLastCheck", String(now));
@@ -97,10 +98,10 @@ export async function decideChanges(db: Database, ids: string[], approve: boolea
       return q ? { phone: q.phone, alert: q.alert ?? "" } : {};
     };
     try {
-      const payload = JSON.parse(row.payload) as { actions: ({ type: string } & Record<string, unknown>)[]; newSession: { day: string; start: string; end: string; title: string; people: { name: string; role: string }[] } | null };
+      const payload = JSON.parse(row.payload) as { actions: ({ type: string } & Record<string, unknown>)[]; newSession: { day: string; start: string; end: string; title: string; venue?: string; people: { name: string; role: string }[] } | null };
       if (payload.newSession) {
         const ns = payload.newSession;
-        const res = run({ type: "saveSession", title: ns.title, day: ns.day, startHHMM: ns.start, endHHMM: ns.end, stype: "Panel" }) as { sid: string };
+        const res = run({ type: "saveSession", title: ns.title, day: ns.day, startHHMM: ns.start, endHHMM: ns.end, stype: "Panel", venue: ns.venue ?? "" }) as { sid: string };
         for (const p of ns.people) run({ type: "savePerson", sid: res.sid, name: p.name, role: p.role, pr: prs[`${row.id}|${normName(p.name)}`] ?? "", ...known(p.name) });
       }
       for (const a of payload.actions) run(row.kind === "add_person" && a.type === "savePerson" ? { ...known(String(a.name ?? "")), ...a, pr: prs[row.id] ?? "" } : a);

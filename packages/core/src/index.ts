@@ -39,6 +39,10 @@ export const INCIDENT_KINDS = [
 export type Settings = {
   day1: string;
   day2: string;
+  /** optional third day (e.g. 5 Oct, Closing Stage) */
+  day3?: string;
+  /** JSON { "2026-10-05": "Stage 09" } – which official stage we look after that day (default: the Great Hall) */
+  trackedStages?: string;
   tz: string;
   tzName: string;
   call1Hours: number;
@@ -78,7 +82,11 @@ export type Member = {
   /** JSON { day: "HH:MM" } – not available for speakers arriving before this time that day */
   availFrom?: string;
 };
-export type Session = { id: string; day: string; start: number; end: number; title: string; type: string; owner: string; notes: string };
+export type Session = {
+  id: string; day: string; start: number; end: number; title: string; type: string; owner: string; notes: string;
+  /** official venue, e.g. "(ALX) Stage 09: Closing Stage"; empty = Stage 01 · The Great Hall */
+  venue?: string;
+};
 export type Person = {
   id: string; sid: string; pr: string; name: string; role: string; phone: string;
   called: number | null; etaCall: number | null; eta: string; arrived: number | null; backstage: number | null; onstage: number | null;
@@ -116,6 +124,18 @@ export type Action = { type: string } & Record<string, unknown>;
 export type ApplyResult = { ok: true; dirty: Table[]; result?: unknown } | { ok: false; error: string };
 
 // ---------- time ----------
+/** The event days we work, in order. */
+export const eventDays = (st: Settings) => [st.day1, st.day2, st.day3].filter((d): d is string => !!d);
+/** Official stage we look after on that day (matched against the sched venue name). */
+export function trackedStage(st: Settings, day: string): string {
+  try { return (JSON.parse(st.trackedStages || "{}") as Record<string, string>)[day] || "Great Hall"; } catch { return "Great Hall"; }
+}
+/** "Stage 09 · Closing Stage" / "Stage 01 · The Great Hall" */
+export const venueLabel = (s: Pick<Session, "venue">) =>
+  s.venue ? s.venue.replace(/^\([A-Z]+\)\s*/, "").replace(/:\s*/, " · ").replace(/ - /g, " – ") : "Stage 01 · The Great Hall";
+/** "Sat 3 Oct" */
+export const dayShortLabel = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
+
 export function dayStart(day: string, hhmm: string, tz?: string) {
   return Date.parse(`${day}T${hhmm}:00${tz || "+03:00"}`);
 }
@@ -675,9 +695,10 @@ export function apply(state: State, a: Action, actor: Actor, now: number): Apply
           ns.title = title; ns.day = sday; ns.start = st0; ns.end = en0;
           if (a.stype) ns.type = str(a.stype);
           if (a.owner !== undefined) ns.owner = str(a.owner);
+          if (a.venue !== undefined) ns.venue = str(a.venue);
           addLog(state, by, `Session updated: ${ns.title}`, now);
         } else {
-          ns = { id: uid("S"), day: sday, start: st0, end: en0, title, type: str(a.stype) || "Panel", owner: str(a.owner), notes: "" };
+          ns = { id: uid("S"), day: sday, start: st0, end: en0, title, type: str(a.stype) || "Panel", owner: str(a.owner), notes: "", venue: str(a.venue) };
           state.sessions.push(ns);
           addLog(state, by, `New session: ${ns.title}`, now);
         }

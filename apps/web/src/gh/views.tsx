@@ -27,13 +27,13 @@ import { Banner, CallLink, DayTabs, Dot, RotaBadge, TONE_TEXT, useModal, WhatsAp
 
 // ---------- shared ----------
 export function dayLabel(state: Core.State, d: string) {
-  return d === state.settings.day1 ? "Sat 3 Oct" : d === state.settings.day2 ? "Sun 4 Oct" : d;
+  return Core.dayShortLabel(d);
 }
 
 export function DaySwitch() {
   const { state, day, setDay } = useApp();
   if (!state) return null;
-  return <DayTabs value={day} onChange={setDay} days={[state.settings.day1, state.settings.day2].map((d) => ({ value: d, label: dayLabel(state, d) }))} />;
+  return <DayTabs value={day} onChange={setDay} days={Core.eventDays(state.settings).map((d) => ({ value: d, label: dayLabel(state, d) }))} />;
 }
 
 function SectionTitle({ children, count, action }: { children: React.ReactNode; count?: number | string; action?: React.ReactNode }) {

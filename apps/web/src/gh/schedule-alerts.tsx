@@ -30,7 +30,7 @@ export function useSlots(name: string, exceptSid?: string): Slot[] {
     .filter((q) => Core.normName(q.name) === k && q.sid !== exceptSid)
     .map((q) => ({ q, s: Core.sessionById(state, q.sid) }))
     .filter((x): x is { q: Person; s: Session } => !!x.s)
-    .map(({ q, s }) => ({ key: s.id, day: s.day, start: s.start, end: s.end, title: s.title, where: "Stage 01 · The Great Hall", format: s.type, arrived: !!(q.arrived || q.backstage || q.onstage), ours: true }));
+    .map(({ q, s }) => ({ key: s.id, day: s.day, start: s.start, end: s.end, title: s.title, where: Core.venueLabel(s), format: s.type, arrived: !!(q.arrived || q.backstage || q.onstage), ours: true }));
   const elsewhere: Slot[] = summit.elsewhere(name).map((x) => ({
     key: x.id, day: x.day, start: Core.dayStart(x.day, x.start, tz), end: Core.dayStart(x.day, x.end, tz), title: x.title, where: venueShort(x.venue), format: x.format, ours: false,
   }));

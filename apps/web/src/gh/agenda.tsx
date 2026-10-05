@@ -97,6 +97,7 @@ type SummitSession = { id: string; day: string; start: string; end: string; titl
 
 /** Whole-summit agenda (all stages + workshops), so a profile can show everything a speaker is doing. */
 export function useSummit() {
+  const { state } = useApp();
   const q = useQuery({ ...trpc.speakers.summit.queryOptions(), staleTime: 5 * 60_000, refetchInterval: 10 * 60_000 });
   return useMemo(() => {
     const byName = new Map<string, (SummitSession & { role: string })[]>();
@@ -107,9 +108,11 @@ export function useSummit() {
       }
     for (const l of byName.values()) l.sort((a, b) => `${a.day}${a.start}`.localeCompare(`${b.day}${b.start}`));
     /** sessions of this person outside the Great Hall */
-    const elsewhere = (name: string) => (byName.get(Core.normName(name)) ?? []).filter((s) => !/Great Hall/i.test(s.venue));
+    const ours = new Set((state?.sessions ?? []).map((s) => `${s.day}|${s.title.toLowerCase().replace(/[^a-z0-9]/g, "")}`));
+    const elsewhere = (name: string) => (byName.get(Core.normName(name)) ?? [])
+      .filter((s) => !/Great Hall/i.test(s.venue) && !ours.has(`${s.day}|${s.title.toLowerCase().replace(/[^a-z0-9]/g, "")}`));
     return { elsewhere, loading: q.isLoading };
-  }, [q.data, q.isLoading]);
+  }, [q.data, q.isLoading, state?.sessions]);
 }
 
 export const t12 = (hhmm: string) => { const [h = 0, m = 0] = hhmm.split(":").map(Number); return `${((h + 11) % 12) + 1}:${String(m).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`; };
@@ -156,7 +159,7 @@ export function AgendaView() {
     <OpenCtx.Provider value={(name) => modal.open({ kind: "profile", name })}>
       {mode !== "all" && <DaySwitch />}
       <Tabs value={mode} onValueChange={(v) => setMode(String(v))} className="mb-3">
-        <TabsList variant="line"><TabsTrigger value="timeline">Great Hall</TabsTrigger><TabsTrigger value="speakers">Speakers</TabsTrigger><TabsTrigger value="all">All stages</TabsTrigger></TabsList>
+        <TabsList variant="line"><TabsTrigger value="timeline">Our sessions</TabsTrigger><TabsTrigger value="speakers">Speakers</TabsTrigger><TabsTrigger value="all">All stages</TabsTrigger></TabsList>
       </Tabs>
       {mode === "timeline" ? <Timeline profiles={profiles} /> : mode === "speakers" ? <Directory profiles={profiles} /> : <AllStages />}
     </OpenCtx.Provider>
@@ -214,7 +217,7 @@ function Timeline({ profiles }: { profiles: ReturnType<typeof useProfiles> }) {
                   </div>
                 ))}
                 {!ppl.length && <p className="text-sm text-muted-foreground">Speakers to be announced.</p>}
-                <p className="flex items-center gap-1 text-xs text-muted-foreground"><MapPin className="size-3" />Stage 01 · The Great Hall</p>
+                <p className="flex items-center gap-1 text-xs text-muted-foreground"><MapPin className="size-3" />{Core.venueLabel(s)}</p>
               </CardContent>
             </Card>
           </li>
@@ -321,13 +324,13 @@ export function ProfileSheet({ name, profiles, onClose }: { name: string | null;
           </div>
           {sessions.length > 0 && <><Separator />
           <div>
-            <h3 className="mb-2 text-sm font-semibold">In the Great Hall</h3>
+            <h3 className="mb-2 text-sm font-semibold">With our team</h3>
             <div className="space-y-2">
               {sessions.map(({ p, s }) => {
                 const pr = Core.prOf(state, p);
                 return (
                   <div key={p.id} className="flex items-start gap-3 rounded-lg border p-3">
-                    <span className="w-24 shrink-0 text-xs font-medium tabular-nums text-primary">{s.day === state.settings.day1 ? "Sat" : "Sun"} {hm(s.start)}</span>
+                    <span className="w-24 shrink-0 text-xs font-medium tabular-nums text-primary">{Core.dayShortLabel(s.day).split(" ")[0]} {hm(s.start)}</span>
                     <div className="min-w-0 flex-1">
                       <div className="text-sm font-medium leading-snug">{s.title}</div>
                       <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">{p.role}<Badge variant={pr === me.name ? "default" : "secondary"}>PR · {pr === me.name ? "You" : pr ? shortName(pr) : "none"}</Badge></div>

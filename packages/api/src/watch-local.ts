@@ -5,6 +5,7 @@ import { createDb } from "@great-hall-pr/db";
 import { readFileSync } from "node:fs";
 
 import { runAgendaCheck } from "./agenda-store";
+import { eventDays, trackedStage } from "@great-hall-pr/core";
 import { fetchSchedGreatHall, fetchSchedSummit } from "./agenda-sync";
 import { fillSummitProfiles, saveSummit } from "./summit-store";
 import { syncProfiles } from "./agenda-profiles";
@@ -15,7 +16,7 @@ const url = process.env.DATABASE_URL || /^DATABASE_URL=(.+)$/m.exec(env)?.[1]?.t
 if (!url) throw new Error("DATABASE_URL missing");
 const db = createDb({ DATABASE_URL: url });
 const state = await loadState(db);
-const got = await fetchSchedGreatHall([state.settings.day1, state.settings.day2]);
+const got = await fetchSchedGreatHall(eventDays(state.settings), fetch, (d) => trackedStage(state.settings, d));
 const result = await runAgendaCheck(db, { sched: got.sessions, mode: got.mode });
 const profiles = got.mode === "full" ? await syncProfiles(db, await loadState(db), got.sessions) : null;
 // whole-summit copy for speaker profiles (other stages + workshops); never blocks the Great Hall check

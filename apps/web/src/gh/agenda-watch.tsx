@@ -26,13 +26,13 @@ const KIND_LABEL: Record<string, string> = {
 };
 
 const to12 = (hhmm: string) => { const [h, m] = hhmm.split(":").map(Number); return `${h! % 12 || 12}:${String(m).padStart(2, "0")} ${h! < 12 ? "AM" : "PM"}`; };
-const dayName = (st: State, d: string) => (d === st.settings.day1 ? "Sat 3 Oct" : d === st.settings.day2 ? "Sun 4 Oct" : d);
+const dayName = (_st: State, d: string) => Core.dayShortLabel(d);
 
 /** Where the change happens: day · time · stage (current times from our agenda). */
 function sessionWhere(st: State, c: AgendaChange) {
   const s = c.sid ? st.sessions.find((x) => x.id === c.sid) : null;
-  if (s) return { day: dayName(st, s.day), time: `${hm(s.start)} – ${hm(s.end)}`, title: s.title };
-  if (c.newSession) return { day: dayName(st, c.newSession.day), time: `${to12(c.newSession.start)} – ${to12(c.newSession.end)}`, title: c.newSession.title };
+  if (s) return { day: dayName(st, s.day), time: `${hm(s.start)} – ${hm(s.end)}`, title: s.title, where: Core.venueLabel(s) };
+  if (c.newSession) return { day: dayName(st, c.newSession.day), time: `${to12(c.newSession.start)} – ${to12(c.newSession.end)}`, title: c.newSession.title, where: Core.venueLabel({ venue: (c.newSession as { venue?: string }).venue }) };
   return null;
 }
 
@@ -41,12 +41,12 @@ export function ChangeWhere({ change, compact }: { change: AgendaChange; compact
   if (!state) return null;
   const w = sessionWhere(state, change);
   if (!w) return null;
-  if (compact) return <span className="block text-xs opacity-80">{w.day} · {w.time} · Stage 01 · The Great Hall</span>;
+  if (compact) return <span className="block text-xs opacity-80">{w.day} · {w.time} · {w.where}</span>;
   return (
     <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
       <span className="flex items-center gap-1"><CalendarDays className="size-3.5" />{w.day}</span>
       <span className="flex items-center gap-1"><Clock className="size-3.5" />{w.time}</span>
-      <span className="flex items-center gap-1"><MapPin className="size-3.5" />Stage 01 · The Great Hall</span>
+      <span className="flex items-center gap-1"><MapPin className="size-3.5" />{w.where}</span>
     </div>
   );
 }

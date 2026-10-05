@@ -165,7 +165,7 @@ function SessionEdit({ sid }: { sid?: string }) {
       <F label="Title"><Input  value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Fintech Panel" /></F>
       <div className="grid grid-cols-2 gap-4">
         <F label="Type"><Pick value={type} onChange={setType} options={types.map((x) => ({ value: x, label: x }))} /></F>
-        <F label="Day"><Pick value={sday} onChange={setSday} options={[state.settings.day1, state.settings.day2].map((d) => ({ value: d, label: dayLabel(state, d) }))} /></F>
+        <F label="Day"><Pick value={sday} onChange={setSday} options={Core.eventDays(state.settings).map((d) => ({ value: d, label: dayLabel(state, d) }))} /></F>
         <F label="Start"><Input type="time"  value={start} onChange={(e) => setStart(e.target.value)} /></F>
         <F label="End"><Input type="time"  value={end} onChange={(e) => setEnd(e.target.value)} /></F>
       </div>

@@ -27,6 +27,8 @@ export const sessions = pgTable("sessions", {
   type: text("type").notNull().default("Panel"),
   owner: text("owner").notNull().default(""),
   notes: text("notes").notNull().default(""),
+  /** official venue, e.g. "(ALX) Stage 09: Closing Stage" – empty = Stage 01 · The Great Hall */
+  venue: text("venue").notNull().default(""),
 });
 
 export const people = pgTable("people", {

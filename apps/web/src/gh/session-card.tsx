@@ -55,7 +55,7 @@ export function SessionCard({ s, manage, onlyPr, openDefault }: { s: Session; ma
           <span className="mr-2 tabular-nums text-primary">{hm(s.start)}</span>{s.title}
         </CardTitle>
         <CardDescription>
-          {hm(s.start)}–{hm(s.end)} · {s.type} · {countdown(s, t)} · {r.backstage}/{r.total} backstage
+          {s.venue && <span className="font-medium text-primary">{Core.venueLabel(s)} · </span>}{hm(s.start)}–{hm(s.end)} · {s.type} · {countdown(s, t)} · {r.backstage}/{r.total} backstage
           {r.noshow > 0 && <span className="text-st-noshow"> · {r.noshow} no-show</span>}
         </CardDescription>
         <CardAction className="flex items-center gap-1">

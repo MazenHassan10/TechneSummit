@@ -113,7 +113,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const today = dayOf(Date.now() + skew.current);
     if (autoDay.current !== today) {
       autoDay.current = today;
-      setDay(today === res.state.settings.day2 ? res.state.settings.day2 : res.state.settings.day1);
+      setDay(Core.eventDays(res.state.settings).includes(today) ? today : res.state.settings.day1);
     }
   }, []);
 
