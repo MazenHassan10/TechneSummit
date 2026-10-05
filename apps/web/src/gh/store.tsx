@@ -110,10 +110,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setState(res.state);
     try { localStorage.setItem(STATE_KEY, JSON.stringify({ who: meRef.current?.name ?? res.me?.name, state: res.state })); } catch {}
     // pick today's tab on start, and again when the date changes (app left open overnight)
+    // pick today's tab on start, when the date changes (app left open overnight),
+    // and when today becomes an event day (e.g. the Team Leader adds a 3rd day while the app is open)
     const today = dayOf(Date.now() + skew.current);
-    if (autoDay.current !== today) {
-      autoDay.current = today;
-      setDay(Core.eventDays(res.state.settings).includes(today) ? today : res.state.settings.day1);
+    const days = Core.eventDays(res.state.settings);
+    const key = `${today}|${days.includes(today)}`;
+    if (autoDay.current !== key) {
+      autoDay.current = key;
+      setDay(days.includes(today) ? today : res.state.settings.day1);
     }
   }, []);
 
