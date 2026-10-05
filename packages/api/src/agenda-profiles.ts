@@ -43,7 +43,10 @@ export async function fetchSchedProfile(url: string, fetchFn: typeof fetch = fet
 
 /** Short bio from the official one: whole sentences, about 60 words. */
 export function shortBio(bio: string, maxWords = 60) {
-  const sentences = bio.match(/[^.!?]+[.!?]+/g) ?? [bio];
+  // don't end a sentence on titles or initials ("Mr. Salah", "Osama M. Hijji", "Dr.")
+  const safe = bio.replace(/\b(Mr|Mrs|Ms|Dr|Eng|Prof|St|Jr|Sr|Co|Inc|Ltd|vs|e\.g|i\.e|[A-Z])\.(?=\s)/g, "$1\u2024");
+  const sentences = (safe.match(/[^.!?]+[.!?]+/g) ?? [safe]).map((x) => x.replace(/\u2024/g, "."));
+  if (!safe.match(/[.!?]/)) return bio.trim();
   let out = "";
   for (const sn of sentences) {
     if ((out + sn).split(/\s+/).length > maxWords && out) break;

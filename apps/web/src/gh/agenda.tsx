@@ -14,6 +14,7 @@ import { cn } from "@great-hall-pr/ui/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { CircleCheck, ExternalLink, MapPin, Pencil, Search } from "lucide-react";
 import { useSlots } from "./schedule-alerts";
+import { AllStages } from "./all-stages";
 import { Button } from "@great-hall-pr/ui/components/button";
 import { Textarea } from "@great-hall-pr/ui/components/textarea";
 import { toast } from "sonner";
@@ -153,11 +154,11 @@ export function AgendaView() {
   if (!state) return null;
   return (
     <OpenCtx.Provider value={(name) => modal.open({ kind: "profile", name })}>
-      <DaySwitch />
+      {mode !== "all" && <DaySwitch />}
       <Tabs value={mode} onValueChange={(v) => setMode(String(v))} className="mb-3">
-        <TabsList variant="line"><TabsTrigger value="timeline">Timeline</TabsTrigger><TabsTrigger value="speakers">Speakers</TabsTrigger></TabsList>
+        <TabsList variant="line"><TabsTrigger value="timeline">Great Hall</TabsTrigger><TabsTrigger value="speakers">Speakers</TabsTrigger><TabsTrigger value="all">All stages</TabsTrigger></TabsList>
       </Tabs>
-      {mode === "timeline" ? <Timeline profiles={profiles} /> : <Directory profiles={profiles} />}
+      {mode === "timeline" ? <Timeline profiles={profiles} /> : mode === "speakers" ? <Directory profiles={profiles} /> : <AllStages />}
     </OpenCtx.Provider>
   );
 }
@@ -318,7 +319,7 @@ export function ProfileSheet({ name, profiles, onClose }: { name: string | null;
             <h3 className="mb-1.5 text-sm font-semibold">About</h3>
             <p className="text-sm leading-relaxed text-muted-foreground">{prof?.bio || "No bio available yet."}</p>
           </div>
-          <Separator />
+          {sessions.length > 0 && <><Separator />
           <div>
             <h3 className="mb-2 text-sm font-semibold">In the Great Hall</h3>
             <div className="space-y-2">
@@ -335,13 +336,13 @@ export function ProfileSheet({ name, profiles, onClose }: { name: string | null;
                 );
               })}
             </div>
-          </div>
+          </div></>}
           <AlreadyHere name={name} />
           {summit.elsewhere(name).length > 0 && (
             <>
               <Separator />
               <div>
-                <h3 className="mb-1 text-sm font-semibold">Also at Techne Summit</h3>
+                <h3 className="mb-1 text-sm font-semibold">{sessions.length ? "Also at Techne Summit" : "At Techne Summit"}</h3>
                 <p className="mb-2 text-xs text-muted-foreground">Other stages, workshops and meet &amp; greets – from the official agenda.</p>
                 <div className="space-y-2">{summit.elsewhere(name).map((s) => <ElsewhereRow key={s.id} s={s} />)}</div>
               </div>

@@ -40,7 +40,7 @@ const to24 = (s: string) => {
 };
 
 /** One session anywhere at the summit (any stage, workshop room, meet & greet…). */
-export type SummitSession = SchedSession & { venue: string; track: string; format: string };
+export type SummitSession = SchedSession & { venue: string; track: string; format: string; description?: string };
 
 /** Parses one day of `/<day>/list/descriptions/` – every venue. */
 export function parseSchedDayAll(html: string, day: string): SummitSession[] {
@@ -66,7 +66,10 @@ export function parseSchedDayAll(html: string, day: string): SummitSession[] {
         people.push({ name: decode(pm[2]!), role, profileUrl: SCHED_BASE + pm[1]!.replace(/^\//, ""), photo, headline });
       }
     }
-    if (title) out.push({ day, start: to24(a ?? ""), end: to24(b ?? ""), title, people, venue, track: types[0] ?? "", format: types.length > 1 ? types[types.length - 1]! : "" });
+    const description = (/tip-description">([\s\S]*?)<\/div>/.exec(block)?.[1] ?? "")
+      .replace(/<br\s*\/?>|<\/p>/gi, "\n").replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#0?39;|&rsquo;|&#8217;/g, "’")
+      .replace(/&nbsp;/g, " ").replace(/&ndash;/g, "–").replace(/&mdash;/g, "—").replace(/[ \t]+/g, " ").replace(/\n\s*\n+/g, "\n").trim();
+    if (title) out.push({ day, start: to24(a ?? ""), end: to24(b ?? ""), title, people, venue, track: types[0] ?? "", format: types.length > 1 ? types[types.length - 1]! : "", description });
   }
   return out;
 }

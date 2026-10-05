@@ -64,7 +64,7 @@ export const appRouter = router({
     list: authedProcedure.query(async ({ ctx }) => ctx.db.select().from(speakerProfiles)),
     /** every session at the summit (all stages / workshops) – for "also at Techne Summit" on profiles */
     summit: authedProcedure.query(async ({ ctx }) =>
-      (await ctx.db.select().from(summitSessions)).map((s) => ({ ...s, people: JSON.parse(s.people || "[]") as { name: string; role: string }[] }))),
+      (await ctx.db.select().from(summitSessions)).map((s) => ({ ...s, people: JSON.parse(s.people || "[]") as { name: string; role: string; headline?: string; photo?: string }[] }))),
     /** Team Leader adds / fixes a speaker's social links (LinkedIn, X, Instagram, Facebook, YouTube, TikTok, Behance – no websites). */
     setSocial: authedProcedure
       .input(z.object({ key: z.string().min(1), urls: z.array(z.string().max(300)).max(8) }))

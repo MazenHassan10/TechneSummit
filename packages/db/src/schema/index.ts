@@ -139,6 +139,7 @@ export const summitSessions = pgTable("summit_sessions", {
   venue: text("venue").notNull().default(""),
   track: text("track").notNull().default(""),
   format: text("format").notNull().default(""),
-  /** JSON array of { name, role } */
+  description: text("description").notNull().default(""),
+  /** JSON array of { name, role, headline, photo } */
   people: text("people").notNull().default("[]"),
 });
