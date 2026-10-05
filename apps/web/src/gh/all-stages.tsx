@@ -24,7 +24,7 @@ const tabLabel = (v: string) => {
   return (/Workshops [A-Z]/.exec(name)?.[0] ?? name).replace(/^The /, "");
 };
 
-/** Every stage of the summit, one tab per stage – from the official agenda (refreshed by the Mac watcher). */
+/** Every stage of the summit, one tab per stage – from the official agenda (refreshed by the Mac watcher every 30 min). */
 export function AllStages() {
   const { now } = useApp();
   const modal = useModal();
